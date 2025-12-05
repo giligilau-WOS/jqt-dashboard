@@ -1320,20 +1320,43 @@
         function createTeamChart(t) { 
             const ctx = document.getElementById(`chart-${t.id}`); 
             if(ctx) { 
+                // 取得分佈數據
+                const { counts } = getPowerDistribution(t.members);
+                
+                // 設定顏色
                 const color = t.id.includes('jQt') ? 'rgba(59, 130, 246, 1)' : 'rgba(249, 115, 22, 1)'; 
                 const bg = t.id.includes('jQt') ? 'rgba(59, 130, 246, 0.1)' : 'rgba(249, 115, 22, 0.1)'; 
+                
                 if(teamCharts[t.id]) teamCharts[t.id].destroy(); 
+                
                 teamCharts[t.id] = new Chart(ctx, { 
                     type: 'line', 
                     data: { 
-                        labels: t.members.map((_, i) => i+1), 
-                        datasets: [{ data: t.members.map(m => m.power/1000000), borderColor: color, backgroundColor: bg, borderWidth: 1.5, pointRadius: 0, fill: true, tension: 0.4 }] 
+                        // 標籤：T1(高) ~ T5(低)
+                        labels: ['T1', 'T2', 'T3', 'T4', 'T5'], 
+                        datasets: [{ 
+                            data: counts, 
+                            borderColor: color, 
+                            backgroundColor: bg, 
+                            borderWidth: 1.5, 
+                            pointRadius: 2, // 顯示小圓點以便看清人數落點
+                            fill: true, 
+                            tension: 0.3 // 稍微圓滑一點
+                        }] 
                     }, 
-                    options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { display: false }, tooltip: { enabled: false } }, scales: { x: { display: false }, y: { display: false, min: 0 } } } 
+                    options: { 
+                        responsive: true, 
+                        maintainAspectRatio: false, 
+                        plugins: { legend: { display: false }, tooltip: { enabled: false } }, 
+                        scales: { 
+                            x: { display: false }, 
+                            // Y軸從0開始，確保比例正確
+                            y: { display: false, min: 0, suggestedMax: Math.max(...counts) + 1 } 
+                        } 
+                    } 
                 }); 
             } 
         }
-
         function renderChart() {
             const activeTeams = appState.teams.filter(t => t.active);
             const ctxGlobal = document.getElementById('powerChart');
@@ -1601,6 +1624,36 @@
         function toggleAllTeams(state) { appState.teams.forEach(t => t.active = state); renderTeamSelection(); }
         function applyTeamSelection() { toggleTeamModal(); runTeamLogic(appState.lastLogicMode || 'snake'); showToast('軍團設定已更新', 'success'); }
 
+        // --- 計算戰力分佈與 M 型指標 ---
+        function getPowerDistribution(members) {
+            if (!members || members.length === 0) return { counts: [0,0,0,0,0], mRatio: 0, ranges: [] };
+            
+            const powers = members.map(m => m.power);
+            const max = Math.max(...powers);
+            const min = Math.min(...powers);
+            const range = max - min;
+            const counts = [0, 0, 0, 0, 0]; // 5 個區間：高 -> 低
+            
+            // 如果所有人戰力都一樣，全部算在中間
+            if (range === 0) {
+                counts[2] = members.length;
+            } else {
+                const step = range / 5;
+                powers.forEach(p => {
+                    // 計算落在第幾個區間 (0=最高, 4=最低)
+                    let idx = Math.floor((max - p) / step);
+                    if (idx >= 5) idx = 4; // 修正邊界值
+                    counts[idx]++;
+                });
+            }
+
+            // 計算 M 型佔比：(頭部人數 + 尾部人數) / 總人數
+            // 這代表「極端戰力」的比例
+            const mRatio = Math.round(((counts[0] + counts[4]) / members.length) * 100);
+            
+            return { counts, mRatio };
+        }
+
         // Render Dashboard (Final)
        function renderDashboard(){
             setText('stat-n', appState.players.length);
@@ -1628,8 +1681,34 @@
                 if(t.members.length < 15) anyLow = true;
                 t.members.sort((a,b)=>b.power-a.power);
                 
+                // --- 計算 M 型指標 ---
+                const { mRatio } = getPowerDistribution(t.members);
+                // 根據 M 值給予顏色評價 (大於 40% 視為顯著 M 型化)
+                let mColor = 'text-slate-400';
+                if (mRatio >= 40) mColor = 'text-red-500 font-bold';
+                else if (mRatio >= 20) mColor = 'text-amber-500';
+
                 let h = `<div class="team-container border-${t.id.includes('jQt')?'blue':'orange'}-200 animate-slide-up">`;
-                h += `<div class="team-col-header flex justify-between items-center"><div><h3 class="font-black text-lg text-slate-800">${t.name}</h3><div class="flex gap-2 text-xs font-bold mt-1"><span class="bg-slate-200 px-1.5 py-0.5 rounded text-slate-600">${t.time}</span><span class="bg-indigo-50 text-indigo-600 px-1.5 py-0.5 rounded">${t.members.length} 人</span></div></div><div class="text-right"><div class="text-xl font-black text-slate-700">${Math.round(t.members.reduce((a,b)=>a+b.power,0)/1000).toLocaleString()}k</div><div class="h-8 w-24"><canvas id="chart-${t.id}"></canvas></div></div></div>`;
+                
+                // 修改 Header 區塊：加入 M 型佔比顯示
+                h += `
+                <div class="team-col-header flex justify-between items-center">
+                    <div>
+                        <h3 class="font-black text-lg text-slate-800">${t.name}</h3>
+                        <div class="flex gap-2 text-xs font-bold mt-1">
+                            <span class="bg-slate-200 px-1.5 py-0.5 rounded text-slate-600">${t.time}</span>
+                            <span class="bg-indigo-50 text-indigo-600 px-1.5 py-0.5 rounded">${t.members.length} 人</span>
+                        </div>
+                    </div>
+                    <div class="text-right">
+                        <div class="text-xl font-black text-slate-700">${Math.round(t.members.reduce((a,b)=>a+b.power,0)/1000).toLocaleString()}k</div>
+                        <div class="flex items-center justify-end gap-2">
+                            <span class="text-[10px] ${mColor}">M型: ${mRatio}%</span>
+                            <div class="h-8 w-16"><canvas id="chart-${t.id}"></canvas></div>
+                        </div>
+                    </div>
+                </div>`;
+                
                 h += `<div class="flex-grow overflow-y-auto p-2 custom-scroll space-y-2 relative bg-slate-50/50">`;
 
                 const tCount = t.members.length;
@@ -1647,40 +1726,18 @@
                     const globalRank = globalRankMap[m.name] || totalGlobalPlayers;
                     const globalPercentile = Math.ceil((globalRank / totalGlobalPlayers) * 100);
                     
-                    // --- 戰力評價邏輯 (自定義中文) ---
                     let tierClass = '', icon = 'brightness_1', iconColor = 'text-slate-300';
-                    let tierText = '大佬救我'; // 預設 (後 25%)
+                    let tierText = '大佬救我';
 
-                    if (globalPercentile <= 10) { 
-                        tierClass = 'border-l-4 border-l-yellow-400 shadow-[0_2px_8px_rgba(250,204,21,0.15)]'; 
-                        icon = 'grade'; 
-                        iconColor = 'text-yellow-400';
-                        tierText = '爆幹強';
-                    } 
-                    else if (globalPercentile <= 25) { 
-                        tierClass = 'border-l-4 border-l-purple-500'; 
-                        icon = 'stars'; 
-                        iconColor = 'text-purple-500';
-                        tierText = '超級強';
-                    } 
-                    else if (globalPercentile <= 50) { 
-                        tierClass = 'border-l-4 border-l-blue-400'; 
-                        icon = 'diamond'; 
-                        iconColor = 'text-blue-400'; 
-                        tierText = '強';
-                    } 
-                    else if (globalPercentile <= 75) { 
-                        tierClass = 'border-l-4 border-l-green-500'; 
-                        icon = 'verified'; 
-                        iconColor = 'text-green-500'; 
-                        tierText = '普通弱';
-                    }
+                    if (globalPercentile <= 10) { tierClass = 'border-l-4 border-l-yellow-400 shadow-[0_2px_8px_rgba(250,204,21,0.15)]'; icon = 'grade'; iconColor = 'text-yellow-400'; tierText = '爆幹強'; } 
+                    else if (globalPercentile <= 25) { tierClass = 'border-l-4 border-l-purple-500'; icon = 'stars'; iconColor = 'text-purple-500'; tierText = '超級強'; } 
+                    else if (globalPercentile <= 50) { tierClass = 'border-l-4 border-l-blue-400'; icon = 'diamond'; iconColor = 'text-blue-400'; tierText = '強'; } 
+                    else if (globalPercentile <= 75) { tierClass = 'border-l-4 border-l-green-500'; icon = 'verified'; iconColor = 'text-green-500'; tierText = '普通弱'; }
                     
                     if(isConflict) tierClass = 'border-2 border-red-500 bg-red-50 animate-pulse';
 
                     const powerPct = Math.max(5, (m.power / maxTeamPower) * 100);
                     const barColor = t.id.includes('jQt') ? 'text-blue-400' : 'text-orange-400';
-                    // 將 tierText 傳入 tierJson
                     const tierJson = JSON.stringify({icon, label: tierText, textClass: iconColor}).replace(/"/g, "&quot;");
 
                     h += `
@@ -1705,6 +1762,7 @@
             
             const absentPanel = document.getElementById('absent-panel');
             if(absentPanel){
+                // ... (缺席名單代碼保持不變) ...
                 const count = appState.absentPlayers.length;
                 if(count > 0){
                     absentPanel.classList.remove('hidden');
