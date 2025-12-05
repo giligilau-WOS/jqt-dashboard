@@ -111,22 +111,20 @@
             <span class="text-xs bg-indigo-600 px-2 py-1 rounded text-white font-bold shadow-sm" id="tip-team">Team</span>
         </div>
         <div class="space-y-3 text-sm">
-            <div class="flex justify-between items-center">
-                <span class="text-slate-400">⚔️ 戰力</span>
-                <span class="font-mono font-bold text-green-400 text-lg" id="tip-power">0</span>
-            </div>
-            <div class="flex justify-between items-center">
-                <span class="text-slate-400">🏆 隊內排名</span>
-                <span class="font-mono font-bold text-white text-base"><span id="tip-rank">#0</span> <span class="text-slate-500 text-xs" id="tip-total">/ 0</span></span>
-            </div>
-            <div class="flex justify-between items-center bg-slate-800/80 p-2 rounded border border-slate-700">
-    <span class="text-slate-300">📊 戰力評價</span> <span class="font-black text-white text-base" id="tip-quality">Common</span>
-</div>
-            <div class="flex justify-between items-center">
-                <span class="text-slate-400">💪 聯盟總佔比</span>
-                <span class="font-mono font-bold text-blue-400" id="tip-pct">0%</span>
-            </div>
-        </div>
+    <div class="flex justify-between items-center bg-slate-800/80 p-2 rounded border border-slate-700">
+        <span class="text-slate-300">📊 戰力評價</span>
+        <span class="font-black text-white text-base" id="tip-quality">Common</span>
+    </div>
+
+    <div class="flex justify-between items-start gap-4">
+        <span class="text-slate-400 shrink-0">📝 原始志願</span>
+        <span class="font-bold text-amber-300 text-right break-words leading-tight" id="tip-orig-pref">--</span>
+    </div>
+    <div class="flex justify-between items-center">
+        <span class="text-slate-400">💪 聯盟總佔比</span>
+        <span class="font-mono font-bold text-blue-400" id="tip-pct">0%</span>
+    </div>
+</div>>
     </div>
 
     <div id="team-modal" class="fixed inset-0 bg-black/50 z-[60] hidden flex items-center justify-center p-4 backdrop-blur-sm">
@@ -409,10 +407,31 @@
                         </div>
                     </div>
                     <div class="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-4 mb-8" id="tactics-container"></div>
-                    <div class="border-t pt-6">
-                        <div class="flex justify-between items-center mb-2"><button onclick="copyMissionText()" class="bg-slate-800 text-white px-4 py-2 rounded text-sm font-bold">📋 複製文字</button></div>
-                        <textarea id="mission-text" class="tactical-textarea custom-scroll"></textarea>
-                    </div>
+                    <div class="border-t border-slate-200 pt-6 mt-4">
+    <div class="flex justify-between items-center mb-3">
+        <h3 class="font-bold text-slate-700 flex items-center gap-2">
+            <span class="material-symbols-rounded text-slate-500">terminal</span> 
+            戰術指令預覽
+        </h3>
+        <button onclick="copyMissionText()" class="bg-slate-800 hover:bg-slate-900 text-white px-5 py-2 rounded-xl text-sm font-bold shadow-lg shadow-slate-300 transition-all active:scale-95 flex items-center gap-2">
+            <span class="material-symbols-rounded text-sm">content_copy</span> 
+            一鍵複製
+        </button>
+    </div>
+    
+    <div class="relative group">
+        <textarea id="mission-text" 
+            class="w-full h-80 bg-slate-900 text-green-400 font-mono text-xs md:text-sm p-5 rounded-2xl shadow-inner outline-none focus:ring-2 focus:ring-indigo-500 transition-all custom-scroll resize-y border border-slate-700 leading-relaxed" 
+            readonly 
+            placeholder="等待生成戰術指令..."></textarea>
+            
+        <div class="absolute top-3 right-4 text-[10px] text-slate-600 font-mono select-none border border-slate-700 px-2 py-0.5 rounded">READ ONLY</div>
+    </div>
+
+    <p class="text-xs text-slate-400 mt-2 text-right flex justify-end items-center gap-1">
+        💡 提示：此格式已優化，可直接貼上 Line 記事本或 Discord
+    </p>
+</div>
                 </div>
             </section>
             <section id="page-attendance" class="hidden space-y-6">
@@ -1664,12 +1683,18 @@
             const tooltip = document.getElementById('member-tooltip');
             const pct = totalAlliancePower > 0 ? ((power / totalAlliancePower) * 100).toFixed(2) + '%' : '0%';
             
-            // 基本資料設定
+            // 取得成員資料
             const p = appState.players.find(x => x.name === name);
             const fid = p ? p.fid : '';
+            // 🟢 取得原始志願，若無則顯示 "無"
+            const origPref = p ? (p.origPref || '無') : '無'; 
+
             setText('tip-name', name); 
             setText('tip-fid', fid ? `Family: ${fid}` : '');
             
+            // 🟢 設定原始志願文字
+            setText('tip-orig-pref', origPref);
+
             try { 
                 const teamName = e.target.closest('.team-container').querySelector('h3').innerText; 
                 setText('tip-team', teamName); 
@@ -1680,10 +1705,8 @@
             setText('tip-total', '/ ' + teamCount); 
             setText('tip-pct', pct);
 
-            // --- 評價顯示邏輯更新 ---
             const qEl = document.getElementById('tip-quality');
             if(tierObj) { 
-                // 使用 Flex 讓圖示與文字對齊，並加上 material-symbols-rounded 類別
                 qEl.innerHTML = `<span class="material-symbols-rounded text-xl align-middle mr-1">${tierObj.icon}</span>${tierObj.label}`; 
                 qEl.className = `font-black text-lg flex items-center justify-end ${tierObj.textClass}`; 
             }
