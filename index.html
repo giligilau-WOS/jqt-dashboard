@@ -120,9 +120,8 @@
                 <span class="font-mono font-bold text-white text-base"><span id="tip-rank">#0</span> <span class="text-slate-500 text-xs" id="tip-total">/ 0</span></span>
             </div>
             <div class="flex justify-between items-center bg-slate-800/80 p-2 rounded border border-slate-700">
-                <span class="text-slate-300">📊 聯盟品質</span>
-                <span class="font-black text-white text-base" id="tip-quality">Common</span>
-            </div>
+    <span class="text-slate-300">📊 戰力評價</span> <span class="font-black text-white text-base" id="tip-quality">Common</span>
+</div>
             <div class="flex justify-between items-center">
                 <span class="text-slate-400">💪 聯盟總佔比</span>
                 <span class="font-mono font-bold text-blue-400" id="tip-pct">0%</span>
@@ -308,9 +307,20 @@
                             <div class="text-[10px] uppercase text-red-400 font-bold tracking-wider">Conflicts</div>
                             <div class="text-3xl font-black text-red-600 font-mono" id="stat-conflict">0</div>
                         </div>
-                       <button onclick="autoResolveConflicts()" class="absolute right-2 top-1/2 -translate-y-1/2 bg-red-100 hover:bg-red-200 text-red-700 text-xs px-3 py-1.5 rounded-full font-bold shadow opacity-0 group-hover:opacity-100 transition-opacity" title="【衝突自動修復】&#10;嘗試解決「同家族撞期」或「同隊」問題。&#10;系統會嘗試與其他隊伍成員交換位置。&#10;優先尋找戰力相近且交換後不會產生新衝突的對象。">
-    ⚡ Auto Fix
-</button>
+                        <button onclick="autoResolveConflicts()" class="absolute right-2 top-1/2 -translate-y-1/2 bg-red-100 hover:bg-red-200 text-red-700 text-xs px-3 py-1.5 rounded-full font-bold shadow opacity-0 group-hover:opacity-100 transition-opacity" title="【衝突自動修復】&#10;嘗試解決「同家族撞期」或「同隊」問題。&#10;系統會嘗試與其他隊伍成員交換位置。&#10;優先尋找戰力相近且交換後不會產生新衝突的對象。">
+                            ⚡ Auto Fix
+                        </button>
+                    </div>
+
+                    <div class="stat-card border-l-4 border-amber-400 group relative overflow-hidden">
+                        <div class="stat-icon-box bg-amber-50 text-amber-500 group-hover:bg-amber-400 group-hover:text-white transition-colors"><span class="material-symbols-rounded">schedule_send</span></div>
+                        <div>
+                            <div class="text-[10px] uppercase text-amber-400 font-bold tracking-wider">Pref. Mismatch</div>
+                            <div class="text-3xl font-black text-amber-500 font-mono" id="stat-pref-mismatch">0</div>
+                        </div>
+                        <button onclick="autoCorrectPreferences()" class="absolute right-2 top-1/2 -translate-y-1/2 bg-amber-100 hover:bg-amber-200 text-amber-700 text-xs px-3 py-1.5 rounded-full font-bold shadow opacity-0 group-hover:opacity-100 transition-opacity" title="【志願自動校正】&#10;將「志願不符」的成員移動到正確時段。&#10;僅在交換安全（無衝突）時執行。">
+                            ⚡ Auto Fix
+                        </button>
                     </div>
 
                     <div class="stat-card border-l-4 border-amber-500 group cursor-pointer hover:bg-amber-50" onclick="switchTab('settings')">
@@ -934,13 +944,21 @@
             return true;
         }
 
+      // --- 修正後的 runTeamLogic 函數 ---
+        // --- 核心分配邏輯 (完全重寫) ---
         function runTeamLogic(mode = 'snake') {
             appState.lastLogicMode = mode;
+            // 1. 重置隊伍
             const validP = appState.players.slice();
             appState.teams.forEach(t => t.members = []);
+            const activeTeams = appState.teams.filter(t => t.active).sort((a, b) => a.priority - b.priority);
+
+            if (activeTeams.length === 0) return;
+
+            // 2. 準備名單：按戰力高 -> 低排序
             let remaining = [...validP].sort((a, b) => b.power - a.power);
 
-            // 1. 預先鎖定
+            // 3. 處理鎖定名單 (先佔位)
             const assign = (p, tid, reason) => {
                 const t = appState.teams.find(x => x.id === tid);
                 if (t && t.active) {
@@ -952,95 +970,65 @@
                 return false;
             };
 
+            // (鎖定邏輯保留)
             [...remaining].forEach(p => {
                 if (p.name.includes("劼吉撈") && !p.name.includes("ATM")) assign(p, 'jQt1', "R5 鎖定");
-                else if (p.name.includes("躺平草仔粿")) { const jQt2 = appState.teams.find(t => t.id === 'jQt2'); if (jQt2 && jQt2.active) assign(p, 'jQt2', "鎖定 jQt2"); else assign(p, 'aQt1', "鎖定 aQt1(備案)"); } 
+                else if (p.name.includes("躺平草仔粿")) { 
+                    const jQt2 = appState.teams.find(t => t.id === 'jQt2'); 
+                    if (jQt2 && jQt2.active) assign(p, 'jQt2', "鎖定 jQt2"); 
+                    else assign(p, 'aQt1', "鎖定 aQt1(備案)"); 
+                }
                 else if (p.name.includes("冬來冬往")) assign(p, 'jQt1', "鎖定 jQt");
-                else if (p.name.includes("小冬冬")) { const jQt2 = appState.teams.find(t => t.id === 'jQt2'); if (jQt2 && jQt2.active) assign(p, 'jQt2', "鎖定 jQt"); else assign(p, 'jQt1', "鎖定 jQt"); }
+                else if (p.name.includes("小冬冬")) { 
+                    const jQt2 = appState.teams.find(t => t.id === 'jQt2'); 
+                    if (jQt2 && jQt2.active) assign(p, 'jQt2', "鎖定 jQt"); 
+                    else assign(p, 'jQt1', "鎖定 jQt"); 
+                }
             });
 
-            // 2. 家屬/小號邏輯
-            const families = {};
-            remaining.forEach(p => { if (!families[p.fid]) families[p.fid] = []; families[p.fid].push(p); });
-            for (const fid in families) {
-                const members = families[fid];
-                if (members.length > 1) {
-                    members.sort((a, b) => b.power - a.power); const main = members[0]; const alt = members[1];
-                    if (assign(main, 'jQt1', "主號歸位")) {} else if (assign(main, 'aQt1', "主號歸位")) {}
-                    if (!assign(alt, 'jQt2', "小號分流")) { 
-                        if (!assign(alt, 'aQt2', "小號分流")) { 
-                            const mainT = appState.teams.find(t => t.id === main.team); 
-                            const targetId = (mainT && mainT.id === 'jQt1') ? 'aQt1' : 'jQt1'; 
-                            if (!assign(alt, targetId, "小號分流(撞)")) assign(alt, main.team, "小號分流(同隊)"); 
-                        } 
+            // 4. 正式分配 (依據設定決定策略)
+            remaining.forEach((p, i) => {
+                let eligibleTeams = activeTeams;
+
+                // 如果開啟「遵循志願」，且該成員有特定志願 (非 any)
+                if (appState.prioritizePreferences && p.prefTime !== 'any') {
+                    // 篩選出符合時間的隊伍
+                    const timeMatches = activeTeams.filter(t => t.time === p.prefTime);
+                    // 如果有符合的隊伍，就只從這些隊伍選；如果沒有(例如該時段隊伍沒開)，就退回全選
+                    if (timeMatches.length > 0) {
+                        eligibleTeams = timeMatches;
                     }
                 }
-            }
 
-            // 3. 共控
-            const multiP = remaining.filter(p => MULTI_CONTROLLERS.some(k => p.name.includes(k)));
-            if (multiP.length > 0) { const activeT = appState.teams.filter(t => t.active).sort((a, b) => a.priority - b.priority); multiP.forEach((p, i) => assign(p, activeT[i % activeT.length].id, "共控分散")); }
-
-            // 4. 志願優先
-            if (appState.prioritizePreferences) {
-                [...remaining].forEach(p => { 
-                    if (p.prefTime !== 'any') { 
-                        const targets = appState.teams.filter(t => t.active && t.time === p.prefTime).sort((a, b) => a.priority - b.priority); 
-                        if (targets.length > 0) assign(p, targets[0].id, "志願分配"); 
-                    } 
+                // 在「合格隊伍」中，選擇最適合的一個
+                // 策略：為了平衡戰力，我們把人丟進目前「總戰力最低」的合格隊伍
+                // 這是一種動態的 S 型 (Water filling)
+                eligibleTeams.sort((a, b) => {
+                    const powerA = a.members.reduce((sum, m) => sum + m.power, 0);
+                    const powerB = b.members.reduce((sum, m) => sum + m.power, 0);
+                    // 如果戰力一樣，選人數少的
+                    if (powerA === powerB) return a.members.length - b.members.length;
+                    return powerA - powerB; // 選戰力低的
                 });
-            }
 
-            // 5. 核心分配算法
-            const activeT = appState.teams.filter(t => t.active).sort((a, b) => a.priority - b.priority);
-            if (activeT.length > 0) {
-                if (mode === 'm_type') {
-                    let left = 0, right = remaining.length - 1, tIdx = 0, tempRem = [...remaining];
-                    while (left <= right) {
-                        let t = activeT[tIdx % activeT.length];
-                        if (left <= right) { let p = tempRem[left]; p.team = t.id; p.reason = "M型(高)"; t.members.push(p); remaining = remaining.filter(x => x !== p); left++; }
-                        if (left <= right) { let p = tempRem[right]; p.team = t.id; p.reason = "M型(低)"; t.members.push(p); remaining = remaining.filter(x => x !== p); right--; }
-                        tIdx++;
-                    }
-                } else if (mode === 'descending') {
-                    let tIdx = 0; const CAP = 30;
-                    while (remaining.length > 0) {
-                        const p = remaining.shift(); let t = activeT[tIdx];
-                        if (t.members.length >= CAP && tIdx < activeT.length - 1) { tIdx++; t = activeT[tIdx]; }
-                        t.members.push(p); p.team = t.id; p.reason = "階梯(高>低)";
-                    }
-                } else { 
-                    let tIdx = 0, dir = 1;
-                    while (remaining.length > 0) {
-                        const p = remaining.shift(); let t = activeT[tIdx];
-                        t.members.push(p); p.team = t.id; p.reason = "S型(均)"; tIdx += dir;
-                        if (tIdx >= activeT.length) { tIdx = activeT.length - 1; dir = -1; } if (tIdx < 0) { tIdx = 0; dir = 1; }
+                const targetTeam = eligibleTeams[0];
+                if (targetTeam) {
+                    targetTeam.members.push(p);
+                    p.team = targetTeam.id;
+                    // 如果是因為志願才進來的，標記一下
+                    if (appState.prioritizePreferences && p.prefTime !== 'any' && p.prefTime === targetTeam.time) {
+                        // 這裡不寫死 reason，保留彈性，但邏輯上已達成
                     }
                 }
-            }
+            });
 
-            // 6. 人數補齊 (S型) & 梯度調整
-            if (mode !== 'descending') {
-                let iterations = 0;
-                while (iterations < 50) {
-                    iterations++; const currentActive = appState.teams.filter(t => t.active); const needy = currentActive.filter(t => t.members.length < 15);
-                    if (needy.length === 0) break;
-                    needy.sort((a, b) => a.members.length - b.members.length); const target = needy[0];
-                    currentActive.sort((a, b) => b.members.length - a.members.length); const source = currentActive[0];
-                    if (source.members.length <= 15) break;
-                    let candidateIdx = -1;
-                    for (let i = source.members.length - 1; i >= 0; i--) { const m = source.members[i]; if (isLockedMember(m)) continue; candidateIdx = i; break; }
-                    if (candidateIdx > -1) { const m = source.members.splice(candidateIdx, 1)[0]; m.team = target.id; m.reason = "強制平衡(湊15)"; target.members.push(m); } else break;
-                }
-                enforcePowerGradient();
-            }
-
-            if (appState.prioritizePreferences) autoCorrectPreferences(true);
+            // 5. 後處理：梯度優化與衝突檢查
+            enforcePowerGradient(); 
             checkConflicts(); 
             renderDashboard();
         }
 
-        function enforcePowerGradient() { 
+       function enforcePowerGradient() { 
             const active = appState.teams.filter(t => t.active).sort((a, b) => a.priority - b.priority); 
             const getPower = t => t.members.reduce((s, m) => s + m.power, 0); 
             let safety = 0; 
@@ -1049,6 +1037,12 @@
                 let changed = false; 
                 for (let i = 0; i < active.length - 1; i++) { 
                     const hi = active[i], lo = active[i + 1]; 
+                    // 只有在不同梯隊（如同為 22:00 的一二軍）之間才需要做戰力梯度
+                    // 如果時間不同（例如 jQt1 是 22:00, jQt2 是 20:00），通常不需要強制高戰力在前，
+                    // 但如果您希望全盟最高戰力都在第一隊，則保持原狀。
+                    // 這裡假設：不同時間的隊伍之間，如果開啟「志願優先」，則不應因戰力而硬換
+                    if (appState.prioritizePreferences && hi.time !== lo.time) continue;
+
                     let pHi = getPower(hi), pLo = getPower(lo); 
                     if (pHi >= pLo) continue; 
 
@@ -1061,25 +1055,23 @@
                     let swapped = false; 
                     if (movableHi.length && movableLo.length) { 
                         const weakHi = movableHi[0], strongLo = movableLo[0]; 
-                        // 確保交換後不會造成新的衝突
                         if (strongLo.power > weakHi.power) { 
                             if (isSafeToJoin(strongLo, hi) && isSafeToJoin(weakHi, lo)) {
-                                hi.members.splice(hi.members.indexOf(weakHi), 1); 
-                                lo.members.splice(lo.members.indexOf(strongLo), 1); 
-                                weakHi.team = lo.id; weakHi.reason = "梯度調整"; 
-                                strongLo.team = hi.id; strongLo.reason = "梯度調整"; 
-                                lo.members.push(weakHi); hi.members.push(strongLo); 
-                                swapped = true; changed = true; 
-                            }
-                        } 
-                    } 
-                    if (!swapped && movableLo.length) { 
-                        const strongLo = movableLo[0]; 
-                        if (lo.members.length > 15) { 
-                            if (isSafeToJoin(strongLo, hi)) {
-                                lo.members.splice(lo.members.indexOf(strongLo), 1); 
-                                strongLo.team = hi.id; strongLo.reason = "梯度調整"; 
-                                hi.members.push(strongLo); changed = true; 
+                                // 保護志願：如果開啟志願優先，檢查交換後是否會違反志願
+                                let prefOk = true;
+                                if (appState.prioritizePreferences) {
+                                    if (strongLo.prefTime !== 'any' && strongLo.prefTime !== hi.time) prefOk = false;
+                                    if (weakHi.prefTime !== 'any' && weakHi.prefTime !== lo.time) prefOk = false;
+                                }
+
+                                if (prefOk) {
+                                    hi.members.splice(hi.members.indexOf(weakHi), 1); 
+                                    lo.members.splice(lo.members.indexOf(strongLo), 1); 
+                                    weakHi.team = lo.id; weakHi.reason = "梯度調整"; 
+                                    strongLo.team = hi.id; strongLo.reason = "梯度調整"; 
+                                    lo.members.push(weakHi); hi.members.push(strongLo); 
+                                    swapped = true; changed = true; 
+                                }
                             }
                         } 
                     } 
@@ -1174,79 +1166,131 @@
         }
 
         // --- 修正後的衝突解決邏輯 ---
+        // --- 整合後的衝突與志願修復邏輯 ---
         function autoResolveConflicts() { 
-            let maxLoops = 10; 
-            let totalFixed = 0;
             const activeTeams = appState.teams.filter(t => t.active);
             if (activeTeams.length < 2) return showToast("單一軍團模式無需解決衝突"); 
 
+            let totalFixed = 0;
+            let maxLoops = 20; // 增加迴圈數以處理複雜情況
+
             for (let loop = 0; loop < maxLoops; loop++) {
-                checkConflicts(); 
-                const conflicts = Object.keys(appState.conflictMap);
-                if (conflicts.length === 0) break; 
+                checkConflicts(); // 更新衝突狀態
+                
+                // 1. 收集所有需要處理的人 (包含衝突者 + 志願不符者)
+                let issues = [];
+                
+                // A. 家族/同隊衝突 (高優先級)
+                Object.keys(appState.conflictMap).forEach(name => {
+                    const t = activeTeams.find(t => t.members.some(m => m.name === name));
+                    const m = t ? t.members.find(m => m.name === name) : null;
+                    if (m && !isLockedMember(m)) issues.push({ member: m, team: t, type: 'conflict', priority: 10 });
+                });
+
+                // B. 志願不符 (中優先級，僅在開啟遵循志願時加入)
+                if (appState.prioritizePreferences) {
+                    activeTeams.forEach(t => {
+                        t.members.forEach(m => {
+                            if (m.prefTime !== 'any' && m.prefTime !== t.time && !isLockedMember(m)) {
+                                // 避免重複加入
+                                if (!issues.find(i => i.member === m)) {
+                                    issues.push({ member: m, team: t, type: 'pref', priority: 5 });
+                                }
+                            }
+                        });
+                    });
+                }
+
+                if (issues.length === 0) break; // 沒問題就結束
+
+                // 依優先級排序 (先解衝突，再解志願)
+                issues.sort((a, b) => b.priority - a.priority);
 
                 let changedInLoop = false;
-                for (const name of conflicts) {
-                    let currentTeam = null, player = null;
-                    // 找出衝突者
-                    for (let t of activeTeams) {
-                        const found = t.members.find(m => m.name === name);
-                        if (found) { currentTeam = t; player = found; break; }
-                    }
-                    // 若鎖定或找不到人，跳過
-                    if (!player || !currentTeam || isLockedMember(player)) continue;
 
-                    // 尋找目標隊伍 (不同時間 > 不同ID)
-                    let targetTeams = activeTeams.filter(t => t.id !== currentTeam.id && t.time !== currentTeam.time);
-                    if (targetTeams.length === 0) targetTeams = activeTeams.filter(t => t.id !== currentTeam.id);
+                // 嘗試解決每一個問題
+                for (let issue of issues) {
+                    const { member: player, team: currentTeam, type } = issue;
+                    
+                    // 尋找目標隊伍
+                    // 如果是衝突：找不同 ID 且 不同時間(如果是撞期) 的隊伍
+                    // 如果是志願：找符合志願時間的隊伍
+                    let targetTeams = [];
+                    if (type === 'pref') {
+                        targetTeams = activeTeams.filter(t => t.time === player.prefTime);
+                    } else {
+                        // 衝突處理：優先找完全沒衝突的隊伍
+                        targetTeams = activeTeams.filter(t => t.id !== currentTeam.id && t.time !== currentTeam.time);
+                        // 如果找不到不同時間的，只好找同時間但不同隊的 (解決同隊衝突)
+                        if (targetTeams.length === 0) targetTeams = activeTeams.filter(t => t.id !== currentTeam.id);
+                    }
 
                     let swapSuccess = false;
+
                     for (let targetTeam of targetTeams) {
-                        // 找候選人
+                        // 找候選人 (可以跟 player 交換的人)
+                        // 條件：非鎖定
                         let candidates = targetTeam.members.filter(m => !isLockedMember(m));
-                        // 依戰力差距排序
+                        
+                        // 排序候選人：戰力差距越小越好
                         candidates.sort((a, b) => Math.abs(a.power - player.power) - Math.abs(b.power - player.power));
 
                         for (let candidate of candidates) {
-                            // 動態戰力門檻
-                            let limit = 500000;
-                            if (loop > 2) limit = 2000000;
-                            if (loop > 5) limit = 999999999;
+                            // 戰力門檻放寬 (隨著迴圈次數增加)
+                            let limit = 500000 + (loop * 500000); 
                             if (Math.abs(candidate.power - player.power) > limit) continue;
 
-                            // 【關鍵修正】如果開啟「遵循志願」，前幾輪不要動那些「已經在滿意時段」的人
-                            if (appState.prioritizePreferences && loop < 5) {
-                                // 如果候選人有指定時間，且他現在就在對的時間，盡量別動他
+                            // === 關鍵邏輯：交換模擬 ===
+                            // 1. Player 去 TargetTeam 安全嗎？ (無家族衝突)
+                            if (!isSafeToJoin(player, targetTeam)) continue;
+                            // 2. Candidate 來 CurrentTeam 安全嗎？
+                            if (!isSafeToJoin(candidate, currentTeam)) continue;
+
+                            // 3. 如果是為了解決志願，檢查 Candidate 是否願意過來 (或者是 any)
+                            // 避免把原本就在滿意位置的人換走
+                            if (type === 'pref') {
+                                // 如果候選人也是指定時間，且他現在就在對的時間，別動他
                                 if (candidate.prefTime !== 'any' && candidate.prefTime === targetTeam.time) continue;
                             }
-
-                            // 安全檢查
-                            if (!isSafeToJoin(player, targetTeam)) continue;
-                            if (!isSafeToJoin(candidate, currentTeam)) continue;
+                            
+                            // 4. 如果是為了解決衝突，且開啟了志願優先，要盡量避免製造新的志願不符
+                            if (type === 'conflict' && appState.prioritizePreferences) {
+                                // 如果交換會導致原本滿意的人變不滿意，盡量避免 (除非沒招了 loop > 10)
+                                if (loop < 10 && candidate.prefTime === targetTeam.time && candidate.prefTime !== 'any') continue;
+                            }
 
                             // 執行交換
                             currentTeam.members = currentTeam.members.filter(m => m !== player);
                             targetTeam.members = targetTeam.members.filter(m => m !== candidate);
                             
-                            player.team = targetTeam.id; player.reason = "衝突修復";
-                            candidate.team = currentTeam.id; candidate.reason = "衝突修復(交換)";
+                            player.team = targetTeam.id; 
+                            player.reason = type === 'conflict' ? "衝突修復" : "志願校正";
+                            
+                            candidate.team = currentTeam.id; 
+                            candidate.reason = "交換調整";
                             
                             targetTeam.members.push(player);
                             currentTeam.members.push(candidate);
                             
-                            changedInLoop = true; swapSuccess = true; totalFixed++; break; 
+                            changedInLoop = true; 
+                            swapSuccess = true; 
+                            totalFixed++; 
+                            break; 
                         }
-                        if (swapSuccess) break; 
+                        if (swapSuccess) break;
                     }
                 }
-                if (!changedInLoop) break; 
+                if (!changedInLoop) break; // 這一輪都沒動靜，大概解不掉了，退出
             }
+
             checkConflicts(); 
             renderDashboard(); 
-            if (totalFixed > 0) showToast(`已自動解決 ${totalFixed} 個衝突`, 'success'); 
+            
+            if (totalFixed > 0) showToast(`已自動調整 ${totalFixed} 處設置`, 'success'); 
             else {
-                const remaining = Object.keys(appState.conflictMap).length;
-                if(remaining > 0) showToast(`仍有 ${remaining} 個衝突無法自動解決`, 'warning');
+                const conflictCount = Object.keys(appState.conflictMap).length;
+                if(conflictCount > 0) showToast(`仍有 ${conflictCount} 個衝突無法自動解決`, 'warning');
+                else if (appState.prioritizePreferences) showToast("衝突與志願皆已最佳化", 'success');
                 else showToast("無衝突需要解決", 'success');
             }
         }
@@ -1512,14 +1556,34 @@
         function showHoverCard(e, name, power, rank, teamCount, totalAlliancePower, tierObj) {
             const tooltip = document.getElementById('member-tooltip');
             const pct = totalAlliancePower > 0 ? ((power / totalAlliancePower) * 100).toFixed(2) + '%' : '0%';
+            
+            // 基本資料設定
             const p = appState.players.find(x => x.name === name);
             const fid = p ? p.fid : '';
-            setText('tip-name', name); setText('tip-fid', fid ? `Family: ${fid}` : '');
-            try { const teamName = e.target.closest('.team-container').querySelector('h3').innerText; setText('tip-team', teamName); } catch(err) { setText('tip-team', 'Team'); }
-            setText('tip-power', formatSmart(power)); setText('tip-rank', '#' + rank); setText('tip-total', '/ ' + teamCount); setText('tip-pct', pct);
+            setText('tip-name', name); 
+            setText('tip-fid', fid ? `Family: ${fid}` : '');
+            
+            try { 
+                const teamName = e.target.closest('.team-container').querySelector('h3').innerText; 
+                setText('tip-team', teamName); 
+            } catch(err) { setText('tip-team', 'Team'); }
+            
+            setText('tip-power', formatSmart(power)); 
+            setText('tip-rank', '#' + rank); 
+            setText('tip-total', '/ ' + teamCount); 
+            setText('tip-pct', pct);
+
+            // --- 評價顯示邏輯更新 ---
             const qEl = document.getElementById('tip-quality');
-            if(tierObj) { qEl.innerHTML = `${tierObj.icon} ${tierObj.label}`; qEl.className = `font-black text-lg ${tierObj.textClass}`; }
-            tooltip.classList.remove('opacity-0', 'scale-95'); tooltip.classList.add('opacity-100', 'scale-100'); moveTooltip(e);
+            if(tierObj) { 
+                // 使用 Flex 讓圖示與文字對齊，並加上 material-symbols-rounded 類別
+                qEl.innerHTML = `<span class="material-symbols-rounded text-xl align-middle mr-1">${tierObj.icon}</span>${tierObj.label}`; 
+                qEl.className = `font-black text-lg flex items-center justify-end ${tierObj.textClass}`; 
+            }
+            
+            tooltip.classList.remove('opacity-0', 'scale-95'); 
+            tooltip.classList.add('opacity-100', 'scale-100'); 
+            moveTooltip(e);
         }
         
         function moveTooltip(e) {
@@ -1538,10 +1602,19 @@
         function applyTeamSelection() { toggleTeamModal(); runTeamLogic(appState.lastLogicMode || 'snake'); showToast('軍團設定已更新', 'success'); }
 
         // Render Dashboard (Final)
-        function renderDashboard(){
+       function renderDashboard(){
             setText('stat-n', appState.players.length);
             setText('stat-power', Math.round(appState.players.reduce((a,b)=>a+b.power,0)).toLocaleString());
             setText('stat-unknown', appState.unknownPlayers.length);
+            
+            let mismatchCount = 0;
+            appState.teams.filter(t=>t.active).forEach(t => {
+                t.members.forEach(m => {
+                    if (m.prefTime !== 'any' && m.prefTime !== t.time) mismatchCount++;
+                });
+            });
+            setText('stat-pref-mismatch', mismatchCount);
+
             const d=document.getElementById('dashboard-container'); if(d) d.innerHTML='';
             let anyLow = false; renderChart();
 
@@ -1573,18 +1646,42 @@
 
                     const globalRank = globalRankMap[m.name] || totalGlobalPlayers;
                     const globalPercentile = Math.ceil((globalRank / totalGlobalPlayers) * 100);
+                    
+                    // --- 戰力評價邏輯 (自定義中文) ---
                     let tierClass = '', icon = 'brightness_1', iconColor = 'text-slate-300';
+                    let tierText = '大佬救我'; // 預設 (後 25%)
 
-                    if (globalPercentile <= 10) { tierClass = 'border-l-4 border-l-yellow-400 shadow-[0_2px_8px_rgba(250,204,21,0.15)]'; icon = 'grade'; iconColor = 'text-yellow-400'; } 
-                    else if (globalPercentile <= 25) { tierClass = 'border-l-4 border-l-purple-500'; icon = 'stars'; iconColor = 'text-purple-500'; } 
-                    else if (globalPercentile <= 50) { tierClass = 'border-l-4 border-l-blue-400'; icon = 'diamond'; iconColor = 'text-blue-400'; } 
-                    else if (globalPercentile <= 75) { tierClass = 'border-l-4 border-l-green-500'; icon = 'verified'; iconColor = 'text-green-500'; } 
+                    if (globalPercentile <= 10) { 
+                        tierClass = 'border-l-4 border-l-yellow-400 shadow-[0_2px_8px_rgba(250,204,21,0.15)]'; 
+                        icon = 'grade'; 
+                        iconColor = 'text-yellow-400';
+                        tierText = '爆幹強';
+                    } 
+                    else if (globalPercentile <= 25) { 
+                        tierClass = 'border-l-4 border-l-purple-500'; 
+                        icon = 'stars'; 
+                        iconColor = 'text-purple-500';
+                        tierText = '超級強';
+                    } 
+                    else if (globalPercentile <= 50) { 
+                        tierClass = 'border-l-4 border-l-blue-400'; 
+                        icon = 'diamond'; 
+                        iconColor = 'text-blue-400'; 
+                        tierText = '強';
+                    } 
+                    else if (globalPercentile <= 75) { 
+                        tierClass = 'border-l-4 border-l-green-500'; 
+                        icon = 'verified'; 
+                        iconColor = 'text-green-500'; 
+                        tierText = '普通弱';
+                    }
                     
                     if(isConflict) tierClass = 'border-2 border-red-500 bg-red-50 animate-pulse';
 
                     const powerPct = Math.max(5, (m.power / maxTeamPower) * 100);
                     const barColor = t.id.includes('jQt') ? 'text-blue-400' : 'text-orange-400';
-                    const tierJson = JSON.stringify({icon, label: icon, textClass: iconColor}).replace(/"/g, "&quot;");
+                    // 將 tierText 傳入 tierJson
+                    const tierJson = JSON.stringify({icon, label: tierText, textClass: iconColor}).replace(/"/g, "&quot;");
 
                     h += `
                     <div class="member-card ${tierClass}" onclick="event.stopPropagation(); cycleTeam('${safeName}')" onmousemove="moveTooltip(event)" onmouseenter="showHoverCard(event, '${safeName}', ${m.power}, ${idx+1}, ${tCount}, ${allianceTotalPower}, ${tierJson})" onmouseleave="hideHoverCard()">
