@@ -374,10 +374,20 @@
                     </div>
 
                 <div class="mt-4 glass-panel p-4 rounded-2xl flex flex-col md:flex-row gap-4 items-center">
-                    <div class="w-full md:w-1/3">
-                        <h4 class="font-bold text-slate-700 text-sm mb-2">軍團戰力分佈</h4>
-                        <div class="h-32 w-full"><canvas id="powerChart"></canvas></div>
-                    </div>
+                    <div class="w-full md:w-1/3 flex flex-col gap-6">
+    <div>
+        <h4 class="font-bold text-slate-700 text-sm mb-2">🏰 軍團總戰力比較</h4>
+        <div class="h-32 w-full"><canvas id="powerChart"></canvas></div>
+    </div>
+
+    <div class="border-t border-slate-200 pt-4">
+        <div class="flex justify-between items-center mb-2">
+            <h4 class="font-bold text-slate-700 text-sm">📊 全員戰力區間分佈</h4>
+            <span id="global-m-ratio" class="text-xs font-bold text-slate-400 bg-slate-100 px-2 py-0.5 rounded">M: 0%</span>
+        </div>
+        <div class="h-32 w-full"><canvas id="globalDistChart"></canvas></div>
+    </div>
+</div>
                     <div class="w-full md:w-2/3">
                          <div id="absent-panel" class="hidden bg-slate-50 border border-slate-200 rounded-xl p-3">
                             <div class="flex items-center justify-between mb-2">
@@ -1357,25 +1367,99 @@
                 }); 
             } 
         }
+        // 定義全域變數以管理新圖表實例
+        let globalDistChartInstance = null;
+
         function renderChart() {
             const activeTeams = appState.teams.filter(t => t.active);
+            
+            // --- 1. 繪製原本的：軍團總戰力比較 (橫向長條圖) ---
             const ctxGlobal = document.getElementById('powerChart');
             if (chartInstance) chartInstance.destroy();
-            const divisor = 1000; const label = '軍團總戰力 (k)';
+            const divisor = 1000; 
+            
             if (ctxGlobal) {
                 chartInstance = new Chart(ctxGlobal, {
                     type: 'bar',
                     data: {
                         labels: activeTeams.map(t => t.name),
                         datasets: [{ 
-                            label: label, 
+                            label: '總戰力 (k)', 
                             data: activeTeams.map(t => (t.members.reduce((a, b) => a + b.power, 0) / divisor).toFixed(0)), 
                             backgroundColor: activeTeams.map(t => t.id.includes('jQt') ? 'rgba(59, 130, 246, 0.7)' : 'rgba(249, 115, 22, 0.7)'), 
                             borderColor: activeTeams.map(t => t.id.includes('jQt') ? 'rgba(59, 130, 246, 1)' : 'rgba(249, 115, 22, 1)'), 
                             borderWidth: 1 
                         }]
                     },
-                    options: { indexAxis: 'y', responsive: true, maintainAspectRatio: false, plugins: { legend: { display: false } }, scales: { x: { beginAtZero: true, grid: { display: false } } } }
+                    options: { 
+                        indexAxis: 'y', 
+                        responsive: true, 
+                        maintainAspectRatio: false, 
+                        plugins: { legend: { display: false } }, 
+                        scales: { x: { beginAtZero: true, grid: { display: false } } } 
+                    }
+                });
+            }
+
+            // --- 2. 新增：全體人員戰力區間分佈 (折線圖) ---
+            const ctxDist = document.getElementById('globalDistChart');
+            if (globalDistChartInstance) globalDistChartInstance.destroy();
+
+            if (ctxDist && appState.players.length > 0) {
+                // 使用先前定義的 getPowerDistribution 計算全體分佈
+                const { counts, mRatio } = getPowerDistribution(appState.players);
+                
+                // 更新 M 型係數標籤顏色
+                const mBadge = document.getElementById('global-m-ratio');
+                if(mBadge) {
+                    mBadge.innerText = `M型: ${mRatio}%`;
+                    if(mRatio >= 40) mBadge.className = "text-xs font-bold text-white bg-red-500 px-2 py-0.5 rounded shadow-sm animate-pulse";
+                    else if(mRatio >= 20) mBadge.className = "text-xs font-bold text-white bg-amber-500 px-2 py-0.5 rounded";
+                    else mBadge.className = "text-xs font-bold text-slate-600 bg-slate-200 px-2 py-0.5 rounded";
+                }
+
+                globalDistChartInstance = new Chart(ctxDist, {
+                    type: 'line',
+                    data: {
+                        labels: ['T1(高)', 'T2', 'T3', 'T4', 'T5(低)'],
+                        datasets: [{
+                            label: '人數',
+                            data: counts,
+                            borderColor: 'rgba(99, 102, 241, 1)', // Indigo 500
+                            backgroundColor: 'rgba(99, 102, 241, 0.1)',
+                            borderWidth: 2,
+                            pointRadius: 3,
+                            pointBackgroundColor: 'white',
+                            pointBorderColor: 'rgba(99, 102, 241, 1)',
+                            fill: true,
+                            tension: 0.3
+                        }]
+                    },
+                    options: {
+                        responsive: true,
+                        maintainAspectRatio: false,
+                        plugins: {
+                            legend: { display: false },
+                            tooltip: { 
+                                intersect: false,
+                                callbacks: {
+                                    title: () => `全體 M 型化: ${mRatio}%`
+                                }
+                            }
+                        },
+                        scales: {
+                            y: { 
+                                beginAtZero: true, 
+                                display: true,
+                                ticks: { stepSize: 1, font: { size: 10 } },
+                                grid: { color: '#f1f5f9' }
+                            },
+                            x: {
+                                grid: { display: false },
+                                ticks: { font: { size: 10 } }
+                            }
+                        }
+                    }
                 });
             }
         }
