@@ -1,0 +1,916 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>寒霜啟示錄 jQt聯盟 | 戰術指揮中心 v68.1 (HUD Dashboard)</title>
+    
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+TC:wght@300;400;500;700;900&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Material+Symbols+Rounded:opsz,wght,FILL,GRAD@24,400,1,0" />
+
+    <script>
+        tailwind.config = {
+            darkMode: 'class',
+            theme: {
+                extend: {
+                    colors: {
+                        ice: { 50: '#f0f9ff', 100: '#e0f2fe', 800: '#075985', 900: '#0c4a6e' },
+                        furnace: { 500: '#f97316', 600: '#ea580c', 700: '#c2410c' }
+                    },
+                    animation: {
+                        'highlight': 'highlight 1s ease-in-out',
+                        'fade-in': 'fadeIn 0.4s ease-out',
+                        'slide-up': 'slideUp 0.4s ease-out',
+                        'pulse-slow': 'pulse 3s cubic-bezier(0.4, 0, 0.6, 1) infinite',
+                        'float': 'float 3s ease-in-out infinite'
+                    },
+                    keyframes: {
+                        fadeIn: { '0%': { opacity: '0' }, '100%': { opacity: '1' } },
+                        slideUp: { '0%': { opacity: '0', transform: 'translateY(10px)' }, '100%': { opacity: '1', transform: 'translateY(0)' } },
+                        float: { '0%, 100%': { transform: 'translateY(0)' }, '50%': { transform: 'translateY(-5px)' } }
+                    }
+                }
+            }
+        }
+    </script>
+
+    <style type="text/tailwindcss">
+        @layer components {
+            .nav-btn { @apply px-4 py-2 md:px-6 md:py-3 rounded-t-lg font-bold text-sm md:text-base transition-all border-b-4 border-transparent text-slate-500 hover:text-slate-800 hover:bg-slate-50; }
+            .nav-btn.active { @apply bg-white text-indigo-700 border-indigo-600 shadow-sm translate-y-[1px]; }
+            
+            /* --- DASHBOARD COMPONENTS --- */
+            .stat-card { @apply bg-white rounded-2xl p-4 shadow-sm border border-slate-100 flex items-center gap-4 transition-all duration-300 hover:shadow-md hover:-translate-y-1; }
+            .stat-icon-box { @apply w-12 h-12 rounded-xl flex items-center justify-center text-2xl shadow-inner; }
+            
+            .team-col-header { @apply sticky top-0 bg-white/95 backdrop-blur z-20 p-3 border-b shadow-sm; }
+            .team-container { @apply bg-slate-50 rounded-2xl border border-slate-200 overflow-hidden flex flex-col h-[75vh] transition-all duration-300; }
+            .team-container:hover { @apply shadow-lg border-slate-300; }
+            
+            .member-card { 
+                @apply relative bg-white p-2.5 mb-2 rounded-xl border border-slate-100 shadow-sm transition-all duration-200 cursor-pointer select-none overflow-hidden; 
+            }
+            .member-card:hover { @apply transform scale-[1.02] shadow-md z-10 border-indigo-200; }
+            .member-card:active { @apply scale-95; }
+            
+            /* Power Bar Background */
+            .power-bar-bg { @apply absolute left-0 top-0 bottom-0 bg-current opacity-[0.08] transition-all duration-500; }
+            
+            /* Badges */
+            .mini-badge { @apply text-[10px] px-1.5 py-0.5 rounded font-bold uppercase tracking-wider border; }
+            
+            /* Input Styles (from previous) */
+            .input-group-card { @apply p-6 rounded-xl border-2 transition-all duration-300 hover:shadow-lg relative overflow-hidden; }
+            .modern-input { @apply w-full p-4 border-2 border-slate-200 rounded-xl font-mono text-sm transition-all focus:ring-4 focus:outline-none; }
+            
+            /* Custom Scrollbar */
+            .custom-scroll::-webkit-scrollbar { width: 6px; }
+            .custom-scroll::-webkit-scrollbar-track { background: transparent; }
+            .custom-scroll::-webkit-scrollbar-thumb { background-color: #cbd5e1; border-radius: 10px; }
+            .custom-scroll:hover::-webkit-scrollbar-thumb { background-color: #94a3b8; }
+            
+            /* Attendance Styles */
+            .att-btn { @apply w-8 h-8 rounded-full flex items-center justify-center border transition-all hover:scale-110 active:scale-95; }
+            .att-btn.present { @apply border-green-500 text-green-500 hover:bg-green-50; }
+            .att-btn.present.active { @apply bg-green-500 text-white shadow-md shadow-green-200; }
+            .att-btn.absent { @apply border-red-500 text-red-500 hover:bg-red-50; }
+            .att-btn.absent.active { @apply bg-red-500 text-white shadow-md shadow-red-200; }
+            .att-btn.leave { @apply border-amber-500 text-amber-500 hover:bg-amber-50; }
+            .att-btn.leave.active { @apply bg-amber-500 text-white shadow-md shadow-amber-200; }
+        }
+    </style>
+    <style>
+        body { font-family: 'Noto Sans TC', sans-serif; background-color: #f8fafc; color: #0f172a; background-image: radial-gradient(#cbd5e1 1px, transparent 1px); background-size: 24px 24px; }
+        .glass-panel { background: rgba(255, 255, 255, 0.9); backdrop-filter: blur(12px); border: 1px solid rgba(255, 255, 255, 0.8); box-shadow: 0 4px 20px rgba(0, 0, 0, 0.05); }
+        .material-symbols-rounded { font-variation-settings: 'FILL' 1, 'wght' 400, 'GRAD' 0, 'opsz' 24; font-size: 20px; }
+        
+        /* Tooltip */
+        #member-tooltip { background: rgba(15, 23, 42, 0.98); backdrop-filter: blur(8px); border: 1px solid rgba(255,255,255,0.1); }
+        
+        body.dark { background-color: #0f172a; color: #e2e8f0; background-image: radial-gradient(#334155 1px, transparent 1px); }
+        body.dark .glass-panel { background: rgba(30, 41, 59, 0.95); border-color: rgba(255,255,255,0.1); color: #e2e8f0; }
+        body.dark .stat-card { background: #1e293b; border-color: #334155; }
+        body.dark .team-container { background: #0f172a; border-color: #334155; }
+        body.dark .team-col-header { background: rgba(30, 41, 59, 0.95); }
+        body.dark .member-card { background: #1e293b; border-color: #334155; }
+        body.dark .member-card:hover { border-color: #6366f1; }
+    </style>
+</head>
+<body class="min-h-screen flex flex-col transition-colors duration-300">
+
+    <div id="toast-container"></div>
+
+    <div id="member-tooltip" class="fixed z-[9999] text-white p-4 rounded-xl shadow-2xl w-72 pointer-events-none transition-all duration-150 ease-out opacity-0 scale-95 left-0 top-0">
+        <div class="flex justify-between items-start mb-3 border-b border-slate-600 pb-2">
+            <div>
+                <h4 class="font-black text-xl text-yellow-400 tracking-wide" id="tip-name">Player</h4>
+                <div class="text-xs text-slate-400 mt-0.5" id="tip-fid">Family</div>
+            </div>
+            <span class="text-xs bg-indigo-600 px-2 py-1 rounded text-white font-bold shadow-sm" id="tip-team">Team</span>
+        </div>
+        <div class="space-y-3 text-sm">
+            <div class="flex justify-between items-center">
+                <span class="text-slate-400">⚔️ 戰力</span>
+                <span class="font-mono font-bold text-green-400 text-lg" id="tip-power">0</span>
+            </div>
+            <div class="flex justify-between items-center">
+                <span class="text-slate-400">🏆 隊內排名</span>
+                <span class="font-mono font-bold text-white text-base"><span id="tip-rank">#0</span> <span class="text-slate-500 text-xs" id="tip-total">/ 0</span></span>
+            </div>
+            <div class="flex justify-between items-center bg-slate-800/80 p-2 rounded border border-slate-700">
+                <span class="text-slate-300">📊 聯盟品質</span>
+                <span class="font-black text-white text-base" id="tip-quality">Common</span>
+            </div>
+            <div class="flex justify-between items-center">
+                <span class="text-slate-400">💪 聯盟總佔比</span>
+                <span class="font-mono font-bold text-blue-400" id="tip-pct">0%</span>
+            </div>
+        </div>
+    </div>
+
+    <div id="team-modal" class="fixed inset-0 bg-black/50 z-[60] hidden flex items-center justify-center p-4 backdrop-blur-sm">
+        <div class="bg-white rounded-xl shadow-2xl w-full max-w-lg overflow-hidden transform transition-all scale-100">
+            <div class="p-6 border-b flex justify-between items-center bg-slate-50">
+                <h3 class="text-xl font-black text-slate-800">🎛️ 選擇參戰軍團</h3>
+                <button onclick="toggleTeamModal()" class="text-slate-400 hover:text-slate-600 text-2xl">&times;</button>
+            </div>
+            <div class="p-6 space-y-4">
+                <div class="flex gap-2 mb-4">
+                    <button onclick="toggleAllTeams(true)" class="text-xs bg-slate-200 hover:bg-slate-300 px-3 py-1 rounded font-bold text-slate-600">全選</button>
+                    <button onclick="toggleAllTeams(false)" class="text-xs bg-slate-200 hover:bg-slate-300 px-3 py-1 rounded font-bold text-slate-600">全不選</button>
+                </div>
+                <div id="team-select-container" class="grid grid-cols-1 gap-3"></div>
+            </div>
+            <div class="p-4 border-t bg-slate-50 flex justify-end gap-3">
+                <button onclick="toggleTeamModal()" class="px-4 py-2 text-slate-600 font-bold hover:bg-slate-200 rounded">取消</button>
+                <button onclick="applyTeamSelection()" class="px-6 py-2 bg-indigo-600 hover:bg-indigo-700 text-white font-bold rounded shadow">套用並重新分配</button>
+            </div>
+        </div>
+    </div>
+
+    <header class="bg-slate-900 text-white shadow-lg z-50 sticky top-0">
+        <div class="max-w-[1920px] mx-auto px-4">
+            <div class="flex flex-col md:flex-row justify-between items-center h-auto md:h-16 py-2 md:py-0">
+                <div class="flex items-center gap-3 mb-2 md:mb-0">
+                    <span class="text-2xl animate-float">🏰</span>
+                    <div>
+                        <h1 class="font-black text-lg tracking-wide">jQt 聯盟兵工廠</h1>
+                        <p class="text-[9px] text-slate-400 uppercase tracking-widest">COMMANDER v68.1 (HUD)</p>
+                    </div>
+                </div>
+                <div class="flex gap-1 self-end w-full md:w-auto overflow-x-auto items-center">
+                    <button onclick="switchTab('input')" id="nav-input" class="nav-btn active">📥 資料</button>
+                    <button onclick="switchTab('dashboard')" id="nav-dashboard" class="nav-btn hidden">1. 戰力</button>
+                    <button onclick="switchTab('tactics')" id="nav-tactics" class="nav-btn hidden">2. 任務</button>
+                    <button onclick="switchTab('attendance')" id="nav-attendance" class="nav-btn hidden">3. 點名</button>
+                    <button onclick="switchTab('history')" id="nav-history" class="nav-btn">💾 存檔</button>
+                    <button onclick="switchTab('settings')" id="nav-settings" class="nav-btn">⚙️ 設定</button>
+                    <button onclick="toggleDarkMode()" class="ml-2 p-2 rounded-full hover:bg-slate-800" title="切換深色模式">🌗</button>
+                </div>
+            </div>
+        </div>
+    </header>
+
+    <main class="flex-grow bg-slate-100 p-2 md:p-4 overflow-y-auto custom-scroll transition-colors duration-300">
+        <div class="max-w-[1920px] mx-auto">
+
+            <section id="page-input" class="space-y-6 animate-fade-in max-w-5xl mx-auto mt-8">
+                <div class="glass-panel p-8 rounded-2xl bg-white shadow-xl">
+                    <div class="text-center mb-8">
+                        <div class="inline-flex items-center gap-2 bg-slate-100 rounded-full px-4 py-1.5 mb-4 shadow-inner">
+                            <span class="text-xs font-bold text-slate-500">VERSION 68.1</span>
+                            <span class="w-1 h-1 rounded-full bg-slate-300"></span>
+                            <span class="text-xs text-indigo-500 font-bold">✨ HUD DASHBOARD</span>
+                        </div>
+                        <h2 class="text-3xl md:text-4xl font-black text-slate-800 mb-4 tracking-tight">資料來源同步</h2>
+                        
+                        <div class="flex justify-center gap-4 mt-6">
+                            <button onclick="switchInputMode('cloud')" id="mode-cloud" class="group relative px-6 py-3 rounded-xl transition-all border-2 border-transparent bg-indigo-50 text-indigo-600 active-mode-btn">
+                                <div class="flex flex-col items-center gap-1">
+                                    <span class="text-2xl">☁️</span>
+                                    <span class="text-xs font-bold">雲端連結</span>
+                                </div>
+                                <div class="absolute inset-0 border-2 border-indigo-500 rounded-xl opacity-100 transition-opacity"></div>
+                            </button>
+                            <button onclick="switchInputMode('paste')" id="mode-paste" class="group relative px-6 py-3 rounded-xl transition-all border-2 border-transparent bg-white text-slate-500 hover:bg-slate-50">
+                                <div class="flex flex-col items-center gap-1">
+                                    <span class="text-2xl">📋</span>
+                                    <span class="text-xs font-bold">直接貼上</span>
+                                </div>
+                                <div class="absolute inset-0 border-2 border-slate-300 rounded-xl opacity-0 group-hover:opacity-100 transition-opacity"></div>
+                            </button>
+                        </div>
+                    </div>
+
+                    <div id="cloud-guide" class="bg-gradient-to-r from-indigo-500 to-purple-600 rounded-xl p-4 text-white mb-8 shadow-lg transform transition-all hover:scale-[1.01]">
+                        <h4 class="font-bold text-lg mb-2 flex items-center gap-2">💡 快速指引</h4>
+                        <div class="grid grid-cols-1 md:grid-cols-3 gap-4 text-sm opacity-90">
+                            <div class="flex items-center gap-2"><span class="bg-white/20 w-6 h-6 rounded-full flex items-center justify-center font-bold text-xs">1</span><span>複製 Google 試算表連結</span></div>
+                            <div class="flex items-center gap-2"><span class="bg-white/20 w-6 h-6 rounded-full flex items-center justify-center font-bold text-xs">2</span><span>確保權限設為「知道連結者」</span></div>
+                            <div class="flex items-center gap-2"><span class="bg-white/20 w-6 h-6 rounded-full flex items-center justify-center font-bold text-xs">3</span><span>點擊下方按鈕開始分析</span></div>
+                        </div>
+                    </div>
+
+                    <div id="input-cloud-area" class="grid grid-cols-1 lg:grid-cols-2 gap-8">
+                        <div class="input-group-card bg-white border-blue-100 hover:border-blue-400">
+                            <span class="input-label-badge bg-blue-500 text-white">1. 報名表</span>
+                            <div class="mt-4 relative">
+                                <label class="block text-sm font-bold text-slate-500 mb-2 ml-1">Google Sheet CSV 連結</label>
+                                <input type="text" id="url-reg" class="modern-input focus:ring-blue-100 focus:border-blue-500" placeholder="https://docs.google.com/..." onchange="saveLocal()" oninput="validateUrl(this)">
+                                <div class="validation-icon text-slate-300">⏳</div>
+                            </div>
+                            <p class="mt-3 text-xs text-blue-600 flex items-center gap-1">💡 包含 <span class="font-bold">成員名稱</span> 與 <span class="font-bold">志願選項</span> 的試算表</p>
+                        </div>
+                        <div class="input-group-card bg-white border-orange-100 hover:border-orange-400">
+                            <span class="input-label-badge bg-furnace-500 text-white">2. 戰力表</span>
+                            <div class="mt-4 relative">
+                                <label class="block text-sm font-bold text-slate-500 mb-2 ml-1">Google Sheet CSV 連結</label>
+                                <input type="text" id="url-power" class="modern-input focus:ring-orange-100 focus:border-orange-500" placeholder="https://docs.google.com/..." onchange="saveLocal()" oninput="validateUrl(this)">
+                                <div class="validation-icon text-slate-300">⏳</div>
+                            </div>
+                            <p class="mt-3 text-xs text-orange-600 flex items-center gap-1">💡 包含 <span class="font-bold">成員 ID</span> 與 <span class="font-bold">戰力數值</span> 的試算表</p>
+                        </div>
+                    </div>
+
+                    <div id="input-paste-area" class="hidden grid grid-cols-1 lg:grid-cols-2 gap-8">
+                        <textarea id="csv-reg" class="modern-input h-64" placeholder="貼上報名表 CSV 內容..."></textarea>
+                        <textarea id="csv-power" class="modern-input h-64" placeholder="貼上戰力表 CSV 內容..."></textarea>
+                    </div>
+                    
+                    <div id="col-picker" class="hidden mt-8 bg-slate-50 p-6 rounded-xl border border-slate-200 shadow-inner">
+                        <h3 class="font-bold text-slate-700 mb-4 border-b pb-2 flex items-center gap-2"><span>🔍</span> 欄位確認</h3>
+                        <div class="grid grid-cols-1 lg:grid-cols-2 gap-8">
+                            <div class="bg-white p-4 rounded-lg border border-blue-100 shadow-sm">
+                                <h4 class="text-sm font-black text-blue-600 mb-3 uppercase tracking-wide">報名表設定</h4>
+                                <div class="space-y-3">
+                                    <div><label class="text-xs font-bold text-slate-500 block mb-1">玩家名稱欄位 (*)</label><select id="col-reg-name" class="w-full border-2 rounded-lg p-2 text-sm bg-slate-50"></select></div>
+                                    <div><label class="text-xs font-bold text-slate-500 block mb-1">志願選項欄位</label><select id="col-reg-opt" class="w-full border-2 rounded-lg p-2 text-sm bg-blue-50 border-blue-200"></select></div>
+                                </div>
+                            </div>
+                            <div class="bg-white p-4 rounded-lg border border-orange-100 shadow-sm">
+                                <h4 class="text-sm font-black text-orange-600 mb-3 uppercase tracking-wide">戰力表設定</h4>
+                                <div class="space-y-3">
+                                    <div><label class="text-xs font-bold text-slate-500 block mb-1">玩家 ID 欄位 (*)</label><select id="col-pow-name" class="w-full border-2 rounded-lg p-2 text-sm bg-slate-50"></select></div>
+                                    <div><label class="text-xs font-bold text-slate-500 block mb-1">戰力數值欄位 (*)</label><select id="col-pow-val" class="w-full border-2 rounded-lg p-2 text-sm bg-orange-50 border-orange-200"></select></div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div id="match-check-panel" class="hidden mt-6 bg-amber-50 p-6 rounded-xl border-l-8 border-amber-500 shadow-md">
+                        <div class="flex items-start gap-4">
+                            <div class="text-3xl">⚠️</div>
+                            <div class="w-full">
+                                <h3 class="font-bold text-amber-800 text-lg">名單對應檢查</h3>
+                                <div id="match-check-container" class="space-y-2 max-h-60 overflow-y-auto custom-scroll pr-2 bg-white rounded-lg p-2 border border-amber-200 mt-2"></div>
+                                <div class="mt-4 text-right"><button onclick="saveManualMappingsAndRun()" class="bg-amber-600 text-white px-6 py-2 rounded-lg shadow font-bold hover:bg-amber-700 transition-colors">儲存修正並繼續</button></div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="mt-10 flex flex-col md:flex-row justify-end gap-4 items-center border-t pt-6">
+                        <div id="loading-status" class="text-slate-500 text-sm font-mono hidden flex items-center gap-2"><span class="animate-spin">↻</span> <span id="loading-text">準備中...</span></div>
+                        <div class="flex gap-4 w-full md:w-auto">
+                            <button id="btn-pre" onclick="preProcessData()" class="flex-1 md:flex-none group relative px-8 py-3 bg-slate-700 text-white font-bold rounded-xl shadow-md hover:bg-slate-600 transition-all overflow-hidden">
+                                <span class="relative z-10 flex items-center justify-center gap-2"><span class="group-hover:-translate-y-1 transition-transform duration-300">🔍</span> 讀取 & 檢查</span>
+                            </button>
+                            <button id="btn-run" onclick="handleAllocation()" class="hidden flex-1 md:flex-none relative px-10 py-3 bg-gradient-to-r from-indigo-600 via-purple-600 to-pink-600 text-white font-black rounded-xl shadow-lg hover:shadow-2xl hover:scale-105 transition-all duration-300 animate-pulse-slow">
+                                <span class="flex items-center justify-center gap-2 text-lg">🚀 啟動戰略分析</span>
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+            <section id="page-dashboard" class="hidden animate-fade-in pb-16">
+                <div class="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-4">
+                    <div class="stat-card border-l-4 border-slate-800 group">
+                        <div class="stat-icon-box bg-slate-100 text-slate-700 group-hover:bg-slate-800 group-hover:text-white transition-colors"><span class="material-symbols-rounded">group</span></div>
+                        <div>
+                            <div class="text-[10px] uppercase text-slate-400 font-bold tracking-wider">Total Units</div>
+                            <div class="text-3xl font-black text-slate-800 font-mono" id="stat-n">0</div>
+                        </div>
+                    </div>
+                    
+                    <div class="stat-card border-l-4 border-furnace-500 group cursor-pointer" onclick="exportToDiscord()">
+                        <div class="stat-icon-box bg-orange-100 text-furnace-600 group-hover:bg-furnace-600 group-hover:text-white transition-colors"><span class="material-symbols-rounded">swords</span></div>
+                        <div>
+                            <div class="text-[10px] uppercase text-orange-400 font-bold tracking-wider">Total Power</div>
+                            <div class="text-2xl font-black text-furnace-600 font-mono" id="stat-power">0</div>
+                        </div>
+                    </div>
+
+                    <div class="stat-card border-l-4 border-red-500 group relative overflow-hidden">
+                        <div class="stat-icon-box bg-red-50 text-red-500 group-hover:bg-red-500 group-hover:text-white transition-colors animate-pulse"><span class="material-symbols-rounded">warning</span></div>
+                        <div>
+                            <div class="text-[10px] uppercase text-red-400 font-bold tracking-wider">Conflicts</div>
+                            <div class="text-3xl font-black text-red-600 font-mono" id="stat-conflict">0</div>
+                        </div>
+                        <button onclick="autoResolveConflicts()" class="absolute right-2 top-1/2 -translate-y-1/2 bg-red-100 hover:bg-red-200 text-red-700 text-xs px-3 py-1.5 rounded-full font-bold shadow opacity-0 group-hover:opacity-100 transition-opacity">
+                            ⚡ Auto Fix
+                        </button>
+                    </div>
+
+                    <div class="stat-card border-l-4 border-amber-500 group cursor-pointer hover:bg-amber-50" onclick="switchTab('settings')">
+                        <div class="stat-icon-box bg-amber-50 text-amber-500"><span class="material-symbols-rounded">link_off</span></div>
+                        <div>
+                            <div class="text-[10px] uppercase text-amber-400 font-bold tracking-wider">Unknown ID</div>
+                            <div class="text-3xl font-black text-amber-600 font-mono" id="stat-unknown">0</div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="glass-panel p-3 rounded-2xl mb-4 flex flex-col md:flex-row gap-4 items-center justify-between shadow-sm sticky top-16 z-30">
+    <div class="flex items-center gap-2 overflow-x-auto w-full md:w-auto pb-1 md:pb-0 scrollbar-hide">
+        
+        <div class="bg-white border border-slate-200 px-3 py-2 rounded-xl flex items-center gap-2 shadow-sm mr-2">
+            <label class="relative inline-flex items-center cursor-pointer">
+                <input type="checkbox" id="toggle-pref" class="sr-only peer" onchange="togglePrefMode()">
+                <div class="w-9 h-5 bg-slate-200 peer-focus:outline-none peer-focus:ring-2 peer-focus:ring-indigo-300 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-4 after:w-4 after:transition-all peer-checked:bg-indigo-600"></div>
+                <span class="ml-2 text-xs font-bold text-slate-600 select-none">遵循志願</span>
+            </label>
+        </div>
+
+        <div class="flex bg-slate-200/80 p-1 rounded-xl gap-1 shrink-0">
+            <button onclick="runTeamLogic('snake')" class="px-3 py-2 rounded-lg text-xs font-bold flex items-center gap-1 hover:bg-white hover:shadow-sm transition-all text-slate-600"><span class="material-symbols-rounded text-sm">gesture</span> S型</button>
+            <button onclick="runTeamLogic('m_type')" class="px-3 py-2 rounded-lg text-xs font-bold flex items-center gap-1 hover:bg-white hover:shadow-sm transition-all text-slate-600"><span class="material-symbols-rounded text-sm">bar_chart_4_bars</span> M型</button>
+            <button onclick="runTeamLogic('descending')" class="px-3 py-2 rounded-lg text-xs font-bold flex items-center gap-1 hover:bg-white hover:shadow-sm transition-all text-slate-600"><span class="material-symbols-rounded text-sm">stairs</span> 階梯</button>
+        </div>
+
+        <div class="h-8 w-px bg-slate-300 mx-1"></div>
+        
+        <button onclick="autoCorrectPreferences()" class="shrink-0 px-3 py-2 bg-indigo-50 text-indigo-600 border border-indigo-100 rounded-xl text-xs font-bold hover:bg-indigo-100 flex items-center gap-1" title="手動執行一次校正">
+            <span class="material-symbols-rounded text-sm">published_with_changes</span> 校正
+        </button>
+        <button onclick="toggleTeamModal()" class="shrink-0 px-3 py-2 bg-slate-800 text-white rounded-xl text-xs font-bold hover:bg-slate-700 shadow flex items-center gap-1">
+            <span class="material-symbols-rounded text-sm">settings</span> 設定
+        </button>
+    </div>
+
+    <div class="flex gap-2 w-full md:w-auto">
+        <div class="relative w-full md:w-48">
+            <span class="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 material-symbols-rounded text-sm">search</span>
+            <input type="text" placeholder="搜尋..." class="w-full pl-9 pr-4 py-2 bg-slate-50 border border-slate-200 rounded-xl text-sm focus:bg-white focus:ring-2 focus:ring-indigo-500 transition-all" oninput="filterMembers(this.value)">
+        </div>
+        <button onclick="copyMemberList()" class="shrink-0 px-4 py-2 bg-indigo-50 text-indigo-600 hover:bg-indigo-100 rounded-xl text-xs font-bold flex items-center gap-1"><span class="material-symbols-rounded text-sm">content_copy</span> 複製</button>
+    </div>
+</div>
+
+                <div id="pop-alert" class="hidden bg-red-50 border-l-4 border-red-500 text-red-800 p-4 rounded-xl shadow-md text-sm font-bold flex items-center gap-3 mb-4 animate-slide-up"></div>
+
+                <div class="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-4 mb-6" id="dashboard-container">
+                    </div>
+
+                <div class="mt-4 glass-panel p-4 rounded-2xl flex flex-col md:flex-row gap-4 items-center">
+                    <div class="w-full md:w-1/3">
+                        <h4 class="font-bold text-slate-700 text-sm mb-2">軍團戰力分佈</h4>
+                        <div class="h-32 w-full"><canvas id="powerChart"></canvas></div>
+                    </div>
+                    <div class="w-full md:w-2/3">
+                         <div id="absent-panel" class="hidden bg-slate-50 border border-slate-200 rounded-xl p-3">
+                            <div class="flex items-center justify-between mb-2">
+                                <h4 class="font-bold text-slate-600 text-xs flex items-center gap-1"><span class="material-symbols-rounded text-sm">block</span> 不參加名單 (<span id="absent-count">0</span>)</h4>
+                            </div>
+                            <div id="absent-list" class="flex flex-wrap gap-2 max-h-24 overflow-y-auto custom-scroll text-xs"></div>
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+            <section id="page-tactics" class="hidden space-y-6">
+                <div class="glass-panel p-6 rounded-2xl bg-white">
+                    <div class="flex flex-col md:flex-row justify-between items-center mb-6 border-b pb-4 gap-4">
+                        <div><h2 class="text-2xl font-black text-slate-800">⚔️ 戰術任務編組</h2></div>
+                        <div class="flex gap-4 items-center bg-slate-50 p-2 rounded-lg">
+                            <select id="tactics-team-select" class="p-2 border border-slate-300 rounded font-bold text-slate-700" onchange="renderTacticsBoard()"></select>
+                            <button onclick="autoDistributeMissions()" class="bg-indigo-600 text-white px-4 py-2 rounded font-bold shadow">⚡ S型平衡</button>
+                        </div>
+                    </div>
+                    <div class="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-4 mb-8" id="tactics-container"></div>
+                    <div class="border-t pt-6">
+                        <div class="flex justify-between items-center mb-2"><button onclick="copyMissionText()" class="bg-slate-800 text-white px-4 py-2 rounded text-sm font-bold">📋 複製文字</button></div>
+                        <textarea id="mission-text" class="tactical-textarea custom-scroll"></textarea>
+                    </div>
+                </div>
+            </section>
+            <section id="page-attendance" class="hidden space-y-6">
+                <div class="glass-panel p-6 rounded-2xl bg-white">
+                    <div class="flex justify-between items-center mb-6 border-b pb-4">
+                        <div><h2 class="text-2xl font-black text-slate-800">📋 賽後點名系統</h2></div>
+                        <div class="flex gap-2">
+                            <button onclick="initAttendance()" class="bg-indigo-600 hover:bg-indigo-700 text-white px-4 py-2 rounded shadow font-bold">🆕 開始新點名</button>
+                            <button onclick="saveAttendance()" class="bg-slate-800 hover:bg-slate-900 text-white px-4 py-2 rounded shadow font-bold">💾 儲存記錄</button>
+                        </div>
+                    </div>
+                    <div id="attendance-active-area" class="hidden space-y-6">
+                        <div class="flex justify-between items-center bg-blue-50 p-3 rounded-lg border border-blue-100">
+                            <span class="font-bold text-blue-800" id="att-date-display"></span>
+                            <div class="flex gap-2"><button onclick="markAllPresent()" class="text-xs bg-white border border-blue-200 px-2 py-1 rounded text-blue-600 hover:bg-blue-100 font-bold">全部出席</button></div>
+                        </div>
+                        <div id="attendance-container" class="grid grid-cols-1 lg:grid-cols-2 gap-6"></div>
+                    </div>
+                    <div class="grid grid-cols-1 lg:grid-cols-3 gap-6 mt-8">
+                        <div class="lg:col-span-2"><h3 class="font-bold text-slate-700 mb-3">🕒 歷史記錄</h3><div id="attendance-history-list" class="space-y-2 max-h-60 overflow-y-auto custom-scroll"></div></div>
+                        <div><h3 class="font-bold text-red-600 mb-3 flex items-center gap-2">⚠️ 缺席統計警報</h3><div id="attendance-alert-list" class="space-y-2 max-h-60 overflow-y-auto custom-scroll bg-red-50 p-3 rounded-lg border border-red-100"></div></div>
+                    </div>
+                </div>
+            </section>
+            <section id="page-history" class="hidden space-y-6">
+                <div class="glass-panel p-6 rounded-2xl bg-white">
+                    <div class="flex justify-between items-center mb-6 border-b pb-4">
+                        <h2 class="text-2xl font-black text-slate-800">💾 存檔與備份</h2>
+                        <div class="flex gap-2">
+                            <button onclick="exportConfig()" class="bg-slate-200 hover:bg-slate-300 text-slate-700 px-4 py-2 rounded text-sm font-bold">📤 匯出 JSON</button>
+                            <label class="bg-slate-200 hover:bg-slate-300 text-slate-700 px-4 py-2 rounded text-sm font-bold cursor-pointer">📥 匯入 JSON <input type="file" class="hidden" onchange="importConfig(this)"></label>
+                        </div>
+                    </div>
+                    <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
+                        <div class="bg-slate-50 p-4 rounded-lg border"><h3 class="font-bold mb-2">儲存當前配置</h3><input type="text" id="save-name" placeholder="輸入存檔名稱" class="w-full border p-2 rounded mb-2"><button onclick="saveConfiguration()" class="w-full bg-blue-600 text-white py-2 rounded font-bold hover:bg-blue-700">💾 立即儲存</button></div>
+                        <div class="col-span-2"><h3 class="font-bold mb-2">歷史紀錄</h3><div id="history-list" class="space-y-2 max-h-96 overflow-y-auto custom-scroll border rounded bg-white p-2"></div></div>
+                    </div>
+                </div>
+            </section>
+            <section id="page-settings" class="hidden space-y-6">
+                <div id="linker-panel" class="glass-panel p-6 rounded-2xl bg-white border-l-4 border-amber-500 hidden mb-6">
+                    <div class="flex justify-between items-center mb-4"><h3 class="text-lg font-black text-amber-800 flex items-center gap-2">⚠️ 戰力資料校準</h3><div class="flex gap-2"><button onclick="clearManualMappings()" class="px-4 py-2 bg-red-100 text-red-600 rounded font-bold text-sm shadow hover:bg-red-200">🗑️ 清除紀錄</button><button onclick="applyManualMappings()" class="px-4 py-2 bg-amber-600 text-white rounded font-bold text-sm shadow hover:bg-amber-700">儲存修正</button></div></div>
+                    <div id="linker-container" class="space-y-2 max-h-64 overflow-y-auto custom-scroll bg-amber-50 p-4 rounded-lg"></div>
+                </div>
+                <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                    <div class="glass-panel p-6 rounded-2xl bg-white"><h3 class="text-lg font-black text-slate-800 mb-4">🏰 軍團管理</h3><div class="h-64 overflow-y-auto custom-scroll border rounded"><table class="w-full text-sm text-left"><thead class="bg-slate-100 text-slate-500"><tr><th class="p-2">名稱</th><th class="p-2">時段</th><th class="p-2">狀態</th></tr></thead><tbody id="team-list-body"></tbody></table></div></div>
+                    <div class="glass-panel p-6 rounded-2xl bg-white"><h3 class="text-lg font-black text-slate-800 mb-4">🔗 帳號綁定</h3><div class="flex gap-2 mb-4"><input type="text" id="bind-main" placeholder="主號" class="border p-2 rounded w-1/2 text-sm"><input type="text" id="bind-alt" placeholder="小號" class="border p-2 rounded w-1/2 text-sm"><button onclick="addBinding()" class="bg-blue-600 text-white px-3 rounded font-bold text-sm">新增</button></div><div class="h-64 overflow-y-auto custom-scroll border rounded"><table class="w-full text-sm text-left"><thead class="bg-slate-100 text-slate-500"><tr><th class="p-2">主號</th><th class="p-2">小號關鍵字</th><th class="p-2">操作</th></tr></thead><tbody id="bind-list-body"></tbody></table></div></div>
+                </div>
+            </section>
+        </div>
+    </main>
+
+    <div class="fixed bottom-0 left-0 right-0 bg-white border-t p-3 flex justify-between items-center md:hidden z-40 shadow-lg">
+        <span class="text-xs font-bold text-slate-600">v68.1</span>
+        <div class="flex gap-2">
+            <button onclick="saveConfiguration()" class="bg-slate-800 text-white px-4 py-2 rounded text-sm font-bold">儲存</button>
+            <button onclick="copyMemberList()" class="bg-indigo-600 text-white px-4 py-2 rounded text-sm font-bold">📋 複製</button>
+        </div>
+    </div>
+
+   <script>
+        // --- Same Logic & Data as v68.0 ---
+        const DEFAULT_TEAMS = [{id:'jQt1',name:'jQt軍團一',time:'22:00',active:true,priority:0},{id:'aQt1',name:'aQt軍團一',time:'22:00',active:true,priority:1},{id:'jQt2',name:'jQt軍團二',time:'20:00',active:true,priority:2},{id:'aQt2',name:'aQt軍團二',time:'20:00',active:true,priority:3}];
+        const DEFAULT_ALTS = [{main:"主流兔",alt:"盟浪兔"},{main:"主流兔",alt:"兔仔子"},{main:"冬來冬往",alt:"小冬冬"},{main:"劼吉撈",alt:"藍色劼吉撈ATM"},{main:"Masaorange",alt:"小馬殺"},{main:"Masaorange",alt:"小馬哥"},{main:"小螞蟻",alt:"小小螞蟻"},{main:"快樂永伴",alt:"HappyHappy"},{main:"一念關山",alt:"一念觀山"},{main:"PekingDuck",alt:"北京烤鸭"},{main:"YI9908zh",alt:"Yi2"},{main:"周星星",alt:"麻麻豆豆~"},{main:"錢包包",alt:"錢多多"},{main:"Rueiii",alt:"小梅幾"}];
+        const MULTI_CONTROLLERS = ["柒柒", "jack玩玩吧", "queenie_9z"];
+        const MISSION_GROUPS = [{id:1, color:'red', name:'第 1 組', target:'方位：10 點鐘方向\n目標：蒸汽鍋爐、1 號武器試驗場、傭兵站、中間據點'},{id:2, color:'orange', name:'第 2 組', target:'方位：5 點鐘方向\n目標：中轉站、2 號武器試驗場、軍火庫、中間據點'},{id:3, color:'blue', name:'第 3 組', target:'方位：2 點鐘方向\n目標：2 號武器維修廠、4 號武器維修廠、軍火庫、中間據點'},{id:4, color:'green', name:'第 4 組', target:'方位：7 點鐘方向\n目標：1 號武器維修廠、3 號武器維修廠、軍火庫、中間據點'}];
+        const ABSENT_KEYWORDS = ['不克', '無法', '請假', '不參加', '未參加', '沒空', 'pass', 'no', '不來', '不參戰'];
+
+        let appState = { players:[], absentPlayers:[], unknownPlayers:[], availablePowerNames:[], manualMappings:{}, teams:[], alts:[], conflictMap:{}, rawRegData:[], rawPowerData:[], currentTacticalTeamId:'', manualTeamCount:null, lastLogicMode: 'snake', savedConfigs: [], attendanceHistory: [], currentAttendance: {}, isAbsentExpanded: true, prioritizePreferences: false };
+        let currentMode='cloud'; let chartInstance = null; let teamCharts = {}; 
+
+        // Core Utils
+        function setText(id,t){const e=document.getElementById(id);if(e)e.innerText=t;}
+        function formatSmart(n) { if (n >= 1000) return Math.round(n/1000).toLocaleString() + 'k'; return Math.round(n).toLocaleString(); }
+        function showToast(msg, type='info') {
+            const container = document.getElementById('toast-container');
+            const el = document.createElement('div');
+            const bg = type === 'error' ? 'bg-red-600' : (type === 'success' ? 'bg-green-600' : 'bg-slate-800');
+            el.className = `toast ${bg} mb-2 px-4 py-2 rounded text-white shadow-lg transition-all transform translate-y-2`; el.innerText = msg; container.appendChild(el);
+            setTimeout(() => el.classList.remove('translate-y-2'), 10);
+            setTimeout(() => { el.classList.add('opacity-0'); setTimeout(() => el.remove(), 300); }, 3000);
+        }
+
+        // Init
+        document.addEventListener('DOMContentLoaded', ()=>{
+            const sm = localStorage.getItem('jQt_mappings'); const sh = localStorage.getItem('jQt_history'); const att = localStorage.getItem('jQt_attendance');
+            appState.teams = JSON.parse(JSON.stringify(DEFAULT_TEAMS)); appState.alts = JSON.parse(JSON.stringify(DEFAULT_ALTS));
+            appState.manualMappings = sm ? JSON.parse(sm) : {}; appState.savedConfigs = sh ? JSON.parse(sh) : []; appState.attendanceHistory = att ? JSON.parse(att) : [];
+            const r=localStorage.getItem('jQt_url_reg'), p=localStorage.getItem('jQt_url_power');
+            if(r) { document.getElementById('url-reg').value=r; validateUrl(document.getElementById('url-reg')); }
+            if(p) { document.getElementById('url-power').value=p; validateUrl(document.getElementById('url-power')); }
+            renderSettings(); renderHistoryList(); renderAttendanceHistory(); switchTab('input');
+        });
+
+        function switchTab(page){
+            document.querySelectorAll('section').forEach(s=>s.classList.add('hidden')); document.getElementById(`page-${page}`).classList.remove('hidden');
+            document.querySelectorAll('.nav-btn').forEach(b=>b.classList.remove('active')); document.getElementById(`nav-${page}`).classList.add('active');
+            if(page==='tactics') initTactics(); if(page==='settings') renderSettings(); if(page==='dashboard') renderDashboard();
+        }
+        function switchInputMode(m){
+            currentMode=m; 
+            document.querySelectorAll('#mode-cloud, #mode-paste').forEach(b => { b.classList.remove('active-mode-btn', 'bg-indigo-50', 'text-indigo-600'); b.classList.add('bg-white', 'text-slate-500'); b.querySelector('.absolute').classList.remove('opacity-100'); b.querySelector('.absolute').classList.add('opacity-0'); });
+            const btn = document.getElementById(`mode-${m}`);
+            if(btn) { btn.classList.add('active-mode-btn', 'bg-indigo-50', 'text-indigo-600'); btn.classList.remove('bg-white', 'text-slate-500'); btn.querySelector('.absolute').classList.add('opacity-100'); btn.querySelector('.absolute').classList.remove('opacity-0'); }
+            document.getElementById('input-cloud-area').classList.toggle('hidden', m!=='cloud'); document.getElementById('input-paste-area').classList.toggle('hidden', m!=='paste'); document.getElementById('cloud-guide').classList.toggle('hidden', m!=='cloud');
+        }
+        function toggleDarkMode() { document.body.classList.toggle('dark'); }
+        function validateUrl(input) { const icon = input.parentElement.querySelector('.validation-icon'); const val = input.value.trim(); if (!val) { icon.innerText = '⏳'; icon.className = 'validation-icon text-slate-300'; return; } if ((val.includes('docs.google.com') && val.includes('spreadsheets')) || val.endsWith('.csv')) { icon.innerText = '✓'; icon.className = 'validation-icon text-green-500'; } else { icon.innerText = '⚠️'; icon.className = 'validation-icon text-amber-500 animate-pulse'; } }
+        function updateLoadingStatus(text, show) { const el = document.getElementById('loading-status'); const txt = document.getElementById('loading-text'); if(show) { el.classList.remove('hidden'); txt.innerText = text; } else { el.classList.add('hidden'); } }
+
+        // Tooltip
+        function showHoverCard(e, name, power, rank, teamCount, totalAlliancePower, tierObj) {
+            const tooltip = document.getElementById('member-tooltip');
+            const pct = totalAlliancePower > 0 ? ((power / totalAlliancePower) * 100).toFixed(2) + '%' : '0%';
+            const p = appState.players.find(x => x.name === name);
+            const fid = p ? p.fid : '';
+            setText('tip-name', name); setText('tip-fid', fid ? `Family: ${fid}` : '');
+            try { const teamName = e.target.closest('.team-container').querySelector('h3').innerText; setText('tip-team', teamName); } catch(err) { setText('tip-team', 'Team'); }
+            setText('tip-power', formatSmart(power)); setText('tip-rank', '#' + rank); setText('tip-total', '/ ' + teamCount); setText('tip-pct', pct);
+            const qEl = document.getElementById('tip-quality');
+            if(tierObj) { qEl.innerHTML = `${tierObj.icon} ${tierObj.label}`; qEl.className = `font-black text-lg ${tierObj.textClass}`; }
+            tooltip.classList.remove('opacity-0', 'scale-95'); tooltip.classList.add('opacity-100', 'scale-100'); moveTooltip(e);
+        }
+        function moveTooltip(e) {
+            const tooltip = document.getElementById('member-tooltip'); if (tooltip.classList.contains('opacity-0')) return;
+            let x = e.clientX + 15; let y = e.clientY + 15;
+            if (x + 290 > window.innerWidth) x = e.clientX - 290 - 15; if (y + 250 > window.innerHeight) y = e.clientY - 250 - 15;
+            tooltip.style.left = x + 'px'; tooltip.style.top = y + 'px';
+        }
+        function hideHoverCard() { const tooltip = document.getElementById('member-tooltip'); tooltip.classList.remove('opacity-100', 'scale-100'); tooltip.classList.add('opacity-0', 'scale-95'); }
+
+        // Team Modal
+        function toggleTeamModal() { const modal = document.getElementById('team-modal'); if (modal.classList.contains('hidden')) { renderTeamSelection(); modal.classList.remove('hidden'); } else { modal.classList.add('hidden'); } }
+        function renderTeamSelection() { document.getElementById('team-select-container').innerHTML = appState.teams.map((t, idx) => `<div class="team-select-card ${t.active ? 'selected' : ''}" onclick="toggleTeamActive(${idx})"><div class="flex items-center gap-3"><span class="text-2xl">${t.id.includes('jQt') ? '🛡️' : '⚔️'}</span><div><div class="font-bold text-slate-800 dark:text-slate-200">${t.name}</div><div class="text-xs text-slate-500">${t.time}</div></div></div><div class="w-6 h-6 rounded border flex items-center justify-center ${t.active ? 'bg-indigo-600 border-indigo-600 text-white' : 'bg-white border-slate-300'}">${t.active ? '✓' : ''}</div></div>`).join(''); }
+        function toggleTeamActive(idx) { appState.teams[idx].active = !appState.teams[idx].active; renderTeamSelection(); }
+        function toggleAllTeams(state) { appState.teams.forEach(t => t.active = state); renderTeamSelection(); }
+        function applyTeamSelection() { toggleTeamModal(); runTeamLogic(appState.lastLogicMode || 'snake'); showToast('軍團設定已更新', 'success'); }
+
+        // Data & Logic
+        function saveLocal(){ localStorage.setItem('jQt_url_reg',document.getElementById('url-reg').value); localStorage.setItem('jQt_url_power',document.getElementById('url-power').value); localStorage.setItem('jQt_mappings',JSON.stringify(appState.manualMappings)); }
+        async function fetchWithFallback(url){ if(url.includes('/pubhtml')) url=url.replace(/\/pubhtml.*/, '/pub?output=csv'); const steps=[{url},{url:`https://corsproxy.io/?${encodeURIComponent(url)}`},{url:`https://api.allorigins.win/raw?url=${encodeURIComponent(url)}`}]; for(const s of steps){ try{ const r=await fetch(s.url); if(r.ok){ const t=await r.text(); if(t.trim().startsWith('<')) throw new Error('HTML'); return t; } }catch(e){} } throw new Error("連線失敗"); }
+        function parseCSV(t){ if(!t)return[]; if(t.charCodeAt(0)===0xFEFF) t=t.slice(1); const d=(t.split(/\r?\n/)[0].match(/\t/g)||[]).length>2?'\t':','; return t.trim().split(/\r?\n/).map(l=>{ if(!l.trim())return null; const p=d===',' ? (l.match(/(".*?"|[^",\s]+)(?=\s*,|\s*$)/g)||l.split(',')) : l.split('\t'); return p ? p.map(x=>x ? x.replace(/^"|"$/g,'').trim() : '') : []; }).filter(r=>r); }
+        function normalizeName(n) { if(!n) return ""; return n.replace(/\[.*?\]/g, '').replace(/\(R[0-9]\)/gi, '').replace(/R[0-9]\s/gi, '').replace(/[\u200B-\u200D\uFEFF]/g, '').replace(/[^\u4e00-\u9fa5a-zA-Z0-9]/g, '').toLowerCase(); }
+        function getFamilyId(name) { const cleanName = normalizeName(name); for(const pair of appState.alts) { const main = normalizeName(pair.main), alt = normalizeName(pair.alt); if(cleanName.includes(alt) || alt.includes(cleanName)) return main; if(cleanName.includes(main) || main.includes(cleanName)) return main; } return cleanName; }
+        
+        // Populate Pickers
+        function populatePickers(d, id1, id2=null){ 
+            const h = d[0] || []; 
+            if(h.length === 0) return;
+            const mk = (i,n) => `<option value="${i}">[${i}] ${n || '未命名'}</option>`; 
+            const processSelect = (id, keywords) => {
+                const el = document.getElementById(id);
+                if(!el) return;
+                el.innerHTML = h.map((x,i) => mk(i,x)).join('');
+                let found = -1;
+                h.forEach((x, i) => { const t = String(x).toLowerCase(); if(keywords.some(k => t.includes(k))) found = i; });
+                if(found > -1) el.value = found;
+            };
+            if(id1.includes('reg')) { processSelect(id1, ['name', '名稱', 'id', '暱稱', '名字']); } else { processSelect(id1, ['name', '名稱', 'id']); }
+            if(id2) {
+                if(id2.includes('opt')) processSelect(id2, ['option', '選項', '時間', '意願', '參加']);
+                if(id2.includes('val')) processSelect(id2, ['power', '戰力', '分數']);
+            }
+        }
+
+        async function preProcessData(){ 
+            const btn = document.getElementById('btn-pre'); 
+            btn.disabled = true; 
+            updateLoadingStatus('連接中...', true); 
+            try { 
+                let r='', p=''; 
+                if(currentMode === 'paste'){ 
+                    r = document.getElementById('csv-reg').value; 
+                    p = document.getElementById('csv-power').value; 
+                } else { 
+                    const ur = document.getElementById('url-reg').value, up = document.getElementById('url-power').value; 
+                    if(!ur || !up) throw new Error("請輸入連結"); 
+                    [r,p] = await Promise.all([fetchWithFallback(ur), fetchWithFallback(up)]); 
+                } 
+                updateLoadingStatus('解析資料...', true); 
+                appState.rawRegData = parseCSV(r); 
+                appState.rawPowerData = parseCSV(p); 
+                if(!appState.rawRegData.length) throw new Error("讀取失敗：報名表資料為空");
+                if(!appState.rawPowerData.length) throw new Error("讀取失敗：戰力表資料為空");
+                populatePickers(appState.rawRegData, 'col-reg-name', 'col-reg-opt'); 
+                populatePickers(appState.rawPowerData, 'col-pow-name', 'col-pow-val'); 
+                document.getElementById('col-picker').classList.remove('hidden'); 
+                updateLoadingStatus('驗證名單...', true); 
+                setTimeout(() => { verifyNames(); showToast('資料讀取成功！請確認下方欄位是否正確', 'success'); btn.disabled = false; updateLoadingStatus('', false); }, 100);
+            } catch(e){ showToast(e.message, 'error'); btn.disabled = false; updateLoadingStatus('', false); } 
+        }
+
+        function verifyNames() { 
+            const ri = parseInt(document.getElementById('col-reg-name').value); 
+            const ni = parseInt(document.getElementById('col-pow-name').value); 
+            if(isNaN(ri) || isNaN(ni)) { showToast("錯誤：無法識別欄位索引", "error"); return; }
+            let powerNames = [], powerMap = {}; 
+            for(let i=1; i<appState.rawPowerData.length; i++){ const r = appState.rawPowerData[i]; if(!r[ni]) continue; const raw = r[ni]; const clean = normalizeName(raw); if(clean) { powerNames.push(raw); powerMap[clean] = raw; } } 
+            appState.availablePowerNames = powerNames; 
+            if(powerNames.length === 0) { showToast("警告：戰力表中找不到任何有效名字", "error"); return; }
+            let unmatched = [], matchedCount = 0;
+            for(let i=1; i<appState.rawRegData.length; i++){ const r = appState.rawRegData[i], name = r[ri]; if(!name) continue; const opt = r[parseInt(document.getElementById('col-reg-opt').value)] || ''; if(ABSENT_KEYWORDS.some(k => String(opt).replace(/\s+/g, '').toLowerCase().includes(k))) continue; if(appState.manualMappings[name]) { matchedCount++; continue; } const clean = normalizeName(name); if(powerMap[clean]) { matchedCount++; continue; } const fuzzy = powerNames.find(p => normalizeName(p).includes(clean) || clean.includes(normalizeName(p))); unmatched.push({ orig: name, guess: fuzzy || "" }); } 
+            const panel = document.getElementById('match-check-panel'), container = document.getElementById('match-check-container'), btnRun = document.getElementById('btn-run'); 
+            if(unmatched.length > 0) { 
+                panel.classList.remove('hidden'); btnRun.classList.add('hidden'); container.innerHTML = ''; const sortedOpts = [...powerNames].sort(); 
+                unmatched.forEach(u => { 
+                    let optsHtml = `<option value="">-- 請選擇 --</option>`; optsHtml += sortedOpts.map(p => `<option value="${p}" ${p === u.guess ? 'selected' : ''}>${p}</option>`).join('');
+                    container.innerHTML += `<div class="flex items-center gap-2 border-b pb-1 mb-1"><span class="w-1/3 text-sm font-bold text-slate-700 truncate" title="${u.orig}">${u.orig}</span><span class="text-slate-400">➜</span><select id="fix-${u.orig}" class="flex-1 text-sm border rounded p-1 bg-white focus:ring-2 ring-indigo-500">${optsHtml}</select></div>`; 
+                }); 
+                showToast(`有 ${unmatched.length} 位成員名稱不符，請手動校正`, 'info');
+            } else { panel.classList.add('hidden'); btnRun.classList.remove('hidden'); if(matchedCount > 0) showToast(`驗證完成：${matchedCount} 人匹配成功`, 'success'); } 
+        }
+
+        function saveManualMappingsAndRun() { const selects = document.querySelectorAll('#match-check-container select'); selects.forEach(s => { const orig = s.id.replace('fix-', ''); if(s.value) appState.manualMappings[orig] = s.value; }); saveLocal(); document.getElementById('match-check-panel').classList.add('hidden'); document.getElementById('btn-run').classList.remove('hidden'); handleAllocation(); }
+
+        function handleAllocation(){ 
+            try { 
+                const ri=parseInt(document.getElementById('col-reg-name').value), oi=parseInt(document.getElementById('col-reg-opt').value); 
+                const ni=parseInt(document.getElementById('col-pow-name').value), vi=parseInt(document.getElementById('col-pow-val').value); 
+                let pMap={}; 
+                for(let i=1; i<appState.rawPowerData.length; i++){ const r=appState.rawPowerData[i]; if(!r[ni]) continue; const n=r[ni], vRaw=r[vi]?r[vi].toString().replace(/,/g,''):"0", p=parseFloat(vRaw)||0; if(!n||n.length>40||n.includes('function')) continue; pMap[normalizeName(n)]={raw:n, p, r:r[3]||""}; } 
+                let valid=[], absent=[], unknown=[]; 
+                for(let i=1; i<appState.rawRegData.length; i++){ 
+                    const r=appState.rawRegData[i], name=r[ri], opt=r[oi]||''; if(!name) continue; 
+                    if(ABSENT_KEYWORDS.some(k => String(opt).replace(/\s+/g, '').toLowerCase().includes(k))) { absent.push({name, opt}); continue; } 
+                    let pData = appState.manualMappings[name] ? pMap[normalizeName(appState.manualMappings[name])] : pMap[normalizeName(name)]; 
+                    let prefTime = 'any'; const optLower = opt.toLowerCase(); if (optLower.includes('一二') || (optLower.includes('1') && optLower.includes('2'))) prefTime = 'any'; else if (optLower.includes('一') || optLower.includes('1')) prefTime = '22:00'; else if (optLower.includes('二') || optLower.includes('2')) prefTime = '20:00'; 
+                    const fid = getFamilyId(name); 
+                    if(pData) valid.push({ name:pData.raw, orig:name, prefTime, origPref:opt, power:pData.p, remark:pData.r, team:null, reason:'', fid }); else { valid.push({ name, orig:name, prefTime:'any', origPref:opt, power:0, remark:'', team:null, reason:'戰力不明', fid }); unknown.push({ name, guess:'' }); } 
+                } 
+                appState.players=valid; appState.absentPlayers=absent; appState.unknownPlayers=unknown; runTeamLogic('snake'); 
+                document.getElementById('nav-dashboard').classList.remove('hidden'); document.getElementById('nav-tactics').classList.remove('hidden'); document.getElementById('nav-attendance').classList.remove('hidden'); switchTab('dashboard'); showToast('戰略分析完成', 'success'); 
+            } catch(e){ showToast("處理發生錯誤: " + e.message, 'error'); } 
+        }
+
+        function isLockedMember(m) { return m.reason.includes("鎖定") || m.reason.includes("特例") || m.reason.includes("共控"); }
+        
+        function runTeamLogic(mode = 'snake') {
+            appState.lastLogicMode = mode;
+            const validP = appState.players.slice();
+            appState.teams.forEach(t => t.members = []);
+            let remaining = [...validP].sort((a, b) => b.power - a.power);
+
+            const assign = (p, tid, reason) => {
+                const t = appState.teams.find(x => x.id === tid);
+                if (t && t.active) {
+                    p.team = tid; p.reason = reason; t.members.push(p);
+                    const idx = remaining.findIndex(x => x.name === p.name);
+                    if (idx > -1) remaining.splice(idx, 1);
+                    return true;
+                }
+                return false;
+            };
+
+            [...remaining].forEach(p => {
+                if (p.name.includes("劼吉撈") && !p.name.includes("ATM")) assign(p, 'jQt1', "R5 鎖定");
+                else if (p.name.includes("躺平草仔粿")) { const jQt2 = appState.teams.find(t => t.id === 'jQt2'); if (jQt2 && jQt2.active) assign(p, 'jQt2', "鎖定 jQt2"); else assign(p, 'aQt1', "鎖定 aQt1(備案)"); } 
+                else if (p.name.includes("冬來冬往")) assign(p, 'jQt1', "鎖定 jQt");
+                else if (p.name.includes("小冬冬")) { const jQt2 = appState.teams.find(t => t.id === 'jQt2'); if (jQt2 && jQt2.active) assign(p, 'jQt2', "鎖定 jQt"); else assign(p, 'jQt1', "鎖定 jQt"); }
+            });
+
+            const families = {};
+            remaining.forEach(p => { if (!families[p.fid]) families[p.fid] = []; families[p.fid].push(p); });
+            for (const fid in families) {
+                const members = families[fid];
+                if (members.length > 1) {
+                    members.sort((a, b) => b.power - a.power); const main = members[0]; const alt = members[1];
+                    if (assign(main, 'jQt1', "主號歸位")) {} else if (assign(main, 'aQt1', "主號歸位")) {}
+                    if (!assign(alt, 'jQt2', "小號分流")) { if (!assign(alt, 'aQt2', "小號分流")) { const mainT = appState.teams.find(t => t.id === main.team); const targetId = (mainT && mainT.id === 'jQt1') ? 'aQt1' : 'jQt1'; if (!assign(alt, targetId, "小號分流(撞)")) assign(alt, main.team, "小號分流(同隊)"); } }
+                }
+            }
+
+            const multiP = remaining.filter(p => MULTI_CONTROLLERS.some(k => p.name.includes(k)));
+            if (multiP.length > 0) { const activeT = appState.teams.filter(t => t.active).sort((a, b) => a.priority - b.priority); multiP.forEach((p, i) => assign(p, activeT[i % activeT.length].id, "共控分散")); }
+
+            if (appState.prioritizePreferences) {
+                [...remaining].forEach(p => { if (p.prefTime !== 'any') { const targets = appState.teams.filter(t => t.active && t.time === p.prefTime).sort((a, b) => a.priority - b.priority); if (targets.length > 0) assign(p, targets[0].id, "志願分配"); } });
+            }
+
+            const activeT = appState.teams.filter(t => t.active).sort((a, b) => a.priority - b.priority);
+            if (activeT.length > 0) {
+                if (mode === 'm_type') {
+                    let left = 0, right = remaining.length - 1, tIdx = 0, tempRem = [...remaining];
+                    while (left <= right) {
+                        let t = activeT[tIdx % activeT.length];
+                        if (left <= right) { let p = tempRem[left]; p.team = t.id; p.reason = "M型(高)"; t.members.push(p); remaining = remaining.filter(x => x !== p); left++; }
+                        if (left <= right) { let p = tempRem[right]; p.team = t.id; p.reason = "M型(低)"; t.members.push(p); remaining = remaining.filter(x => x !== p); right--; }
+                        tIdx++;
+                    }
+                } else if (mode === 'descending') {
+                    let tIdx = 0; const CAP = 30;
+                    while (remaining.length > 0) {
+                        const p = remaining.shift(); let t = activeT[tIdx];
+                        if (t.members.length >= CAP && tIdx < activeT.length - 1) { tIdx++; t = activeT[tIdx]; }
+                        t.members.push(p); p.team = t.id; p.reason = "階梯(高>低)";
+                    }
+                } else { 
+                    let tIdx = 0, dir = 1;
+                    while (remaining.length > 0) {
+                        const p = remaining.shift(); let t = activeT[tIdx];
+                        t.members.push(p); p.team = t.id; p.reason = "S型(均)"; tIdx += dir;
+                        if (tIdx >= activeT.length) { tIdx = activeT.length - 1; dir = -1; } if (tIdx < 0) { tIdx = 0; dir = 1; }
+                    }
+                }
+            }
+
+            if (mode !== 'descending') {
+                let iterations = 0;
+                while (iterations < 50) {
+                    iterations++; const currentActive = appState.teams.filter(t => t.active); const needy = currentActive.filter(t => t.members.length < 15);
+                    if (needy.length === 0) break;
+                    needy.sort((a, b) => a.members.length - b.members.length); const target = needy[0];
+                    currentActive.sort((a, b) => b.members.length - a.members.length); const source = currentActive[0];
+                    if (source.members.length <= 15) break;
+                    let candidateIdx = -1;
+                    for (let i = source.members.length - 1; i >= 0; i--) { const m = source.members[i]; if (isLockedMember(m)) continue; candidateIdx = i; break; }
+                    if (candidateIdx > -1) { const m = source.members.splice(candidateIdx, 1)[0]; m.team = target.id; m.reason = "強制平衡(湊15)"; target.members.push(m); } else break;
+                }
+                enforcePowerGradient();
+            }
+
+            if (appState.prioritizePreferences) autoCorrectPreferences(true);
+            checkConflicts(); renderDashboard();
+        }
+
+        function enforcePowerGradient() { const active = appState.teams.filter(t => t.active).sort((a, b) => a.priority - b.priority); const getPower = t => t.members.reduce((s, m) => s + m.power, 0); let safety = 0; while (safety++ < 50) { let changed = false; for (let i = 0; i < active.length - 1; i++) { const hi = active[i], lo = active[i + 1]; let pHi = getPower(hi), pLo = getPower(lo); if (pHi >= pLo) continue; const movableHi = hi.members.filter(m => !isLockedMember(m)); const movableLo = lo.members.filter(m => !isLockedMember(m)); movableHi.sort((a, b) => a.power - b.power); movableLo.sort((a, b) => b.power - a.power); let swapped = false; if (movableHi.length && movableLo.length) { const weakHi = movableHi[0], strongLo = movableLo[0]; if (strongLo.power > weakHi.power) { hi.members.splice(hi.members.indexOf(weakHi), 1); lo.members.splice(lo.members.indexOf(strongLo), 1); weakHi.team = lo.id; weakHi.reason = "梯度調整"; strongLo.team = hi.id; strongLo.reason = "梯度調整"; lo.members.push(weakHi); hi.members.push(strongLo); swapped = true; changed = true; } } if (!swapped && movableLo.length) { const strongLo = movableLo[0]; if (lo.members.length > 15) { lo.members.splice(lo.members.indexOf(strongLo), 1); strongLo.team = hi.id; strongLo.reason = "梯度調整"; hi.members.push(strongLo); changed = true; } } } if (!changed) break; } } }
+        
+        function checkConflicts(){ let c=0; appState.conflictMap={}; const activeTeamCount = appState.teams.filter(t=>t.active).length; const allAssigned = appState.teams.flatMap(t => t.members); const groups = {}; allAssigned.forEach(p => { if(!groups[p.fid]) groups[p.fid] = []; groups[p.fid].push(p); }); for(const fid in groups) { const fam = groups[fid]; if(fam.length > 1) { for(let i=0; i<fam.length; i++) { for(let j=i+1; j<fam.length; j++) { const p1 = fam[i], p2 = fam[j]; const t1 = appState.teams.find(t=>t.id===p1.team), t2 = appState.teams.find(t=>t.id===p2.team); if(t1 && t2) { if(activeTeamCount > 1 && t1.id === t2.id) { c++; appState.conflictMap[p1.name] = "🚫同隊"; appState.conflictMap[p2.name] = "🚫同隊"; } else if(t1.time === t2.time && t1.id !== t2.id) { if(!appState.conflictMap[p1.name]) { c++; appState.conflictMap[p1.name] = "⚠️撞期"; appState.conflictMap[p2.name] = "⚠️撞期"; } } } } } } } setText('stat-conflict', c); }
+        function filterMembers(val) { const cards = document.querySelectorAll('.member-card'); cards.forEach(c => { const name = c.querySelector('.member-name').innerText; c.style.display = name.toLowerCase().includes(val.toLowerCase()) ? 'block' : 'none'; }); }
+        
+        function autoCorrectPreferences(isAuto = false) {
+            let swapCount = 0; const activeTeams = appState.teams.filter(t => t.active); let wrongPlaceMembers = [];
+            activeTeams.forEach(sourceTeam => { sourceTeam.members.forEach(m => { if (m.prefTime !== 'any' && m.prefTime !== sourceTeam.time && !isLockedMember(m)) { wrongPlaceMembers.push({ member: m, sourceTeam: sourceTeam }); } }); });
+            if (wrongPlaceMembers.length === 0 && !isAuto) return showToast("目前所有成員皆符合志願 (或為 Any)", "info");
+            wrongPlaceMembers.forEach(item => {
+                const { member, sourceTeam } = item; if (!sourceTeam.members.includes(member)) return;
+                const targetTeam = activeTeams.find(t => t.time === member.prefTime);
+                if (targetTeam) {
+                    let candidate = targetTeam.members.find(tMember => !isLockedMember(tMember) && tMember.prefTime === sourceTeam.time);
+                    if (!candidate) candidate = targetTeam.members.find(tMember => !isLockedMember(tMember) && tMember.prefTime === 'any');
+                    if (candidate) {
+                        sourceTeam.members = sourceTeam.members.filter(m => m !== member); targetTeam.members = targetTeam.members.filter(m => m !== candidate);
+                        member.team = targetTeam.id; member.reason = "志願校正"; candidate.team = sourceTeam.id; candidate.reason = "志願校正(交換)";
+                        targetTeam.members.push(member); sourceTeam.members.push(candidate); swapCount++;
+                    }
+                }
+            });
+            if (swapCount > 0) { if (!isAuto) checkConflicts(); if (!isAuto) renderDashboard(); if (!isAuto) showToast(`已根據志願調整 ${swapCount} 位成員`, 'success'); } else if (!isAuto) { showToast("目前所有成員皆符合志願 (或無法交換)", "info"); }
+        }
+
+        function autoResolveConflicts() { let changes = 0; const activeTeams = appState.teams.filter(t => t.active); if (activeTeams.length < 2) return showToast("單一軍團模式無需解決衝突"); const conflicts = Object.keys(appState.conflictMap); conflicts.forEach(name => { for (let t of activeTeams) { const p = t.members.find(x => x.name === name); if (p && !isLockedMember(p)) { const target = activeTeams.find(x => x.id !== t.id && (x.time !== t.time || activeTeams.length > 2)); if (target) { const swapCandidate = target.members.find(m => !isLockedMember(m) && Math.abs(m.power - p.power) < 1000000); if (swapCandidate) { t.members = t.members.filter(x => x !== p); target.members = target.members.filter(x => x !== swapCandidate); p.team = target.id; p.reason = "衝突解決"; swapCandidate.team = t.id; swapCandidate.reason = "衝突解決"; target.members.push(p); t.members.push(swapCandidate); changes++; break; } } } } }); if (changes > 0) { checkConflicts(); renderDashboard(); showToast(`已嘗試自動解決 ${changes} 個衝突`, 'success'); } else { showToast("無可用的簡單交換方案", 'info'); } }
+        function manualRemove(name) { if(!confirm(`確定要將「${name}」移除並標記為不參加嗎？`)) return; let removedPlayer = null; appState.teams.forEach(t => { const idx = t.members.findIndex(m => m.name === name); if(idx > -1) removedPlayer = t.members.splice(idx, 1)[0]; }); const pIdx = appState.players.findIndex(p => p.name === name); if(pIdx > -1) { if(!removedPlayer) removedPlayer = appState.players[pIdx]; appState.players.splice(pIdx, 1); } if(removedPlayer) { removedPlayer.opt = '手動移除'; appState.absentPlayers.push(removedPlayer); runTeamLogic(appState.lastLogicMode); showToast(`已移除 ${name}`, 'success'); } }
+        function manualRestore(name) { const idx = appState.absentPlayers.findIndex(p => p.name === name); if(idx > -1) { const player = appState.absentPlayers.splice(idx, 1)[0]; player.reason = ''; player.team = null; appState.players.push(player); runTeamLogic(appState.lastLogicMode); showToast(`已恢復 ${name}`, 'success'); } }
+        function createTeamChart(t) { const ctx = document.getElementById(`chart-${t.id}`); if(ctx) { const color = t.id.includes('jQt') ? 'rgba(59, 130, 246, 1)' : 'rgba(249, 115, 22, 1)'; const bg = t.id.includes('jQt') ? 'rgba(59, 130, 246, 0.1)' : 'rgba(249, 115, 22, 0.1)'; if(teamCharts[t.id]) teamCharts[t.id].destroy(); teamCharts[t.id] = new Chart(ctx, { type: 'line', data: { labels: t.members.map((_, i) => i+1), datasets: [{ data: t.members.map(m => m.power/1000000), borderColor: color, backgroundColor: bg, borderWidth: 1.5, pointRadius: 0, fill: true, tension: 0.4 }] }, options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { display: false }, tooltip: { enabled: false } }, scales: { x: { display: false }, y: { display: false, min: 0 } } } }); } }
+        function renderChart() {
+            const activeTeams = appState.teams.filter(t => t.active);
+            const ctxGlobal = document.getElementById('powerChart');
+            if (chartInstance) chartInstance.destroy();
+            const divisor = 1000; const label = '軍團總戰力 (k)';
+            if (ctxGlobal) {
+                chartInstance = new Chart(ctxGlobal, {
+                    type: 'bar',
+                    data: {
+                        labels: activeTeams.map(t => t.name),
+                        datasets: [{ label: label, data: activeTeams.map(t => (t.members.reduce((a, b) => a + b.power, 0) / divisor).toFixed(0)), backgroundColor: activeTeams.map(t => t.id.includes('jQt') ? 'rgba(59, 130, 246, 0.7)' : 'rgba(249, 115, 22, 0.7)'), borderColor: activeTeams.map(t => t.id.includes('jQt') ? 'rgba(59, 130, 246, 1)' : 'rgba(249, 115, 22, 1)'), borderWidth: 1 }]
+                    },
+                    options: { indexAxis: 'y', responsive: true, maintainAspectRatio: false, plugins: { legend: { display: false } }, scales: { x: { beginAtZero: true, grid: { display: false } } } }
+                });
+            }
+        }
+        function cycleTeam(name){ const active=appState.teams.filter(t=>t.active); if(active.length<2) return; for(let i=0; i<active.length; i++){ const t=active[i], m=t.members.find(x=>x.name===name); if(m){ t.members=t.members.filter(x=>x!==m); const next=active[(i+1)%active.length]; m.team=next.id; m.reason="手動"; next.members.push(m); checkConflicts(); renderDashboard(); return; } } }
+        function exportToDiscord() { let text = `**🏰 jQt 聯盟戰力配置 (v68.1)**\n📅 日期: ${new Date().toLocaleDateString()}\n\n`; appState.teams.filter(t => t.active).forEach(t => { const totalPower = Math.round(t.members.reduce((a,b)=>a+b.power,0)/1000).toLocaleString(); text += `**${t.name}** (${t.time}) - ${t.members.length}人 - ${totalPower}k\n> 成員: ${t.members.map(m=>m.name).join(', ')}\n\n`; }); const el = document.createElement('textarea'); el.value = text; document.body.appendChild(el); el.select(); document.execCommand('copy'); document.body.removeChild(el); showToast("已複製 Discord 格式報告！", 'success'); }
+        function copyMemberList() { const dateStr = new Date().toLocaleDateString(); let text = `━━━━━━━━━━━━━━━━━━━━\n🏰 jQt 聯盟軍團名單\n📅 ${dateStr}\n━━━━━━━━━━━━━━━━━━━━\n\n`; let totalCount = 0; let totalPower = 0; appState.teams.filter(t => t.active).forEach(t => { const tCount = t.members.length; const tPower = t.members.reduce((a,b)=>a+b.power,0); const avgPower = tCount > 0 ? (tPower / tCount) : 0; totalCount += tCount; totalPower += tPower; text += `【${t.name}】\n⏰ 時間：${t.time}\n👥 人數：${tCount} 人\n⚔️ 總戰力：${formatSmart(tPower)}\n📊 平均：${formatSmart(avgPower)}\n\n成員名單：\n`; const names = t.members.map(m => m.name); for (let i = 0; i < names.length; i += 5) text += names.slice(i, i + 5).join('、') + '\n'; text += `\n────────────────────\n\n`; }); text += `━━━━━━━━━━━━━━━━━━━━\n📊 總計：${totalCount} 人參戰\n💪 總戰力：${formatSmart(totalPower)}\n\n`; if (appState.absentPlayers.length > 0) { text += `🚫 不參加名單 (${appState.absentPlayers.length}人)：\n`; const absNames = appState.absentPlayers.map(p => p.name); for (let i = 0; i < absNames.length; i += 5) text += absNames.slice(i, i + 5).join('、') + '\n'; } const el = document.createElement('textarea'); el.value = text; document.body.appendChild(el); el.select(); document.execCommand('copy'); document.body.removeChild(el); showToast("已複製完整名單格式！", 'success'); }
+        function saveConfiguration() { const name = document.getElementById('save-name')?.value || `配置 ${new Date().toLocaleString()}`; if (appState.savedConfigs.length > 20) appState.savedConfigs.shift(); appState.savedConfigs.push({ id: Date.now(), name: name, date: new Date().toLocaleString(), players: appState.players, mappings: appState.manualMappings }); localStorage.setItem('jQt_history', JSON.stringify(appState.savedConfigs)); renderHistoryList(); showToast("配置已儲存", 'success'); }
+        function loadConfiguration(id) { const config = appState.savedConfigs.find(c => c.id === id); if (config) { appState.players = config.players; appState.manualMappings = config.mappings; runTeamLogic('snake'); showToast(`已載入: ${config.name}`, 'success'); } }
+        function deleteConfiguration(id) { appState.savedConfigs = appState.savedConfigs.filter(c => c.id !== id); localStorage.setItem('jQt_history', JSON.stringify(appState.savedConfigs)); renderHistoryList(); }
+        function renderHistoryList() { const el = document.getElementById('history-list'); if (!el) return; if (appState.savedConfigs.length === 0) { el.innerHTML = '<div class="text-center text-slate-400 py-4 text-sm">尚無存檔</div>'; return; } el.innerHTML = appState.savedConfigs.slice().reverse().map(c => `<div class="flex justify-between items-center bg-slate-50 p-2 rounded border-b last:border-0 hover:bg-slate-100 transition-colors"><div><div class="font-bold text-sm text-slate-700">${c.name}</div><div class="text-xs text-slate-500">${c.date}</div></div><div class="flex gap-2"><button onclick="loadConfiguration(${c.id})" class="text-indigo-600 hover:text-indigo-800 font-bold text-xs">載入</button><button onclick="deleteConfiguration(${c.id})" class="text-red-400 hover:text-red-600 font-bold text-xs">刪除</button></div></div>`).join(''); }
+        function exportConfig() { const dataStr = "data:text/json;charset=utf-8," + encodeURIComponent(JSON.stringify(appState.savedConfigs)); const downloadAnchorNode = document.createElement('a'); downloadAnchorNode.setAttribute("href", dataStr); downloadAnchorNode.setAttribute("download", "jQt_configs.json"); document.body.appendChild(downloadAnchorNode); downloadAnchorNode.click(); downloadAnchorNode.remove(); }
+        function importConfig(input) { const file = input.files[0]; if (!file) return; const reader = new FileReader(); reader.onload = function(e) { try { const imported = JSON.parse(e.target.result); if(Array.isArray(imported)) { appState.savedConfigs = [...appState.savedConfigs, ...imported]; localStorage.setItem('jQt_history', JSON.stringify(appState.savedConfigs)); renderHistoryList(); showToast("匯入成功", 'success'); } else throw new Error("格式不符"); } catch(err) { showToast("匯入失敗: 格式錯誤", 'error'); } }; reader.readAsText(file); }
+        function initTactics(){ const s=document.getElementById('tactics-team-select'); s.innerHTML=appState.teams.filter(t=>t.active).map(t=>`<option value="${t.id}">${t.name}</option>`).join(''); if(!appState.currentTacticalTeamId) appState.currentTacticalTeamId=s.value; else s.value=appState.currentTacticalTeamId; renderTacticsBoard(); }
+        function renderTacticsBoard(){ const tid=document.getElementById('tactics-team-select').value; appState.currentTacticalTeamId=tid; const team=appState.teams.find(t=>t.id===tid); if(!team)return; let pwr={1:0,2:0,3:0,4:0}; team.members.forEach(m=>{if(m.missionGroup>0)pwr[m.missionGroup]+=m.power;}); const c=document.getElementById('tactics-container'); c.innerHTML=''; MISSION_GROUPS.forEach(g=>{ const mems=team.members.filter(m=>m.missionGroup===g.id).sort((a,b)=>b.power-a.power); let list=mems.map(m=> { const safeName = m.name.replace(/\\/g, '\\\\').replace(/'/g, "\\'").replace(/"/g, '&quot;'); return `<div class="member-row" onclick="cycleGroup('${safeName}')"><span class="font-bold">${m.name}</span><span class="text-xs text-slate-500">${Math.round(m.power/1000)}k</span></div>` }).join(''); c.innerHTML+=`<div class="mission-group-card border-${g.color}-500"><div class="mission-header text-${g.color}-700 flex items-center justify-between px-2 py-1 border-b"><span>${g.name}</span><span class="text-sm bg-white px-2 border rounded shadow-sm">${Math.round(pwr[g.id]/1000)}k</span></div><div class="mission-target text-xs text-slate-600 p-2 border-b bg-slate-50">${g.target.replace(/\n/g,'<br>')}</div><div class="h-64 overflow-y-auto custom-scroll">${list}</div></div>`; }); const gn=(id)=>team.members.filter(m=>m.missionGroup===id).sort((a,b)=>b.power-a.power).map(m=>m.name).join(', '); document.getElementById('mission-text').value=`【${team.name} 戰場指令】\n` + MISSION_GROUPS.map(g=>`\n${g.name}\n${g.target}\n成員: ${gn(g.id)||"無"}`).join('\n'); }
+        function cycleGroup(name){ const t=appState.teams.find(x=>x.id===appState.currentTacticalTeamId); const m=t.members.find(x=>x.name===name); if(m){ m.missionGroup=(m.missionGroup%4)+1; renderTacticsBoard(); } }
+        function autoDistributeMissions(){ const t=appState.teams.find(x=>x.id===appState.currentTacticalTeamId); const s=[...t.members].sort((a,b)=>b.power-a.power); s.forEach((m,i)=>{ const c=Math.floor(i/4), p=i%4; m.missionGroup=(c%2===0) ? (p+1) : (4-p); }); renderTacticsBoard(); }
+        function copyMissionText(){ const e=document.getElementById('mission-text'); e.select(); document.execCommand('copy'); showToast('戰術指令已複製', 'success'); }
+        function renderSettings(){ const tb=document.getElementById('team-list-body'); if(tb){ tb.innerHTML=''; appState.teams.forEach((t)=>{ tb.innerHTML+=`<tr class="border-b"><td class="p-2">${t.name}</td><td class="p-2">${t.time}</td><td class="p-2"><span class="text-xs px-2 py-1 rounded ${t.active?'bg-green-100 text-green-700':'bg-slate-100 text-slate-400'}">${t.active?'啟用':'關閉'}</span></td></tr>`; }); } const ab=document.getElementById('bind-list-body'); if(ab){ ab.innerHTML=''; appState.alts.forEach((a,i)=>{ ab.innerHTML+=`<tr class="border-b"><td class="p-2">${a.main}</td><td class="p-2">${a.alt}</td><td class="p-2"><button onclick="delAlt(${i})" class="text-red-500 hover:text-red-700">🗑️ 刪除</button></td></tr>`; }); } renderLinkerList(); }
+        function renderLinkerList(){ const lc=document.getElementById('linker-container'); if(!lc) return; lc.innerHTML=''; if(appState.unknownPlayers.length === 0) { lc.innerHTML = '<p class="text-sm text-green-600">目前沒有需要校準的成員。</p>'; return; } const opts=appState.availablePowerNames.filter(n=>!n.includes('function')&&n.length<30); appState.unknownPlayers.forEach(p=>{ const sel=p.guess; const sOpts=[...opts].sort((a,b)=>{ if(a===sel)return -1; if(b===sel)return 1; return a.localeCompare(b); }); const h=`<option value="">請選擇對應 ID</option>` + sOpts.map(n=>`<option value="${n}" ${n===sel?'selected':''}>${n}</option>`).join(''); lc.innerHTML+=`<div class="flex gap-2 items-center mb-2"><input disabled value="${p.name}" class="w-1/3 text-xs border p-2 rounded bg-slate-100 font-bold text-slate-700"><span class="text-slate-400">👉</span><select id="map-${p.name}" class="w-2/3 text-xs border p-2 rounded bg-white shadow-sm focus:border-amber-500">${h}</select></div>`; }); }
+        function addBinding(){ const m=document.getElementById('bind-main').value, a=document.getElementById('bind-alt').value; if(m&&a){ appState.alts.push({main:m, alt:a}); saveLocal(); renderSettings(); document.getElementById('bind-main').value=''; document.getElementById('bind-alt').value=''; showToast('綁定已新增', 'success'); } }
+        function delAlt(i){ appState.alts.splice(i,1); saveLocal(); renderSettings(); }
+        function applyManualMappings(){ let c=0; appState.unknownPlayers.forEach(p=>{ const e=document.getElementById(`map-${p.name}`); if(e&&e.value){ appState.manualMappings[p.name]=e.value; c++; } }); if(c){ saveLocal(); handleAllocation(); showToast('校正已套用', 'success'); } else showToast("未選擇任何對應關係", 'info'); }
+        function clearManualMappings() { if(confirm("確定要刪除所有手動校正的對應紀錄嗎？")) { appState.manualMappings = {}; saveLocal(); verifyNames(); showToast('紀錄已清除', 'success'); } }
+        function initAttendance() { const activeTeams = appState.teams.filter(t => t.active); if (activeTeams.length === 0) return showToast("無啟用軍團", 'error'); const date = new Date().toLocaleDateString(); setText('att-date-display', `📅 ${date} 點名`); appState.currentAttendance = { date: date, id: Date.now(), records: {} }; const container = document.getElementById('attendance-container'); container.innerHTML = ''; activeTeams.forEach(t => { let rows = t.members.map(m => { appState.currentAttendance.records[m.name] = 'present'; return `<div class="flex justify-between items-center py-2 border-b last:border-0"><span class="font-bold text-slate-700 text-sm w-32 truncate">${m.name}</span><div class="flex gap-2"><button onclick="setAttStatus('${m.name}', 'present')" id="att-btn-${m.name}-present" class="att-btn present active" title="出席">✓</button><button onclick="setAttStatus('${m.name}', 'leave')" id="att-btn-${m.name}-leave" class="att-btn leave" title="請假">◐</button><button onclick="setAttStatus('${m.name}', 'absent')" id="att-btn-${m.name}-absent" class="att-btn absent" title="缺席">✗</button></div></div>`; }).join(''); container.innerHTML += `<div class="bg-white rounded-lg shadow border p-4"><h4 class="font-bold text-lg mb-2 text-indigo-700 border-b pb-2">${t.name} (${t.members.length}人)</h4><div class="max-h-96 overflow-y-auto custom-scroll">${rows}</div></div>`; }); document.getElementById('attendance-active-area').classList.remove('hidden'); }
+        function setAttStatus(name, status) { appState.currentAttendance.records[name] = status; document.querySelectorAll(`[id^="att-btn-${name}-"]`).forEach(b => b.classList.remove('active')); document.getElementById(`att-btn-${name}-${status}`).classList.add('active'); }
+        function markAllPresent() { for (let name in appState.currentAttendance.records) { setAttStatus(name, 'present'); } }
+        function saveAttendance() { if (!appState.currentAttendance.id) return showToast("請先開始新點名", 'error'); appState.attendanceHistory.push(appState.currentAttendance); localStorage.setItem('jQt_attendance', JSON.stringify(appState.attendanceHistory)); renderAttendanceHistory(); document.getElementById('attendance-active-area').classList.add('hidden'); showToast("點名記錄已儲存", 'success'); }
+        function renderAttendanceHistory() { const list = document.getElementById('attendance-history-list'); if(list) list.innerHTML = appState.attendanceHistory.slice().reverse().map((r, i) => { const present = Object.values(r.records).filter(s => s === 'present').length; const absent = Object.values(r.records).filter(s => s === 'absent').length; return `<div class="flex justify-between items-center bg-white p-2 rounded border hover:bg-slate-50"><div><div class="font-bold text-sm">${r.date}</div><div class="text-xs text-slate-500">出席: ${present} | 缺席: ${absent}</div></div><button onclick="deleteAttendance(${appState.attendanceHistory.length - 1 - i})" class="text-red-500 hover:text-red-700 text-xs font-bold">刪除</button></div>`; }).join(''); const alertList = document.getElementById('attendance-alert-list'); if(alertList) { const absentCounts = {}; appState.attendanceHistory.forEach(h => { for(const [name, status] of Object.entries(h.records)) { if(status === 'absent') absentCounts[name] = (absentCounts[name] || 0) + 1; } }); const offenders = Object.entries(absentCounts).filter(([_, c]) => c >= 2).sort((a,b) => b[1] - a[1]); alertList.innerHTML = offenders.length === 0 ? '<div class="text-xs text-green-600 text-center">目前無人達到禁賽標準 👍</div>' : offenders.map(([name, count]) => `<div class="flex justify-between items-center border-b border-red-100 pb-1 last:border-0"><span class="font-bold text-slate-700 text-sm">${name}</span><span class="bg-red-100 text-red-600 px-2 py-0.5 rounded text-xs font-bold">${count} 次</span></div>`).join(''); } }
+        function deleteAttendance(index) { if(!confirm("確定刪除此記錄？")) return; appState.attendanceHistory.splice(index, 1); localStorage.setItem('jQt_attendance', JSON.stringify(appState.attendanceHistory)); renderAttendanceHistory(); }
+        
+        function togglePrefMode() {
+            const checkbox = document.getElementById('toggle-pref');
+            appState.prioritizePreferences = checkbox.checked;
+            runTeamLogic(appState.lastLogicMode);
+            if (appState.prioritizePreferences) { showToast("已開啟：優先遵循志願 (可能會影響戰力平衡)", "info"); } else { showToast("已關閉：僅依戰力平衡分配", "info"); }
+        }
+        
+        function toggleAbsentList() {
+            appState.isAbsentExpanded = !appState.isAbsentExpanded;
+            renderDashboard();
+        }
+
+        // --- RENDER DASHBOARD (v68.1) ---
+        function renderDashboard(){
+            setText('stat-n', appState.players.length);
+            setText('stat-power', Math.round(appState.players.reduce((a,b)=>a+b.power,0)).toLocaleString());
+            setText('stat-unknown', appState.unknownPlayers.length);
+            const d=document.getElementById('dashboard-container'); if(d) d.innerHTML='';
+            let anyLow = false; renderChart();
+
+            const allPlayersSorted = [...appState.players].sort((a,b) => b.power - a.power);
+            const totalGlobalPlayers = allPlayersSorted.length || 1; 
+            const globalRankMap = {}; allPlayersSorted.forEach((p, i) => { globalRankMap[p.name] = i + 1; });
+            const allianceTotalPower = appState.players.reduce((a,b)=>a+b.power,0);
+
+            appState.teams.forEach(t=>{
+                if(!t.active) return;
+                if(t.members.length < 15) anyLow = true;
+                t.members.sort((a,b)=>b.power-a.power);
+                
+                let h = `<div class="team-container border-${t.id.includes('jQt')?'blue':'orange'}-200 animate-slide-up">`;
+                
+                h += `<div class="team-col-header flex justify-between items-center"><div><h3 class="font-black text-lg text-slate-800">${t.name}</h3><div class="flex gap-2 text-xs font-bold mt-1"><span class="bg-slate-200 px-1.5 py-0.5 rounded text-slate-600">${t.time}</span><span class="bg-indigo-50 text-indigo-600 px-1.5 py-0.5 rounded">${t.members.length} 人</span></div></div><div class="text-right"><div class="text-xl font-black text-slate-700">${Math.round(t.members.reduce((a,b)=>a+b.power,0)/1000).toLocaleString()}k</div><div class="h-8 w-24"><canvas id="chart-${t.id}"></canvas></div></div></div>`;
+                
+                h += `<div class="flex-grow overflow-y-auto p-2 custom-scroll space-y-2 relative bg-slate-50/50">`;
+
+                const tCount = t.members.length;
+                const maxTeamPower = t.members.length > 0 ? t.members[0].power : 1;
+
+                t.members.forEach((m, idx)=>{
+                    const isConflict = appState.conflictMap[m.name];
+                    const w = isConflict ? `<span class="mini-badge bg-red-500 text-white animate-pulse">衝突</span>` : '';
+                    const ok = (m.prefTime === t.time || m.prefTime === 'any') ? '' : `<span class="mini-badge bg-amber-100 text-amber-700">志願不符</span>`;
+                    const safeName = m.name.replace(/\\/g, '\\\\').replace(/'/g, "\\'").replace(/"/g, '&quot;');
+                    
+                    let absCount = 0; appState.attendanceHistory.forEach(h => { if(h.records[m.name] === 'absent') absCount++; });
+                    const absBadge = absCount > 0 ? `<span class="mini-badge bg-slate-800 text-white">缺${absCount}</span>` : '';
+
+                    const globalRank = globalRankMap[m.name] || totalGlobalPlayers;
+                    const globalPercentile = Math.ceil((globalRank / totalGlobalPlayers) * 100);
+                    let tierClass = '', icon = 'brightness_1', iconColor = 'text-slate-300';
+
+                    if (globalPercentile <= 10) { tierClass = 'border-l-4 border-l-yellow-400 shadow-[0_2px_8px_rgba(250,204,21,0.15)]'; icon = 'grade'; iconColor = 'text-yellow-400'; } 
+                    else if (globalPercentile <= 25) { tierClass = 'border-l-4 border-l-purple-500'; icon = 'stars'; iconColor = 'text-purple-500'; } 
+                    else if (globalPercentile <= 50) { tierClass = 'border-l-4 border-l-blue-400'; icon = 'diamond'; iconColor = 'text-blue-400'; } 
+                    else if (globalPercentile <= 75) { tierClass = 'border-l-4 border-l-green-500'; icon = 'verified'; iconColor = 'text-green-500'; } 
+                    
+                    if(isConflict) tierClass = 'border-2 border-red-500 bg-red-50 animate-pulse';
+
+                    const powerPct = Math.max(5, (m.power / maxTeamPower) * 100);
+                    const barColor = t.id.includes('jQt') ? 'text-blue-400' : 'text-orange-400';
+
+                    const tierJson = JSON.stringify({icon, label: icon, textClass: iconColor}).replace(/"/g, "&quot;");
+
+                    h += `
+                    <div class="member-card ${tierClass}" onclick="event.stopPropagation(); cycleTeam('${safeName}')" onmousemove="moveTooltip(event)" onmouseenter="showHoverCard(event, '${safeName}', ${m.power}, ${idx+1}, ${tCount}, ${allianceTotalPower}, ${tierJson})" onmouseleave="hideHoverCard()">
+                        <div class="power-bar-bg ${barColor}" style="width: ${powerPct}%"></div>
+                        <div class="relative z-10 flex justify-between items-center">
+                            <div class="flex items-center gap-2 overflow-hidden">
+                                <span class="material-symbols-rounded text-sm ${iconColor}">${icon}</span>
+                                <span class="member-name font-bold text-slate-700 text-sm truncate w-24">${m.name}</span>
+                                ${w}${absBadge}${ok}
+                            </div>
+                            <div class="flex items-center gap-2">
+                                <span class="font-mono text-xs font-bold text-slate-500">${Math.round(m.power/1000).toLocaleString()}k</span>
+                                <button class="text-slate-300 hover:text-red-500 transition-colors" onclick="event.stopPropagation(); manualRemove('${safeName}')"><span class="material-symbols-rounded text-base">close</span></button>
+                            </div>
+                        </div>
+                    </div>`;
+                });
+                h += `</div></div>`; if(d) d.innerHTML+=h;
+            });
+            setTimeout(() => { appState.teams.forEach(t => { if(t.active) createTeamChart(t); }); }, 50);
+            
+            const absentPanel = document.getElementById('absent-panel');
+            if(absentPanel){
+                const count = appState.absentPlayers.length;
+                if(count > 0){
+                    absentPanel.classList.remove('hidden');
+                    const arrowClass = appState.isAbsentExpanded ? 'rotate-180' : '';
+                    const listClass = appState.isAbsentExpanded ? 'max-h-48 opacity-100 mt-2' : 'max-h-0 opacity-0 overflow-hidden mt-0';
+                    const listHtml = appState.absentPlayers.map(p => {
+                        const isManual = p.opt === '手動移除';
+                        const safeName = p.name.replace(/\\/g, '\\\\').replace(/'/g, "\\'").replace(/"/g, '&quot;');
+                        return `<span class="bg-white border border-slate-200 px-2 py-1 rounded-md text-slate-500 flex items-center gap-1 hover:border-blue-300 transition-colors">${p.name} ${isManual ? `<button class="text-blue-500 hover:text-blue-700 font-bold ml-1" onclick="manualRestore('${safeName}')">↩</button>` : ''}</span>`;
+                    }).join('');
+
+                    absentPanel.innerHTML = `
+                        <div class="flex items-center justify-between cursor-pointer select-none hover:bg-slate-100 p-1 -m-1 rounded transition-colors" onclick="toggleAbsentList()">
+                            <h4 class="font-bold text-slate-600 text-xs flex items-center gap-1">
+                                <span class="material-symbols-rounded text-sm">block</span> 
+                                不參加名單 (<span id="absent-count">${count}</span>)
+                            </h4>
+                            <span class="material-symbols-rounded text-slate-400 text-sm transform transition-transform duration-300 ${arrowClass}">keyboard_arrow_down</span>
+                        </div>
+                        <div id="absent-list" class="flex flex-wrap gap-2 overflow-y-auto custom-scroll text-xs transition-all duration-300 ease-in-out ${listClass}">
+                            ${listHtml}
+                        </div>
+                    `;
+                } else { 
+                    absentPanel.classList.add('hidden'); 
+                    absentPanel.innerHTML = ''; 
+                }
+            }
+            
+            const popAlert = document.getElementById('pop-alert');
+            if(popAlert) { if(anyLow) { popAlert.innerHTML = "<span class='material-symbols-rounded text-red-600'>error</span> <span>警告：有隊伍未滿 15 人，無法開啟活動！</span>"; popAlert.classList.remove('hidden'); } else { popAlert.classList.add('hidden'); } }
+            
+            const linkerPanel = document.getElementById('linker-panel');
+            if (linkerPanel) linkerPanel.classList.toggle('hidden', appState.unknownPlayers.length === 0);
+        }
+    </script>
+</body>
+</html>
