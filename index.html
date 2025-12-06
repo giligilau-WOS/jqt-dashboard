@@ -973,13 +973,15 @@
             return true;
         }
 
-      // --- 修正後的 runTeamLogic 函數 ---
-        // --- 核心分配邏輯 (完全重寫) ---
+      // --- 核心分配邏輯 (修正版：支援 M 型頭尾分配) ---
         function runTeamLogic(mode = 'snake') {
             appState.lastLogicMode = mode;
-            // 1. 重置隊伍
+            
+            // 1. 重置所有隊伍成員
             const validP = appState.players.slice();
             appState.teams.forEach(t => t.members = []);
+            
+            // 取得啟用中的軍團並按優先級排序 (Priority 0=軍團一, Priority 1=軍團二...)
             const activeTeams = appState.teams.filter(t => t.active).sort((a, b) => a.priority - b.priority);
 
             if (activeTeams.length === 0) return;
@@ -999,7 +1001,7 @@
                 return false;
             };
 
-            // (鎖定邏輯保留)
+            // (鎖定邏輯保留 - 請確認是否需要保留這些特定 ID 的鎖定)
             [...remaining].forEach(p => {
                 if (p.name.includes("劼吉撈") && !p.name.includes("ATM")) assign(p, 'jQt1', "R5 鎖定");
                 else if (p.name.includes("躺平草仔粿")) { 
@@ -1015,48 +1017,108 @@
                 }
             });
 
-            // 4. 正式分配 (依據設定決定策略)
+            // 定義哪些隊伍參與 S 型分配 (預設是全部)
+            let sTypeCandidates = [...activeTeams];
+
+            // 4. M 型分隊專屬邏輯
+            // 規則：軍團一 (Priority 0) 拿頭尾，剩下給軍團二
+            if (mode === 'm_type' && activeTeams.length > 0) {
+                const mTeam = activeTeams[0]; // 抓取優先級最高的隊伍 (通常是 jQt1)
+                
+                // 計算目標人數：(總人數 + 已分配人數) / 總隊伍數
+                // 這裡簡單平均分配，您也可以寫死例如 30 人
+                const totalPoolSize = remaining.length + activeTeams.reduce((acc, t) => acc + t.members.length, 0);
+                const targetSize = Math.ceil(totalPoolSize / activeTeams.length);
+
+                // 開始填滿 M 型隊伍 (取頭取尾)
+                while (mTeam.members.length < targetSize && remaining.length > 0) {
+                    // 4.1 取頭 (最強) - 尋找第一個能安全加入(無衝突)的最強者
+                    let headIdx = -1;
+                    for(let i = 0; i < remaining.length; i++) {
+                        if (isSafeToJoin(remaining[i], mTeam)) {
+                            headIdx = i;
+                            break;
+                        }
+                    }
+                    
+                    if (headIdx !== -1) {
+                        const p = remaining[headIdx];
+                        p.team = mTeam.id;
+                        p.reason = "M型(頭部)";
+                        mTeam.members.push(p);
+                        remaining.splice(headIdx, 1);
+                    }
+
+                    // 檢查是否滿員或沒人了
+                    if (mTeam.members.length >= targetSize || remaining.length === 0) break;
+
+                    // 4.2 取尾 (最弱) - 尋找最後一個能安全加入(無衝突)的最弱者
+                    let tailIdx = -1;
+                    for(let i = remaining.length - 1; i >= 0; i--) {
+                        if (isSafeToJoin(remaining[i], mTeam)) {
+                            tailIdx = i;
+                            break;
+                        }
+                    }
+
+                    if (tailIdx !== -1) {
+                        const p = remaining[tailIdx];
+                        p.team = mTeam.id;
+                        p.reason = "M型(尾部)";
+                        mTeam.members.push(p);
+                        remaining.splice(tailIdx, 1);
+                    }
+                }
+
+                // M 型分配完畢，將軍團一從 S 型分配候選名單中移除
+                // 這樣剩下的「中層戰力」就會由剩下的軍團 (如 jQt2) 均分
+                sTypeCandidates.shift();
+            }
+
+            // 5. 正式分配 (S型 / 均分 / 剩餘人員分配)
+            // 如果是 M 型模式，這裡處理的就是被挑剩的中層戰力，會均分給剩下的隊伍
             remaining.forEach((p, i) => {
-                let eligibleTeams = activeTeams;
+                // 如果所有隊伍都滿了或者沒有候選隊伍，就退回到所有啟用隊伍
+                let eligibleTeams = sTypeCandidates.length > 0 ? sTypeCandidates : activeTeams;
 
                 // 如果開啟「遵循志願」，且該成員有特定志願 (非 any)
                 if (appState.prioritizePreferences && p.prefTime !== 'any') {
-                    // 篩選出符合時間的隊伍
-                    const timeMatches = activeTeams.filter(t => t.time === p.prefTime);
-                    // 如果有符合的隊伍，就只從這些隊伍選；如果沒有(例如該時段隊伍沒開)，就退回全選
+                    const timeMatches = eligibleTeams.filter(t => t.time === p.prefTime);
                     if (timeMatches.length > 0) {
                         eligibleTeams = timeMatches;
                     }
                 }
 
-                // 在「合格隊伍」中，選擇最適合的一個
-                // 策略：為了平衡戰力，我們把人丟進目前「總戰力最低」的合格隊伍
-                // 這是一種動態的 S 型 (Water filling)
+                // 在「合格隊伍」中，選擇目前總戰力最低的 (S型/Water filling)
                 eligibleTeams.sort((a, b) => {
                     const powerA = a.members.reduce((sum, m) => sum + m.power, 0);
                     const powerB = b.members.reduce((sum, m) => sum + m.power, 0);
-                    // 如果戰力一樣，選人數少的
                     if (powerA === powerB) return a.members.length - b.members.length;
-                    return powerA - powerB; // 選戰力低的
+                    return powerA - powerB; 
                 });
 
-                const targetTeam = eligibleTeams[0];
-                if (targetTeam) {
-                    targetTeam.members.push(p);
-                    p.team = targetTeam.id;
-                    // 如果是因為志願才進來的，標記一下
-                    if (appState.prioritizePreferences && p.prefTime !== 'any' && p.prefTime === targetTeam.time) {
-                        // 這裡不寫死 reason，保留彈性，但邏輯上已達成
+                // 嘗試放入最適合的隊伍
+                let assigned = false;
+                for (const targetTeam of eligibleTeams) {
+                    if (isSafeToJoin(p, targetTeam)) {
+                        targetTeam.members.push(p);
+                        p.team = targetTeam.id;
+                        assigned = true;
+                        break;
                     }
                 }
             });
 
-            // 5. 後處理：梯度優化與衝突檢查
-            enforcePowerGradient(); 
+            // 6. 後處理
+            // 注意：如果是 M 型模式，禁用「梯度優化 (enforcePowerGradient)」
+            // 因為梯度優化會試圖讓軍團一戰力 > 軍團二，會把 M 型特意安排的低戰力換走
+            if (mode !== 'm_type') {
+                enforcePowerGradient(); 
+            }
+            
             checkConflicts(); 
             renderDashboard();
         }
-
        function enforcePowerGradient() { 
             const active = appState.teams.filter(t => t.active).sort((a, b) => a.priority - b.priority); 
             const getPower = t => t.members.reduce((s, m) => s + m.power, 0); 
@@ -1345,14 +1407,12 @@
             } 
         }
 
-        // --- 視覺化與互動 ---
+        // 繪製軍團卡片上的小折線圖
         function createTeamChart(t) { 
             const ctx = document.getElementById(`chart-${t.id}`); 
             if(ctx) { 
-                // 取得分佈數據
                 const { counts } = getPowerDistribution(t.members);
-                
-                // 設定顏色
+                // 根據隊伍 ID 決定顏色 (藍色系 / 橘色系)
                 const color = t.id.includes('jQt') ? 'rgba(59, 130, 246, 1)' : 'rgba(249, 115, 22, 1)'; 
                 const bg = t.id.includes('jQt') ? 'rgba(59, 130, 246, 0.1)' : 'rgba(249, 115, 22, 0.1)'; 
                 
@@ -1361,16 +1421,15 @@
                 teamCharts[t.id] = new Chart(ctx, { 
                     type: 'line', 
                     data: { 
-                        // 標籤：T1(高) ~ T5(低)
                         labels: ['T1', 'T2', 'T3', 'T4', 'T5'], 
                         datasets: [{ 
                             data: counts, 
                             borderColor: color, 
                             backgroundColor: bg, 
                             borderWidth: 1.5, 
-                            pointRadius: 2, // 顯示小圓點以便看清人數落點
+                            pointRadius: 2, 
                             fill: true, 
-                            tension: 0.3 // 稍微圓滑一點
+                            tension: 0.3 
                         }] 
                     }, 
                     options: { 
@@ -1379,7 +1438,6 @@
                         plugins: { legend: { display: false }, tooltip: { enabled: false } }, 
                         scales: { 
                             x: { display: false }, 
-                            // Y軸從0開始，確保比例正確
                             y: { display: false, min: 0, suggestedMax: Math.max(...counts) + 1 } 
                         } 
                     } 
@@ -1731,31 +1789,28 @@
         function toggleAllTeams(state) { appState.teams.forEach(t => t.active = state); renderTeamSelection(); }
         function applyTeamSelection() { toggleTeamModal(); runTeamLogic(appState.lastLogicMode || 'snake'); showToast('軍團設定已更新', 'success'); }
 
-        // --- 計算戰力分佈與 M 型指標 ---
+        // 計算 5 階戰力分佈與 M 型係數
         function getPowerDistribution(members) {
-            if (!members || members.length === 0) return { counts: [0,0,0,0,0], mRatio: 0, ranges: [] };
+            if (!members || members.length === 0) return { counts: [0,0,0,0,0], mRatio: 0 };
             
             const powers = members.map(m => m.power);
             const max = Math.max(...powers);
             const min = Math.min(...powers);
             const range = max - min;
-            const counts = [0, 0, 0, 0, 0]; // 5 個區間：高 -> 低
+            const counts = [0, 0, 0, 0, 0]; // 5 個區間：T1(高) -> T5(低)
             
-            // 如果所有人戰力都一樣，全部算在中間
             if (range === 0) {
                 counts[2] = members.length;
             } else {
                 const step = range / 5;
                 powers.forEach(p => {
-                    // 計算落在第幾個區間 (0=最高, 4=最低)
                     let idx = Math.floor((max - p) / step);
-                    if (idx >= 5) idx = 4; // 修正邊界值
+                    if (idx >= 5) idx = 4;
                     counts[idx]++;
                 });
             }
 
-            // 計算 M 型佔比：(頭部人數 + 尾部人數) / 總人數
-            // 這代表「極端戰力」的比例
+            // M 型佔比：(頭部 T1 + 尾部 T5) / 總人數
             const mRatio = Math.round(((counts[0] + counts[4]) / members.length) * 100);
             
             return { counts, mRatio };
