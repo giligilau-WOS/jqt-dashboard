@@ -1331,7 +1331,8 @@
         function createTeamChart(t) { 
             const ctx = document.getElementById(`chart-${t.id}`); 
             if(ctx) { 
-                const { counts } = getPowerDistribution(t.members);
+                // 【修改點】改為使用 sums (戰力總和)
+                const { sums } = getPowerDistribution(t.members);
                 const color = t.id.includes('jQt') ? 'rgba(59, 130, 246, 1)' : 'rgba(249, 115, 22, 1)'; 
                 const bg = t.id.includes('jQt') ? 'rgba(59, 130, 246, 0.1)' : 'rgba(249, 115, 22, 0.1)'; 
                 
@@ -1342,7 +1343,7 @@
                     data: { 
                         labels: ['T1', 'T2', 'T3', 'T4', 'T5'], 
                         datasets: [{ 
-                            data: counts, 
+                            data: sums, // 使用戰力總和
                             borderColor: color, 
                             backgroundColor: bg, 
                             borderWidth: 1.5, 
@@ -1357,7 +1358,7 @@
                         plugins: { legend: { display: false }, tooltip: { enabled: false } }, 
                         scales: { 
                             x: { display: false }, 
-                            y: { display: false, min: 0, suggestedMax: Math.max(...counts) + 1 } 
+                            y: { display: false, min: 0 } // Y軸顯示戰力總和
                         } 
                     } 
                 }); 
@@ -1700,27 +1701,30 @@
 
         // --- 計算戰力分佈與 M 型指標 ---
         function getPowerDistribution(members) {
-            if (!members || members.length === 0) return { counts: [0,0,0,0,0], mRatio: 0, ranges: [] };
+            if (!members || members.length === 0) return { counts: [0,0,0,0,0], sums: [0,0,0,0,0], mRatio: 0 };
             
             const powers = members.map(m => m.power);
             const max = Math.max(...powers);
             const min = Math.min(...powers);
             const range = max - min;
             const counts = [0, 0, 0, 0, 0]; 
+            const sums = [0, 0, 0, 0, 0]; // 新增戰力總和陣列
             
             if (range === 0) {
                 counts[2] = members.length;
+                sums[2] = members.reduce((a,b) => a+b.power, 0);
             } else {
                 const step = range / 5;
-                powers.forEach(p => {
-                    let idx = Math.floor((max - p) / step);
+                members.forEach(p => {
+                    let idx = Math.floor((max - p.power) / step);
                     if (idx >= 5) idx = 4; 
                     counts[idx]++;
+                    sums[idx] += p.power; // 累加戰力
                 });
             }
 
             const mRatio = Math.round(((counts[0] + counts[4]) / members.length) * 100);
-            return { counts, mRatio };
+            return { counts, sums, mRatio };
         }
 
         function renderDashboard(){
