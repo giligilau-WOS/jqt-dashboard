@@ -943,11 +943,15 @@
 
       // --- 修正後的 runTeamLogic 函數 ---
         // --- 核心分配邏輯 (完全重寫) ---
+        // --- 核心分配邏輯 (保底 15 人修正版) ---
         function runTeamLogic(mode = 'snake') {
             appState.lastLogicMode = mode;
-            // 1. 重置隊伍
+            
+            // 1. 重置隊伍成員
             const validP = appState.players.slice();
             appState.teams.forEach(t => t.members = []);
+            
+            // 取得所有啟用的隊伍，並按優先級排序
             const activeTeams = appState.teams.filter(t => t.active).sort((a, b) => a.priority - b.priority);
 
             if (activeTeams.length === 0) return;
@@ -955,7 +959,14 @@
             // 2. 準備名單：按戰力高 -> 低排序
             let remaining = [...validP].sort((a, b) => b.power - a.power);
 
-            // 3. 處理鎖定名單 (先佔位)
+            // 檢查總人數是否足夠
+            const minRequired = activeTeams.length * 15;
+            if (validP.length < minRequired) {
+                showToast(`⚠️ 警告：總人數 (${validP.length}) 不足，無法讓所有隊伍 (${activeTeams.length}隊) 皆滿 15 人`, 'error');
+            }
+
+            // --- Phase 0: 處理鎖定名單 (先佔位) ---
+            // 這些人是 VIP，無視任何規則直接進隊
             const assign = (p, tid, reason) => {
                 const t = appState.teams.find(x => x.id === tid);
                 if (t && t.active) {
@@ -967,8 +978,8 @@
                 return false;
             };
 
-            // (鎖定邏輯保留)
             [...remaining].forEach(p => {
+                // 這裡保留您原本的鎖定邏輯
                 if (p.name.includes("劼吉撈") && !p.name.includes("ATM")) assign(p, 'jQt1', "R5 鎖定");
                 else if (p.name.includes("躺平草仔粿")) { 
                     const jQt2 = appState.teams.find(t => t.id === 'jQt2'); 
@@ -981,25 +992,77 @@
                     if (jQt2 && jQt2.active) assign(p, 'jQt2', "鎖定 jQt"); 
                     else assign(p, 'jQt1', "鎖定 jQt"); 
                 }
+                // 增加：檢查手動鎖定 (reason 包含 "鎖定" 的)
+                else if (p.reason && p.reason.includes("鎖定") && p.team) {
+                    assign(p, p.team, p.reason);
+                }
             });
 
-            // 4. 正式分配 (依據設定決定策略)
-            remaining.forEach((p, i) => {
+            // --- Phase 1: 強制保底填充 (Fill up to 15) ---
+            // 邏輯：只要還有隊伍不到 15 人，就強制塞人，不管志願
+            // 但塞人時會優先挑「志願符合」的，再來是「Any」，最後才是「志願不符」
+            
+            let insuranceLoop = 0;
+            while (remaining.length > 0 && insuranceLoop++ < 500) {
+                // 找出目前還沒滿 15 人的隊伍
+                const needyTeams = activeTeams.filter(t => t.members.length < 15);
+                
+                if (needyTeams.length === 0) break; // 大家都滿 15 人了，進入下一階段
+
+                // 對於每一個缺人的隊伍，找一個最適合的人補進去
+                // 為了避免都塞到同一隊，我們每次只補一個人，然後重新評估
+                
+                // 排序：優先填補最缺人的隊伍
+                needyTeams.sort((a, b) => a.members.length - b.members.length);
+                const targetTeam = needyTeams[0];
+
+                // 在剩餘名單中尋找最佳候選人
+                let candidateIndex = -1;
+
+                // 1. 優先找：志願時間符合的高戰力
+                candidateIndex = remaining.findIndex(p => p.prefTime === targetTeam.time);
+                
+                // 2. 次要找：志願是 Any 的高戰力
+                if (candidateIndex === -1) {
+                    candidateIndex = remaining.findIndex(p => p.prefTime === 'any');
+                }
+
+                // 3. 最後手段：抓志願不符的高戰力 (為了湊滿 15 人，必須犧牲志願)
+                if (candidateIndex === -1) {
+                    candidateIndex = 0; // 直接抓戰力最高的剩餘人員
+                }
+
+                if (candidateIndex > -1) {
+                    const p = remaining[candidateIndex];
+                    targetTeam.members.push(p);
+                    p.team = targetTeam.id;
+                    
+                    // 標記原因：如果是因為湊人數而被拉過來的
+                    if (p.prefTime !== 'any' && p.prefTime !== targetTeam.time) {
+                        p.reason = "保底補位"; 
+                    } else {
+                        p.reason = "戰力分配";
+                    }
+                    
+                    remaining.splice(candidateIndex, 1);
+                }
+            }
+
+            // --- Phase 2: 剩餘人員分配 (Existing Logic) ---
+            // 現在大家都至少有 15 人了 (除非總人數不夠)，剩下的人依照戰力/志願平衡分配
+            
+            remaining.forEach((p) => {
                 let eligibleTeams = activeTeams;
 
-                // 如果開啟「遵循志願」，且該成員有特定志願 (非 any)
+                // 如果開啟「遵循志願」，且該成員有特定志願
                 if (appState.prioritizePreferences && p.prefTime !== 'any') {
-                    // 篩選出符合時間的隊伍
                     const timeMatches = activeTeams.filter(t => t.time === p.prefTime);
-                    // 如果有符合的隊伍，就只從這些隊伍選；如果沒有(例如該時段隊伍沒開)，就退回全選
                     if (timeMatches.length > 0) {
                         eligibleTeams = timeMatches;
                     }
                 }
 
-                // 在「合格隊伍」中，選擇最適合的一個
-                // 策略：為了平衡戰力，我們把人丟進目前「總戰力最低」的合格隊伍
-                // 這是一種動態的 S 型 (Water filling)
+                // S型分配：丟進目前總戰力最低的隊伍
                 eligibleTeams.sort((a, b) => {
                     const powerA = a.members.reduce((sum, m) => sum + m.power, 0);
                     const powerB = b.members.reduce((sum, m) => sum + m.power, 0);
@@ -1012,10 +1075,7 @@
                 if (targetTeam) {
                     targetTeam.members.push(p);
                     p.team = targetTeam.id;
-                    // 如果是因為志願才進來的，標記一下
-                    if (appState.prioritizePreferences && p.prefTime !== 'any' && p.prefTime === targetTeam.time) {
-                        // 這裡不寫死 reason，保留彈性，但邏輯上已達成
-                    }
+                    p.reason = "戰力平衡";
                 }
             });
 
@@ -1024,7 +1084,6 @@
             checkConflicts(); 
             renderDashboard();
         }
-
        function enforcePowerGradient() { 
             const active = appState.teams.filter(t => t.active).sort((a, b) => a.priority - b.priority); 
             const getPower = t => t.members.reduce((s, m) => s + m.power, 0); 
