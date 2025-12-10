@@ -342,9 +342,14 @@
         </div>
 
         <div class="flex bg-slate-200/80 p-1 rounded-xl gap-1 shrink-0">
-            <button onclick="runTeamLogic('snake')" class="px-3 py-2 rounded-lg text-xs font-bold flex items-center gap-1 hover:bg-white hover:shadow-sm transition-all text-slate-600"><span class="material-symbols-rounded text-sm">gesture</span> S型</button>
-            <button onclick="runTeamLogic('m_type')" class="px-3 py-2 rounded-lg text-xs font-bold flex items-center gap-1 hover:bg-white hover:shadow-sm transition-all text-slate-600"><span class="material-symbols-rounded text-sm">bar_chart_4_bars</span> M型</button>
-            <button onclick="runTeamLogic('descending')" class="px-3 py-2 rounded-lg text-xs font-bold flex items-center gap-1 hover:bg-white hover:shadow-sm transition-all text-slate-600"><span class="material-symbols-rounded text-sm">stairs</span> 階梯</button>
+            <button id="btn-logic-snake" onclick="runTeamLogic('snake')" class="px-4 py-2 rounded-lg text-xs font-bold flex items-center gap-1 bg-white text-indigo-600 shadow-sm transition-all">
+                <span class="material-symbols-rounded text-sm">gesture</span> 
+                S型 (平均)
+            </button>
+            <button id="btn-logic-mtype" onclick="runTeamLogic('m_type')" class="px-4 py-2 rounded-lg text-xs font-bold flex items-center gap-1 text-slate-500 hover:bg-white/50 transition-all">
+                <span class="material-symbols-rounded text-sm">bar_chart_4_bars</span> 
+                M型 (極端)
+            </button>
         </div>
 
         <div class="h-8 w-px bg-slate-300 mx-1"></div>
@@ -990,21 +995,45 @@
         }
 
         // --- 核心分配邏輯 (保底 15 人修正版) ---
+        // --- 核心分配邏輯 (支援 M 型化 + 15人保底 + 按鈕變色) ---
         function runTeamLogic(mode = 'snake') {
             appState.lastLogicMode = mode;
+            
+            // --- UI 更新: 切換按鈕亮燈狀態 ---
+            const btnS = document.getElementById('btn-logic-snake');
+            const btnM = document.getElementById('btn-logic-mtype');
+            
+            // 定義樣式：亮起 vs 熄滅
+            const activeClass = "bg-white text-indigo-600 shadow-sm ring-1 ring-indigo-100";
+            const inactiveClass = "text-slate-500 hover:bg-white/50 hover:text-slate-700 bg-transparent shadow-none";
+            const baseClass = "px-4 py-2 rounded-lg text-xs font-bold flex items-center gap-1 transition-all";
+
+            if(btnS && btnM) {
+                // 重置基礎 class 並套用狀態
+                btnS.className = baseClass + " " + (mode === 'snake' ? activeClass : inactiveClass);
+                btnM.className = baseClass + " " + (mode === 'm_type' ? activeClass : inactiveClass);
+            }
+            // --------------------------------
+
+            // 1. 重置隊伍成員
             const validP = appState.players.slice();
             appState.teams.forEach(t => t.members = []);
+            
+            // 取得所有啟用的隊伍，並按優先級排序
             const activeTeams = appState.teams.filter(t => t.active).sort((a, b) => a.priority - b.priority);
 
             if (activeTeams.length === 0) return;
 
+            // 2. 準備名單：按戰力高 -> 低排序
             let remaining = [...validP].sort((a, b) => b.power - a.power);
+
+            // 檢查總人數是否足夠
             const minRequired = activeTeams.length * 15;
             if (validP.length < minRequired) {
                 showToast(`⚠️ 警告：總人數 (${validP.length}) 不足，無法讓所有隊伍 (${activeTeams.length}隊) 皆滿 15 人`, 'error');
             }
 
-            // Phase 0: 鎖定名單
+            // --- Phase 0: 處理鎖定名單 (先佔位) ---
             const assign = (p, tid, reason) => {
                 const t = appState.teams.find(x => x.id === tid);
                 if (t && t.active) {
@@ -1017,6 +1046,7 @@
             };
 
             [...remaining].forEach(p => {
+                // 保留原有的鎖定邏輯
                 if (p.name.includes("劼吉撈") && !p.name.includes("ATM")) assign(p, 'jQt1', "R5 鎖定");
                 else if (p.name.includes("躺平草仔粿")) { 
                     const jQt2 = appState.teams.find(t => t.id === 'jQt2'); 
@@ -1034,19 +1064,39 @@
                 }
             });
 
-            // Phase 1: 強制保底填充
+            // --- Phase 1: 強制保底填充 (優先湊滿 15 人) ---
             let insuranceLoop = 0;
             while (remaining.length > 0 && insuranceLoop++ < 500) {
                 const needyTeams = activeTeams.filter(t => t.members.length < 15);
                 if (needyTeams.length === 0) break;
 
+                // 優先填補最缺人的隊伍
                 needyTeams.sort((a, b) => a.members.length - b.members.length);
                 const targetTeam = needyTeams[0];
                 let candidateIndex = -1;
 
-                candidateIndex = remaining.findIndex(p => p.prefTime === targetTeam.time);
-                if (candidateIndex === -1) candidateIndex = remaining.findIndex(p => p.prefTime === 'any');
-                if (candidateIndex === -1) candidateIndex = 0;
+                // 根據模式決定湊人數的策略
+                // 如果是 M 型，湊人數時優先拿「最低戰力」的人去填坑，保留高戰力給 Phase 2 分配
+                // 如果是 S 型，湊人數時優先拿「最高戰力」的人 (原本邏輯)
+                
+                if (mode === 'm_type') {
+                    // M型保底：優先找志願符合的「低戰力」(從陣列尾端找)
+                    for (let i = remaining.length - 1; i >= 0; i--) {
+                        if (remaining[i].prefTime === targetTeam.time) { candidateIndex = i; break; }
+                    }
+                    if (candidateIndex === -1) {
+                        // 找 Any 的低戰力
+                        for (let i = remaining.length - 1; i >= 0; i--) {
+                            if (remaining[i].prefTime === 'any') { candidateIndex = i; break; }
+                        }
+                    }
+                    if (candidateIndex === -1) candidateIndex = remaining.length - 1; // 抓最低戰力犧牲
+                } else {
+                    // 原本 S 型保底：優先找志願符合的「高戰力」(從頭找)
+                    candidateIndex = remaining.findIndex(p => p.prefTime === targetTeam.time);
+                    if (candidateIndex === -1) candidateIndex = remaining.findIndex(p => p.prefTime === 'any');
+                    if (candidateIndex === -1) candidateIndex = 0;
+                }
 
                 if (candidateIndex > -1) {
                     const p = remaining[candidateIndex];
@@ -1058,30 +1108,81 @@
                 }
             }
 
-            // Phase 2: 剩餘人員分配
-            remaining.forEach((p) => {
-                let eligibleTeams = activeTeams;
-                if (appState.prioritizePreferences && p.prefTime !== 'any') {
-                    const timeMatches = activeTeams.filter(t => t.time === p.prefTime);
-                    if (timeMatches.length > 0) eligibleTeams = timeMatches;
+            // --- Phase 2: 剩餘人員分配 (核心差異) ---
+            
+            if (mode === 'm_type') {
+                // === M型分配邏輯 (Barbell Strategy) ===
+                let pickTop = true; // true=選頭(強), false=選尾(弱)
+                let loopGuard = 0;
+
+                while (remaining.length > 0 && loopGuard++ < 2000) {
+                    for (const targetTeam of activeTeams) {
+                        if (remaining.length === 0) break;
+
+                        let candidateIndex = -1;
+                        
+                        if (pickTop) {
+                            // 從頭找 (高戰力)
+                            candidateIndex = remaining.findIndex(p => 
+                                (appState.prioritizePreferences ? (p.prefTime === targetTeam.time || p.prefTime === 'any') : true)
+                            );
+                        } else {
+                            // 從尾找 (低戰力)
+                            for (let i = remaining.length - 1; i >= 0; i--) {
+                                const p = remaining[i];
+                                const isMatch = appState.prioritizePreferences ? (p.prefTime === targetTeam.time || p.prefTime === 'any') : true;
+                                if (isMatch) { candidateIndex = i; break; }
+                            }
+                        }
+
+                        // 如果找不到志願符合的，且還有剩下的人，就抓第一順位(或末位)的犧牲者
+                        if (candidateIndex === -1 && remaining.length > 0) {
+                            if (pickTop) candidateIndex = 0;
+                            else candidateIndex = remaining.length - 1;
+                        }
+
+                        if (candidateIndex > -1) {
+                            const p = remaining[candidateIndex];
+                            targetTeam.members.push(p);
+                            p.team = targetTeam.id;
+                            p.reason = pickTop ? "M型核心" : "M型填補";
+                            remaining.splice(candidateIndex, 1);
+                        }
+                    }
+                    // 每跑完一輪隊伍，切換取人方向 (頭 -> 尾 -> 頭 -> 尾)
+                    pickTop = !pickTop;
                 }
 
-                eligibleTeams.sort((a, b) => {
-                    const powerA = a.members.reduce((sum, m) => sum + m.power, 0);
-                    const powerB = b.members.reduce((sum, m) => sum + m.power, 0);
-                    if (powerA === powerB) return a.members.length - b.members.length;
-                    return powerA - powerB; 
+            } else {
+                // === 原本 S型 / 階梯型分配邏輯 ===
+                remaining.forEach((p) => {
+                    let eligibleTeams = activeTeams;
+                    if (appState.prioritizePreferences && p.prefTime !== 'any') {
+                        const timeMatches = activeTeams.filter(t => t.time === p.prefTime);
+                        if (timeMatches.length > 0) eligibleTeams = timeMatches;
+                    }
+
+                    eligibleTeams.sort((a, b) => {
+                        const powerA = a.members.reduce((sum, m) => sum + m.power, 0);
+                        const powerB = b.members.reduce((sum, m) => sum + m.power, 0);
+                        if (powerA === powerB) return a.members.length - b.members.length;
+                        return powerA - powerB; 
+                    });
+
+                    const targetTeam = eligibleTeams[0];
+                    if (targetTeam) {
+                        targetTeam.members.push(p);
+                        p.team = targetTeam.id;
+                        p.reason = "戰力平衡";
+                    }
                 });
+            }
 
-                const targetTeam = eligibleTeams[0];
-                if (targetTeam) {
-                    targetTeam.members.push(p);
-                    p.team = targetTeam.id;
-                    p.reason = "戰力平衡";
-                }
-            });
-
-            enforcePowerGradient(); 
+            // M型化不需要做「梯度優化」，只有 S 型模式才執行
+            if (mode !== 'm_type') {
+                enforcePowerGradient(); 
+            }
+            
             checkConflicts(); 
             renderDashboard();
         }
