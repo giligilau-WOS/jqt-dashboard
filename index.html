@@ -649,26 +649,26 @@
         }
 
         async function fetchWithFallback(url) {
-            // 自動修正 Google Sheet 連結
+            // 1. 自動優化 Google Sheet 連結
+            // 如果使用者貼的是一般編輯連結，嘗試轉為匯出連結
             if (url.includes('docs.google.com') && url.includes('/edit')) {
                 url = url.replace(/\/edit.*$/, '/export?format=csv');
             } else if (url.includes('/pubhtml')) {
                 url = url.replace(/\/pubhtml.*/, '/pub?output=csv');
             }
 
-            // 定義連線嘗試順序 (調整順序，並加入直連測試)
+            // 定義連線嘗試順序
+            // 【重要修改】將 "直連 (Direct)" 放在第一順位
+            // 如果你有做「發布到網路」，直連是最快且絕對不會漏資料的
             const steps = [
-                // 1. CorsProxy.io (速度快，穩定性高)
+                { url: url, name: "直連嘗試 (Google Publish)" }, 
                 { url: `https://corsproxy.io/?${encodeURIComponent(url)}`, name: "高速代理 (CorsProxy)" },
-                // 2. AllOrigins (備用)
                 { url: `https://api.allorigins.win/raw?url=${encodeURIComponent(url)}`, name: "備用代理 (AllOrigins)" },
-                // 3. CodeTabs (最後手段，因為它有時會卡住)
                 { url: `https://api.codetabs.com/v1/proxy?quest=${encodeURIComponent(url)}`, name: "強力代理 (CodeTabs)" }
             ];
 
-            // 增加一個逾時控制，避免無限空轉
             const fetchWithTimeout = async (resource, options = {}) => {
-                const { timeout = 5000 } = options; // 設定 5 秒逾時
+                const { timeout = 8000 } = options; // 延長逾時到 8 秒，避免 GitHub 網路慢導致漏抓
                 const controller = new AbortController();
                 const id = setTimeout(() => controller.abort(), timeout);
                 try {
@@ -684,36 +684,28 @@
             for (const s of steps) {
                 try {
                     console.log(`[連線嘗試] ${s.name}...`);
-                    // 使用帶有 5 秒逾時的 fetch
-                    const r = await fetchWithTimeout(s.url, { timeout: 5000 });
+                    const r = await fetchWithTimeout(s.url);
                     
                     if (r.ok) {
                         const t = await r.text();
-                        if (t.trim().startsWith('<!DOCTYPE') || t.trim().startsWith('<html')) {
-                            console.warn(`[連線警告] ${s.name} 回傳了 HTML，可能是權限不足`);
+                        // 檢查資料完整性：如果是 HTML 錯誤頁面，視為失敗
+                        if (t.trim().startsWith('<!DOCTYPE') || t.trim().startsWith('<html') || t.includes('Moved Temporarily')) {
+                            console.warn(`[連線警告] ${s.name} 回傳了 HTML 或錯誤頁面，跳過。`);
                             continue;
+                        }
+                        // 檢查是否太短 (防止 Proxy 截斷資料)
+                        if (t.length < 50) {
+                             console.warn(`[連線警告] ${s.name} 回傳資料過短，可能被截斷，跳過。`);
+                             continue;
                         }
                         return t; // 成功拿到資料
                     }
                 } catch (e) {
-                    // 區分是逾時還是被擋
-                    if (e.name === 'AbortError') {
-                        console.warn(`[連線逾時] ${s.name} 超過 5 秒無反應，跳過。`);
-                    } else {
-                        console.warn(`[連線失敗] ${s.name}:`, e);
-                    }
+                    console.warn(`[連線失敗] ${s.name}:`, e.name);
                 }
             }
 
-            // 如果全部失敗，拋出明確的錯誤
-            const isLocal = window.location.protocol === 'file:';
-            let errorMsg = "無法讀取資料 (連線全部失敗)。";
-            if (isLocal) {
-                errorMsg += "\n\n⚠️ 偵測到您是直接開啟 HTML 檔案 (file:///)。\n瀏覽器會阻擋本地檔案的網路連線 (CORS)。\n\n✅ 解決方案：請點選上方的【📋 直接貼上】按鈕，手動複製貼上 CSV 資料即可，這是最穩定的做法！";
-            } else {
-                errorMsg += "\n請檢查 Google Sheet 權限是否公開。";
-            }
-            throw new Error(errorMsg);
+            throw new Error("無法讀取資料。建議：\n1. Google 試算表請使用「檔案>共用>發布到網路」的連結。\n2. 或改用「直接貼上」模式。");
         }
 
         function parseCSV(text) {
