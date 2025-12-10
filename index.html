@@ -743,12 +743,18 @@
 
         function normalizeName(n) { 
             if(!n) return ""; 
-            return n.replace(/\[.*?\]/g, '')
+            // 1. 移除 R標籤與括號標籤
+            let clean = n.replace(/\[.*?\]/g, '')
                     .replace(/\(R[0-9]\)/gi, '')
                     .replace(/R[0-9]\s/gi, '')
-                    .replace(/[\u200B-\u200D\uFEFF]/g, '')
-                    .replace(/[^\u4e00-\u9fa5a-zA-Z0-9]/g, '')
-                    .toLowerCase(); 
+                    .replace(/[\u200B-\u200D\uFEFF]/g, '');
+            
+            // 2. 標準化：轉小寫，但保留「底線」與「連字號」
+            // 修正正則：允許 中文、英文、數字、底線 _、連字號 -
+            let strict = clean.replace(/[^\u4e00-\u9fa5a-zA-Z0-9_\-]/g, '').toLowerCase().trim(); 
+            
+            // 如果處理完變空字串(純符號)，則回傳原始乾淨內容，否則回傳標準化內容
+            return strict.length > 0 ? strict : clean.trim().toLowerCase(); 
         }
 
         function getFamilyId(name) { 
@@ -901,50 +907,20 @@
             handleAllocation(); 
         }
 
-        function handleAllocation(){ 
-            try { 
-                const ri=parseInt(document.getElementById('col-reg-name').value), oi=parseInt(document.getElementById('col-reg-opt').value); 
-                const ni=parseInt(document.getElementById('col-pow-name').value), vi=parseInt(document.getElementById('col-pow-val').value); 
-                let pMap={}; 
+        // ... 在 handleAllocation 函數內 ...
                 for(let i=1; i<appState.rawPowerData.length; i++){ 
                     const r=appState.rawPowerData[i]; 
                     if(!r[ni]) continue; 
-                    const n=r[ni], vRaw=r[vi]?r[vi].toString().replace(/,/g,''):"0", p=parseFloat(vRaw)||0; 
-                    if(!n||n.length>40||n.includes('function')) continue; 
-                    pMap[normalizeName(n)]={raw:n, p, r:r[3]||""}; 
-                } 
-                let valid=[], absent=[], unknown=[]; 
-                for(let i=1; i<appState.rawRegData.length; i++){ 
-                    const r=appState.rawRegData[i], name=r[ri], opt=r[oi]||''; 
-                    if(!name) continue; 
-                    if(ABSENT_KEYWORDS.some(k => String(opt).replace(/\s+/g, '').toLowerCase().includes(k))) { absent.push({name, opt}); continue; } 
+                    const n=r[ni];
+                    const vRaw=r[vi]?r[vi].toString().replace(/,/g,''):"0";
+                    const p=parseFloat(vRaw)||0; 
                     
-                    let pData = appState.manualMappings[name] ? pMap[normalizeName(appState.manualMappings[name])] : pMap[normalizeName(name)]; 
-                    let prefTime = 'any'; 
-                    const optLower = opt.toLowerCase(); 
-                    if (optLower.includes('一二') || (optLower.includes('1') && optLower.includes('2'))) prefTime = 'any'; 
-                    else if (optLower.includes('一') || optLower.includes('1')) prefTime = '22:00'; 
-                    else if (optLower.includes('二') || optLower.includes('2')) prefTime = '20:00'; 
+                    // 【修正】放寬名字限制，只要不是 function 關鍵字且長度適中就保留
+                    if(!n || n.toString().includes('function')) continue; 
                     
-                    const fid = getFamilyId(name); 
-                    if(pData) valid.push({ name:pData.raw, orig:name, prefTime, origPref:opt, power:pData.p, remark:pData.r, team:null, reason:'', fid }); 
-                    else { valid.push({ name, orig:name, prefTime:'any', origPref:opt, power:0, remark:'', team:null, reason:'戰力不明', fid }); unknown.push({ name, guess:'' }); } 
+                    const cleanName = normalizeName(n);
+                    pMap[cleanName] = {raw:n, p, r:r[3]||""}; 
                 } 
-                appState.players=valid; 
-                appState.absentPlayers=absent; 
-                appState.unknownPlayers=unknown; 
-                
-                runTeamLogic('snake'); 
-                
-                document.getElementById('nav-dashboard').classList.remove('hidden'); 
-                document.getElementById('nav-tactics').classList.remove('hidden'); 
-                document.getElementById('nav-attendance').classList.remove('hidden'); 
-                switchTab('dashboard'); 
-                showToast('戰略分析完成', 'success'); 
-            } catch(e){ 
-                console.error(e);
-                showToast("處理發生錯誤: " + e.message, 'error'); 
-            } 
         }
 
        // --- 戰術邏輯 ---
