@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>寒霜啟示錄 jQt聯盟 | 戰術指揮中心 v68.1 (HUD Dashboard)</title>
+    <title>寒霜啟示錄 jQt聯盟 | 戰術指揮中心 v68.2 (HUD Dashboard)</title>
     
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
@@ -61,7 +61,7 @@
             /* Badges */
             .mini-badge { @apply text-[10px] px-1.5 py-0.5 rounded font-bold uppercase tracking-wider border; }
             
-            /* Input Styles (from previous) */
+            /* Input Styles */
             .input-group-card { @apply p-6 rounded-xl border-2 transition-all duration-300 hover:shadow-lg relative overflow-hidden; }
             .modern-input { @apply w-full p-4 border-2 border-slate-200 rounded-xl font-mono text-sm transition-all focus:ring-4 focus:outline-none; }
             
@@ -100,7 +100,7 @@
 </head>
 <body class="min-h-screen flex flex-col transition-colors duration-300">
 
-    <div id="toast-container"></div>
+    <div id="toast-container" class="fixed bottom-4 right-4 z-[9999] flex flex-col items-end pointer-events-none"></div>
 
     <div id="member-tooltip" class="fixed z-[9999] text-white p-4 rounded-xl shadow-2xl w-72 pointer-events-none transition-all duration-150 ease-out opacity-0 scale-95 left-0 top-0">
         <div class="flex justify-between items-start mb-3 border-b border-slate-600 pb-2">
@@ -111,20 +111,19 @@
             <span class="text-xs bg-indigo-600 px-2 py-1 rounded text-white font-bold shadow-sm" id="tip-team">Team</span>
         </div>
         <div class="space-y-3 text-sm">
-    <div class="flex justify-between items-center bg-slate-800/80 p-2 rounded border border-slate-700">
-        <span class="text-slate-300">📊 戰力評價</span>
-        <span class="font-black text-white text-base" id="tip-quality">Common</span>
-    </div>
-
-    <div class="flex justify-between items-start gap-4">
-        <span class="text-slate-400 shrink-0">📝 原始志願</span>
-        <span class="font-bold text-amber-300 text-right break-words leading-tight" id="tip-orig-pref">--</span>
-    </div>
-    <div class="flex justify-between items-center">
-        <span class="text-slate-400">💪 聯盟總佔比</span>
-        <span class="font-mono font-bold text-blue-400" id="tip-pct">0%</span>
-    </div>
-</div>>
+            <div class="flex justify-between items-center bg-slate-800/80 p-2 rounded border border-slate-700">
+                <span class="text-slate-300">📊 戰力評價</span>
+                <span class="font-black text-white text-base" id="tip-quality">Common</span>
+            </div>
+            <div class="flex justify-between items-start gap-4">
+                <span class="text-slate-400 shrink-0">📝 原始志願</span>
+                <span class="font-bold text-amber-300 text-right break-words leading-tight" id="tip-orig-pref">--</span>
+            </div>
+            <div class="flex justify-between items-center">
+                <span class="text-slate-400">💪 聯盟總佔比</span>
+                <span class="font-mono font-bold text-blue-400" id="tip-pct">0%</span>
+            </div>
+        </div>
     </div>
 
     <div id="team-modal" class="fixed inset-0 bg-black/50 z-[60] hidden flex items-center justify-center p-4 backdrop-blur-sm">
@@ -147,6 +146,30 @@
         </div>
     </div>
 
+    <div id="member-action-modal" class="fixed inset-0 bg-slate-900/50 z-[100] hidden flex items-center justify-center p-4 backdrop-blur-sm">
+        <div class="bg-white rounded-2xl shadow-2xl w-full max-w-sm overflow-hidden transform transition-all scale-100">
+            <div class="p-4 border-b bg-slate-50 flex justify-between items-center">
+                <h3 class="font-black text-slate-800 text-lg flex items-center gap-2">
+                    <span class="material-symbols-rounded text-indigo-600">move_up</span> 成員調度指令
+                </h3>
+                <button onclick="closeMemberAction()" class="text-slate-400 hover:text-slate-600 text-2xl leading-none">&times;</button>
+            </div>
+            <div class="p-5">
+                <div class="mb-4 text-center">
+                    <div class="font-black text-xl text-indigo-700" id="action-member-name">PlayerName</div>
+                    <div class="text-xs text-slate-500 mt-1" id="action-member-info">當前軍團: --</div>
+                </div>
+                <h4 class="text-xs font-bold text-slate-500 mb-2">移動至目標軍團：</h4>
+                <div id="action-team-list" class="space-y-2 max-h-48 overflow-y-auto custom-scroll">
+                    </div>
+            </div>
+            <div class="bg-slate-50 p-3 border-t flex justify-between">
+                <button onclick="removeMemberAction()" class="text-red-600 bg-red-50 hover:bg-red-100 px-4 py-2 rounded-lg text-sm font-bold transition-colors">移除成員</button>
+                <button onclick="closeMemberAction()" class="text-slate-600 hover:bg-slate-200 px-4 py-2 rounded-lg text-sm font-bold transition-colors">取消</button>
+            </div>
+        </div>
+    </div>
+
     <header class="bg-slate-900 text-white shadow-lg z-50 sticky top-0">
         <div class="max-w-[1920px] mx-auto px-4">
             <div class="flex flex-col md:flex-row justify-between items-center h-auto md:h-16 py-2 md:py-0">
@@ -154,7 +177,7 @@
                     <span class="text-2xl animate-float">🏰</span>
                     <div>
                         <h1 class="font-black text-lg tracking-wide">jQt 聯盟兵工廠</h1>
-                        <p class="text-[9px] text-slate-400 uppercase tracking-widest">COMMANDER v68.1 (HUD)</p>
+                        <p class="text-[9px] text-slate-400 uppercase tracking-widest">COMMANDER v68.2 (HUD)</p>
                     </div>
                 </div>
                 <div class="flex gap-1 self-end w-full md:w-auto overflow-x-auto items-center">
@@ -177,7 +200,7 @@
                 <div class="glass-panel p-8 rounded-2xl bg-white shadow-xl">
                     <div class="text-center mb-8">
                         <div class="inline-flex items-center gap-2 bg-slate-100 rounded-full px-4 py-1.5 mb-4 shadow-inner">
-                            <span class="text-xs font-bold text-slate-500">VERSION 68.1</span>
+                            <span class="text-xs font-bold text-slate-500">VERSION 68.2</span>
                             <span class="w-1 h-1 rounded-full bg-slate-300"></span>
                             <span class="text-xs text-indigo-500 font-bold">✨ HUD DASHBOARD</span>
                         </div>
@@ -305,7 +328,7 @@
                             <div class="text-[10px] uppercase text-red-400 font-bold tracking-wider">Conflicts</div>
                             <div class="text-3xl font-black text-red-600 font-mono" id="stat-conflict">0</div>
                         </div>
-                        <button onclick="autoResolveConflicts()" class="absolute right-2 top-1/2 -translate-y-1/2 bg-red-100 hover:bg-red-200 text-red-700 text-xs px-3 py-1.5 rounded-full font-bold shadow opacity-0 group-hover:opacity-100 transition-opacity" title="【衝突自動修復】&#10;嘗試解決「同家族撞期」或「同隊」問題。&#10;系統會嘗試與其他隊伍成員交換位置。&#10;優先尋找戰力相近且交換後不會產生新衝突的對象。">
+                        <button onclick="autoResolveConflicts()" class="absolute right-2 top-1/2 -translate-y-1/2 bg-red-100 hover:bg-red-200 text-red-700 text-xs px-3 py-1.5 rounded-full font-bold shadow opacity-0 group-hover:opacity-100 transition-opacity" title="【衝突自動修復】">
                             ⚡ Auto Fix
                         </button>
                     </div>
@@ -316,60 +339,52 @@
                             <div class="text-[10px] uppercase text-amber-400 font-bold tracking-wider">Pref. Mismatch</div>
                             <div class="text-3xl font-black text-amber-500 font-mono" id="stat-pref-mismatch">0</div>
                         </div>
-                        <button onclick="autoCorrectPreferences()" class="absolute right-2 top-1/2 -translate-y-1/2 bg-amber-100 hover:bg-amber-200 text-amber-700 text-xs px-3 py-1.5 rounded-full font-bold shadow opacity-0 group-hover:opacity-100 transition-opacity" title="【志願自動校正】&#10;將「志願不符」的成員移動到正確時段。&#10;僅在交換安全（無衝突）時執行。">
+                        <button onclick="autoCorrectPreferences()" class="absolute right-2 top-1/2 -translate-y-1/2 bg-amber-100 hover:bg-amber-200 text-amber-700 text-xs px-3 py-1.5 rounded-full font-bold shadow opacity-0 group-hover:opacity-100 transition-opacity" title="【志願自動校正】">
                             ⚡ Auto Fix
                         </button>
-                    </div>
-
-                    <div class="stat-card border-l-4 border-amber-500 group cursor-pointer hover:bg-amber-50" onclick="switchTab('settings')">
-                        <div class="stat-icon-box bg-amber-50 text-amber-500"><span class="material-symbols-rounded">link_off</span></div>
-                        <div>
-                            <div class="text-[10px] uppercase text-amber-400 font-bold tracking-wider">Unknown ID</div>
-                            <div class="text-3xl font-black text-amber-600 font-mono" id="stat-unknown">0</div>
-                        </div>
                     </div>
                 </div>
 
                 <div class="glass-panel p-3 rounded-2xl mb-4 flex flex-col md:flex-row gap-4 items-center justify-between shadow-sm sticky top-16 z-30">
-    <div class="flex items-center gap-2 overflow-x-auto w-full md:w-auto pb-1 md:pb-0 scrollbar-hide">
-        
-        <div class="bg-white border border-slate-200 px-3 py-2 rounded-xl flex items-center gap-2 shadow-sm mr-2">
-            <label class="relative inline-flex items-center cursor-pointer">
-                <input type="checkbox" id="toggle-pref" class="sr-only peer" onchange="togglePrefMode()">
-                <div class="w-9 h-5 bg-slate-200 peer-focus:outline-none peer-focus:ring-2 peer-focus:ring-indigo-300 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-4 after:w-4 after:transition-all peer-checked:bg-indigo-600"></div>
-                <span class="ml-2 text-xs font-bold text-slate-600 select-none">遵循志願</span>
-            </label>
-        </div>
+                    <div class="flex items-center gap-2 overflow-x-auto w-full md:w-auto pb-1 md:pb-0 scrollbar-hide">
+                        
+                        <div class="bg-white border border-slate-200 px-3 py-2 rounded-xl flex items-center gap-2 shadow-sm mr-2">
+                            <label class="relative inline-flex items-center cursor-pointer">
+                                <input type="checkbox" id="toggle-pref" class="sr-only peer" onchange="togglePrefMode()">
+                                <div class="w-9 h-5 bg-slate-200 peer-focus:outline-none peer-focus:ring-2 peer-focus:ring-indigo-300 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-4 after:w-4 after:transition-all peer-checked:bg-indigo-600"></div>
+                                <span class="ml-2 text-xs font-bold text-slate-600 select-none">遵循志願</span>
+                            </label>
+                        </div>
 
-        <div class="flex bg-slate-200/80 p-1 rounded-xl gap-1 shrink-0">
-            <button id="btn-logic-snake" onclick="runTeamLogic('snake')" class="px-4 py-2 rounded-lg text-xs font-bold flex items-center gap-1 bg-white text-indigo-600 shadow-sm transition-all">
-                <span class="material-symbols-rounded text-sm">gesture</span> 
-                S型 (平均)
-            </button>
-            <button id="btn-logic-mtype" onclick="runTeamLogic('m_type')" class="px-4 py-2 rounded-lg text-xs font-bold flex items-center gap-1 text-slate-500 hover:bg-white/50 transition-all">
-                <span class="material-symbols-rounded text-sm">bar_chart_4_bars</span> 
-                M型 (極端)
-            </button>
-        </div>
+                        <div class="flex bg-slate-200/80 p-1 rounded-xl gap-1 shrink-0">
+                            <button id="btn-logic-snake" onclick="runTeamLogic('snake')" class="px-4 py-2 rounded-lg text-xs font-bold flex items-center gap-1 bg-white text-indigo-600 shadow-sm transition-all">
+                                <span class="material-symbols-rounded text-sm">gesture</span> 
+                                S型 (平均)
+                            </button>
+                            <button id="btn-logic-mtype" onclick="runTeamLogic('m_type')" class="px-4 py-2 rounded-lg text-xs font-bold flex items-center gap-1 text-slate-500 hover:bg-white/50 transition-all">
+                                <span class="material-symbols-rounded text-sm">bar_chart_4_bars</span> 
+                                M型 (極端)
+                            </button>
+                        </div>
 
-        <div class="h-8 w-px bg-slate-300 mx-1"></div>
-        
-       <button onclick="autoCorrectPreferences()" class="shrink-0 px-3 py-2 bg-indigo-50 text-indigo-600 border border-indigo-100 rounded-xl text-xs font-bold hover:bg-indigo-100 flex items-center gap-1" title="【志願校正功能】&#10;嘗試將成員移動到他們期望的時段。&#10;系統會尋找「想去對方時段」或「時間皆可」的成員進行交換。&#10;注意：若交換會導致家族衝突，系統將不會執行該交換。">
-    <span class="material-symbols-rounded text-sm">published_with_changes</span> 校正
-</button>
-        <button onclick="toggleTeamModal()" class="shrink-0 px-3 py-2 bg-slate-800 text-white rounded-xl text-xs font-bold hover:bg-slate-700 shadow flex items-center gap-1">
-            <span class="material-symbols-rounded text-sm">settings</span> 設定
-        </button>
-    </div>
+                        <div class="h-8 w-px bg-slate-300 mx-1"></div>
+                        
+                        <button onclick="autoCorrectPreferences()" class="shrink-0 px-3 py-2 bg-indigo-50 text-indigo-600 border border-indigo-100 rounded-xl text-xs font-bold hover:bg-indigo-100 flex items-center gap-1" title="【志願強制校正】會自動交換成員，找不到合適對象則找較低戰力者交換。">
+                            <span class="material-symbols-rounded text-sm">published_with_changes</span> 校正
+                        </button>
+                        <button onclick="toggleTeamModal()" class="shrink-0 px-3 py-2 bg-slate-800 text-white rounded-xl text-xs font-bold hover:bg-slate-700 shadow flex items-center gap-1">
+                            <span class="material-symbols-rounded text-sm">settings</span> 設定
+                        </button>
+                    </div>
 
-    <div class="flex gap-2 w-full md:w-auto">
-        <div class="relative w-full md:w-48">
-            <span class="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 material-symbols-rounded text-sm">search</span>
-            <input type="text" placeholder="搜尋..." class="w-full pl-9 pr-4 py-2 bg-slate-50 border border-slate-200 rounded-xl text-sm focus:bg-white focus:ring-2 focus:ring-indigo-500 transition-all" oninput="filterMembers(this.value)">
-        </div>
-        <button onclick="copyMemberList()" class="shrink-0 px-4 py-2 bg-indigo-50 text-indigo-600 hover:bg-indigo-100 rounded-xl text-xs font-bold flex items-center gap-1"><span class="material-symbols-rounded text-sm">content_copy</span> 複製</button>
-    </div>
-</div>
+                    <div class="flex gap-2 w-full md:w-auto">
+                        <div class="relative w-full md:w-48">
+                            <span class="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 material-symbols-rounded text-sm">search</span>
+                            <input type="text" placeholder="搜尋..." class="w-full pl-9 pr-4 py-2 bg-slate-50 border border-slate-200 rounded-xl text-sm focus:bg-white focus:ring-2 focus:ring-indigo-500 transition-all" oninput="filterMembers(this.value)">
+                        </div>
+                        <button onclick="copyMemberList()" class="shrink-0 px-4 py-2 bg-indigo-50 text-indigo-600 hover:bg-indigo-100 rounded-xl text-xs font-bold flex items-center gap-1"><span class="material-symbols-rounded text-sm">content_copy</span> 複製</button>
+                    </div>
+                </div>
 
                 <div id="pop-alert" class="hidden bg-red-50 border-l-4 border-red-500 text-red-800 p-4 rounded-xl shadow-md text-sm font-bold flex items-center gap-3 mb-4 animate-slide-up"></div>
 
@@ -378,21 +393,20 @@
 
                 <div class="mt-4 glass-panel p-4 rounded-2xl flex flex-col md:flex-row gap-4 items-center">
                     <div class="w-full md:w-1/3 flex flex-col gap-6">
-    <div>
-        <h4 class="font-bold text-slate-700 text-sm mb-2">🏰 軍團總戰力比較</h4>
-        <div class="h-32 w-full"><canvas id="powerChart"></canvas></div>
-    </div>
-
-    <div class="border-t border-slate-200 pt-4">
-        <div class="flex justify-between items-center mb-2">
-            <h4 class="font-bold text-slate-700 text-sm">📊 全員戰力區間分佈</h4>
-            <span id="global-m-ratio" class="text-xs font-bold text-slate-400 bg-slate-100 px-2 py-0.5 rounded">M: 0%</span>
-        </div>
-        <div class="h-32 w-full"><canvas id="globalDistChart"></canvas></div>
-    </div>
-</div>
+                        <div>
+                            <h4 class="font-bold text-slate-700 text-sm mb-2">🏰 軍團總戰力比較</h4>
+                            <div class="h-32 w-full"><canvas id="powerChart"></canvas></div>
+                        </div>
+                        <div class="border-t border-slate-200 pt-4">
+                            <div class="flex justify-between items-center mb-2">
+                                <h4 class="font-bold text-slate-700 text-sm">📊 全員戰力區間分佈</h4>
+                                <span id="global-m-ratio" class="text-xs font-bold text-slate-400 bg-slate-100 px-2 py-0.5 rounded">M: 0%</span>
+                            </div>
+                            <div class="h-32 w-full"><canvas id="globalDistChart"></canvas></div>
+                        </div>
+                    </div>
                     <div class="w-full md:w-2/3">
-                         <div id="absent-panel" class="hidden bg-slate-50 border border-slate-200 rounded-xl p-3">
+                        <div id="absent-panel" class="hidden bg-slate-50 border border-slate-200 rounded-xl p-3">
                             <div class="flex items-center justify-between mb-2">
                                 <h4 class="font-bold text-slate-600 text-xs flex items-center gap-1"><span class="material-symbols-rounded text-sm">block</span> 不參加名單 (<span id="absent-count">0</span>)</h4>
                             </div>
@@ -413,32 +427,23 @@
                     </div>
                     <div class="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-4 mb-8" id="tactics-container"></div>
                     <div class="border-t border-slate-200 pt-6 mt-4">
-    <div class="flex justify-between items-center mb-3">
-        <h3 class="font-bold text-slate-700 flex items-center gap-2">
-            <span class="material-symbols-rounded text-slate-500">terminal</span> 
-            戰術指令預覽
-        </h3>
-        <button onclick="copyMissionText()" class="bg-slate-800 hover:bg-slate-900 text-white px-5 py-2 rounded-xl text-sm font-bold shadow-lg shadow-slate-300 transition-all active:scale-95 flex items-center gap-2">
-            <span class="material-symbols-rounded text-sm">content_copy</span> 
-            一鍵複製
-        </button>
-    </div>
-    
-    <div class="relative group">
-        <textarea id="mission-text" 
-            class="w-full h-80 bg-slate-900 text-green-400 font-mono text-xs md:text-sm p-5 rounded-2xl shadow-inner outline-none focus:ring-2 focus:ring-indigo-500 transition-all custom-scroll resize-y border border-slate-700 leading-relaxed" 
-            readonly 
-            placeholder="等待生成戰術指令..."></textarea>
-            
-        <div class="absolute top-3 right-4 text-[10px] text-slate-600 font-mono select-none border border-slate-700 px-2 py-0.5 rounded">READ ONLY</div>
-    </div>
-
-    <p class="text-xs text-slate-400 mt-2 text-right flex justify-end items-center gap-1">
-        💡 提示：此格式已優化，可直接貼上 Line 記事本或 Discord
-    </p>
-</div>
+                        <div class="flex justify-between items-center mb-3">
+                            <h3 class="font-bold text-slate-700 flex items-center gap-2">
+                                <span class="material-symbols-rounded text-slate-500">terminal</span> 
+                                戰術指令預覽
+                            </h3>
+                            <button onclick="copyMissionText()" class="bg-slate-800 hover:bg-slate-900 text-white px-5 py-2 rounded-xl text-sm font-bold shadow-lg shadow-slate-300 transition-all active:scale-95 flex items-center gap-2">
+                                <span class="material-symbols-rounded text-sm">content_copy</span> 一鍵複製
+                            </button>
+                        </div>
+                        <div class="relative group">
+                            <textarea id="mission-text" class="w-full h-80 bg-slate-900 text-green-400 font-mono text-xs md:text-sm p-5 rounded-2xl shadow-inner outline-none focus:ring-2 focus:ring-indigo-500 transition-all custom-scroll resize-y border border-slate-700 leading-relaxed" readonly placeholder="等待生成戰術指令..."></textarea>
+                            <div class="absolute top-3 right-4 text-[10px] text-slate-600 font-mono select-none border border-slate-700 px-2 py-0.5 rounded">READ ONLY</div>
+                        </div>
+                    </div>
                 </div>
             </section>
+            
             <section id="page-attendance" class="hidden space-y-6">
                 <div class="glass-panel p-6 rounded-2xl bg-white">
                     <div class="flex justify-between items-center mb-6 border-b pb-4">
@@ -461,6 +466,7 @@
                     </div>
                 </div>
             </section>
+            
             <section id="page-history" class="hidden space-y-6">
                 <div class="glass-panel p-6 rounded-2xl bg-white">
                     <div class="flex justify-between items-center mb-6 border-b pb-4">
@@ -476,6 +482,7 @@
                     </div>
                 </div>
             </section>
+            
             <section id="page-settings" class="hidden space-y-6">
                 <div id="linker-panel" class="glass-panel p-6 rounded-2xl bg-white border-l-4 border-amber-500 hidden mb-6">
                     <div class="flex justify-between items-center mb-4"><h3 class="text-lg font-black text-amber-800 flex items-center gap-2">⚠️ 戰力資料校準</h3><div class="flex gap-2"><button onclick="clearManualMappings()" class="px-4 py-2 bg-red-100 text-red-600 rounded font-bold text-sm shadow hover:bg-red-200">🗑️ 清除紀錄</button><button onclick="applyManualMappings()" class="px-4 py-2 bg-amber-600 text-white rounded font-bold text-sm shadow hover:bg-amber-700">儲存修正</button></div></div>
@@ -489,14 +496,6 @@
         </div>
     </main>
 
-    <div class="fixed bottom-0 left-0 right-0 bg-white border-t p-3 flex justify-between items-center md:hidden z-40 shadow-lg">
-        <span class="text-xs font-bold text-slate-600">v68.1</span>
-        <div class="flex gap-2">
-            <button onclick="saveConfiguration()" class="bg-slate-800 text-white px-4 py-2 rounded text-sm font-bold">儲存</button>
-            <button onclick="copyMemberList()" class="bg-indigo-600 text-white px-4 py-2 rounded text-sm font-bold">📋 複製</button>
-        </div>
-    </div>
-
   <script>
         // --- 全域變數設定 ---
         const DEFAULT_TEAMS = [
@@ -506,7 +505,6 @@
             {id:'aQt2',name:'aQt軍團二',time:'20:00',active:true,priority:3}
         ];
         
-        // 綁定資料 (主號/小號)
         const DEFAULT_ALTS = [
             {main:"主流兔",alt:"盟浪兔"},{main:"主流兔",alt:"兔仔子"},{main:"冬來冬往",alt:"小冬冬"},
             {main:"劼吉撈",alt:"藍色劼吉撈ATM"},{main:"Masaorange",alt:"小馬殺"},{main:"Masaorange",alt:"小馬哥"},
@@ -536,16 +534,22 @@
         let chartInstance = null; 
         let teamCharts = {}; 
         let globalDistChartInstance = null;
+        let currentActionMember = ''; // 用於調度選單
 
         // --- 核心工具函數 ---
         function setText(id,t){ const e=document.getElementById(id); if(e)e.innerText=t; }
-        function formatSmart(n) { if (n >= 1000) return Math.round(n/1000).toLocaleString() + 'k'; return Math.round(n).toLocaleString(); }
+        
+        // 修正版 formatSmart：自動判斷要不要用 k
+        function formatSmart(n) { 
+            if (n >= 1000) return Math.round(n/1000).toLocaleString() + 'k'; 
+            return Number.isInteger(parseFloat(n)) ? parseInt(n).toLocaleString() : parseFloat(n).toFixed(2).replace(/\.00$/, ''); 
+        }
         
         function showToast(msg, type='info') {
             const container = document.getElementById('toast-container');
             const el = document.createElement('div');
-            const bg = type === 'error' ? 'bg-red-600' : (type === 'success' ? 'bg-green-600' : 'bg-slate-800');
-            el.className = `toast ${bg} mb-2 px-4 py-2 rounded text-white shadow-lg transition-all transform translate-y-2`; 
+            const bg = type === 'error' ? 'bg-red-600' : (type === 'success' ? 'bg-green-600' : (type === 'warning' ? 'bg-amber-500' : 'bg-slate-800'));
+            el.className = `toast ${bg} mb-2 px-4 py-2 rounded text-white shadow-lg transition-all transform translate-y-2 opacity-100 z-[9999]`; 
             el.innerText = msg; 
             container.appendChild(el);
             setTimeout(() => el.classList.remove('translate-y-2'), 10);
@@ -555,18 +559,11 @@
         function validateUrl(input) { 
             const icon = input.parentElement.querySelector('.validation-icon'); 
             const val = input.value.trim(); 
-            if (!val) { 
-                icon.innerText = '⏳'; 
-                icon.className = 'validation-icon text-slate-300'; 
-                return; 
-            } 
-            // 寬鬆檢查，避免誤判
+            if (!val) { icon.innerText = '⏳'; icon.className = 'validation-icon text-slate-300'; return; } 
             if (val.includes('docs.google.com') || val.endsWith('.csv') || val.startsWith('http')) { 
-                icon.innerText = '✓'; 
-                icon.className = 'validation-icon text-green-500'; 
+                icon.innerText = '✓'; icon.className = 'validation-icon text-green-500'; 
             } else { 
-                icon.innerText = '⚠️'; 
-                icon.className = 'validation-icon text-amber-500 animate-pulse'; 
+                icon.innerText = '⚠️'; icon.className = 'validation-icon text-amber-500 animate-pulse'; 
             } 
         }
 
@@ -592,24 +589,12 @@
             const r=localStorage.getItem('jQt_url_reg');
             const p=localStorage.getItem('jQt_url_power');
             
-            if(r) { 
-                const el = document.getElementById('url-reg');
-                el.value=r; 
-                validateUrl(el); 
-            }
-            if(p) { 
-                const el = document.getElementById('url-power');
-                el.value=p; 
-                validateUrl(el); 
-            }
+            if(r) { document.getElementById('url-reg').value=r; validateUrl(document.getElementById('url-reg')); }
+            if(p) { document.getElementById('url-power').value=p; validateUrl(document.getElementById('url-power')); }
             
-            renderSettings(); 
-            renderHistoryList(); 
-            renderAttendanceHistory(); 
-            switchTab('input');
+            renderSettings(); renderHistoryList(); renderAttendanceHistory(); switchTab('input');
         });
 
-        // --- 導航切換 ---
         function switchTab(page){
             document.querySelectorAll('section').forEach(s=>s.classList.add('hidden')); 
             const target = document.getElementById(`page-${page}`);
@@ -647,7 +632,6 @@
 
         function toggleDarkMode() { document.body.classList.toggle('dark'); }
 
-        // --- 資料處理核心 ---
         function saveLocal(){ 
             localStorage.setItem('jQt_url_reg', document.getElementById('url-reg').value); 
             localStorage.setItem('jQt_url_power', document.getElementById('url-power').value); 
@@ -655,14 +639,9 @@
         }
 
         async function fetchWithFallback(url) {
-            // 1. 自動優化 Google Sheet 連結
-            if (url.includes('docs.google.com') && url.includes('/edit')) {
-                url = url.replace(/\/edit.*$/, '/export?format=csv');
-            } else if (url.includes('/pubhtml')) {
-                url = url.replace(/\/pubhtml.*/, '/pub?output=csv');
-            }
+            if (url.includes('docs.google.com') && url.includes('/edit')) url = url.replace(/\/edit.*$/, '/export?format=csv');
+            else if (url.includes('/pubhtml')) url = url.replace(/\/pubhtml.*/, '/pub?output=csv');
 
-            // 定義連線嘗試順序 (優先直連)
             const steps = [
                 { url: url, name: "直連嘗試 (Google Publish)" }, 
                 { url: `https://corsproxy.io/?${encodeURIComponent(url)}`, name: "高速代理 (CorsProxy)" },
@@ -676,53 +655,32 @@
                 const id = setTimeout(() => controller.abort(), timeout);
                 try {
                     const response = await fetch(resource, { ...options, signal: controller.signal });
-                    clearTimeout(id);
-                    return response;
-                } catch (error) {
-                    clearTimeout(id);
-                    throw error;
-                }
+                    clearTimeout(id); return response;
+                } catch (error) { clearTimeout(id); throw error; }
             };
 
             for (const s of steps) {
                 try {
-                    console.log(`[連線嘗試] ${s.name}...`);
                     const r = await fetchWithTimeout(s.url);
-                    
                     if (r.ok) {
                         const t = await r.text();
-                        if (t.trim().startsWith('<!DOCTYPE') || t.trim().startsWith('<html') || t.includes('Moved Temporarily')) {
-                            console.warn(`[連線警告] ${s.name} 回傳了 HTML 或錯誤頁面，跳過。`);
-                            continue;
-                        }
-                        if (t.length < 50) {
-                             console.warn(`[連線警告] ${s.name} 回傳資料過短，可能被截斷，跳過。`);
-                             continue;
-                        }
+                        if (t.trim().startsWith('<!DOCTYPE') || t.trim().startsWith('<html') || t.includes('Moved Temporarily')) continue;
+                        if (t.length < 50) continue;
                         return t; 
                     }
-                } catch (e) {
-                    console.warn(`[連線失敗] ${s.name}:`, e.name);
-                }
+                } catch (e) { console.warn(`[連線失敗] ${s.name}:`, e.name); }
             }
-            throw new Error("無法讀取資料。建議：\n1. Google 試算表請使用「檔案>共用>發布到網路」的連結。\n2. 或改用「直接貼上」模式。");
+            throw new Error("無法讀取資料。建議：\n1. Google 試算表請使用「發布到網路」的連結。\n2. 或改用「直接貼上」模式。");
         }
 
         function parseCSV(text) {
             if (!text) return [];
             text = text.replace(/^\uFEFF/, ''); 
-            const rows = [];
-            let row = [];
-            let val = '';
-            let inQuote = false;
-            
+            const rows = []; let row = []; let val = ''; let inQuote = false;
             for (let i = 0; i < text.length; i++) {
-                let c = text[i];
-                let n = text[i+1];
-                
+                let c = text[i], n = text[i+1];
                 if (c === '"') {
-                    if (inQuote && n === '"') { val += '"'; i++; } 
-                    else { inQuote = !inQuote; }
+                    if (inQuote && n === '"') { val += '"'; i++; } else { inQuote = !inQuote; }
                 } else if (c === ',' && !inQuote) {
                     row.push(val.trim()); val = '';
                 } else if ((c === '\r' || c === '\n') && !inQuote) {
@@ -730,29 +688,16 @@
                     row.push(val.trim());
                     if(row.length > 0 && (row.length > 1 || row[0] !== '')) rows.push(row);
                     row = []; val = '';
-                } else {
-                    val += c;
-                }
+                } else { val += c; }
             }
-            if (val || row.length) { 
-                row.push(val.trim()); 
-                if(row.length > 0) rows.push(row); 
-            }
+            if (val || row.length) { row.push(val.trim()); if(row.length > 0) rows.push(row); }
             return rows;
         }
 
         function normalizeName(n) { 
             if(!n) return ""; 
-            // 1. 移除 R標籤與括號標籤
-            let clean = n.replace(/\[.*?\]/g, '')
-                    .replace(/\(R[0-9]\)/gi, '')
-                    .replace(/R[0-9]\s/gi, '')
-                    .replace(/[\u200B-\u200D\uFEFF]/g, '');
-            
-            // 2. 標準化：轉小寫，但保留「底線」與「連字號」
+            let clean = n.replace(/\[.*?\]/g, '').replace(/\(R[0-9]\)/gi, '').replace(/R[0-9]\s/gi, '').replace(/[\u200B-\u200D\uFEFF]/g, '');
             let strict = clean.replace(/[^\u4e00-\u9fa5a-zA-Z0-9_\-]/g, '').toLowerCase().trim(); 
-            
-            // 如果處理完變空字串(純符號)，則回傳原始乾淨內容，否則回傳標準化內容
             return strict.length > 0 ? strict : clean.trim().toLowerCase(); 
         }
 
@@ -766,106 +711,76 @@
             return cleanName; 
         }
 
-        // --- 下拉選單處理 ---
         function populatePickers(d, id1, id2=null){ 
-            const h = d[0] || []; 
-            if(h.length === 0) return;
+            const h = d[0] || []; if(h.length === 0) return;
             const mk = (i,n) => `<option value="${i}">[${i}] ${n || '未命名'}</option>`; 
             const processSelect = (id, keywords) => {
-                const el = document.getElementById(id);
-                if(!el) return;
+                const el = document.getElementById(id); if(!el) return;
                 el.innerHTML = h.map((x,i) => mk(i,x)).join('');
                 let found = -1;
-                h.forEach((x, i) => { 
-                    const t = String(x).toLowerCase(); 
-                    if(keywords.some(k => t.includes(k))) found = i; 
-                });
+                h.forEach((x, i) => { const t = String(x).toLowerCase(); if(keywords.some(k => t.includes(k))) found = i; });
                 if(found > -1) el.value = found;
             };
             if(id1.includes('reg')) { processSelect(id1, ['name', '名稱', 'id', '暱稱', '名字']); } else { processSelect(id1, ['name', '名稱', 'id']); }
-            if(id2) {
-                if(id2.includes('opt')) processSelect(id2, ['option', '選項', '時間', '意願', '參加']);
-                if(id2.includes('val')) processSelect(id2, ['power', '戰力', '分數']);
-            }
+            if(id2) { if(id2.includes('opt')) processSelect(id2, ['option', '選項', '時間', '意願', '參加']); if(id2.includes('val')) processSelect(id2, ['power', '戰力', '分數']); }
         }
 
-        // --- 主資料讀取流程 ---
         async function preProcessData(){ 
-            const btn = document.getElementById('btn-pre'); 
-            if(btn) btn.disabled = true; 
+            const btn = document.getElementById('btn-pre'); if(btn) btn.disabled = true; 
             updateLoadingStatus('連接中...', true); 
-            
             try { 
                 let r='', p=''; 
                 if(currentMode === 'paste'){ 
-                    r = document.getElementById('csv-reg').value; 
-                    p = document.getElementById('csv-power').value; 
+                    r = document.getElementById('csv-reg').value; p = document.getElementById('csv-power').value; 
                     if (!r.trim() || !p.trim()) throw new Error("請貼上 CSV 資料");
                 } else { 
                     const ur = document.getElementById('url-reg').value, up = document.getElementById('url-power').value; 
                     if(!ur || !up) throw new Error("請輸入 Google Sheet 連結"); 
                     [r,p] = await Promise.all([fetchWithFallback(ur), fetchWithFallback(up)]); 
                 } 
-                
                 updateLoadingStatus('解析資料...', true); 
-                appState.rawRegData = parseCSV(r); 
-                appState.rawPowerData = parseCSV(p); 
-                
+                appState.rawRegData = parseCSV(r); appState.rawPowerData = parseCSV(p); 
                 if(!appState.rawRegData.length) throw new Error("讀取失敗：報名表為空");
                 if(!appState.rawPowerData.length) throw new Error("讀取失敗：戰力表為空");
                 
                 populatePickers(appState.rawRegData, 'col-reg-name', 'col-reg-opt'); 
                 populatePickers(appState.rawPowerData, 'col-pow-name', 'col-pow-val'); 
-                
                 document.getElementById('col-picker').classList.remove('hidden'); 
                 updateLoadingStatus('驗證名單...', true); 
-                
                 await new Promise(res => setTimeout(res, 100));
                 
-                verifyNames(); 
-                showToast('資料讀取成功！', 'success'); 
+                verifyNames(); showToast('資料讀取成功！', 'success'); 
             } catch(e){ 
-                console.error(e);
-                showToast("錯誤: " + e.message, 'error'); 
+                console.error(e); showToast("錯誤: " + e.message, 'error'); 
             } finally {
-                if(btn) btn.disabled = false; 
-                updateLoadingStatus('', false); 
+                if(btn) btn.disabled = false; updateLoadingStatus('', false); 
             }
         }
 
         function verifyNames() { 
             const ri = parseInt(document.getElementById('col-reg-name').value); 
             const ni = parseInt(document.getElementById('col-pow-name').value); 
-            
             if(isNaN(ri) || isNaN(ni)) { showToast("錯誤：無法識別欄位索引", "error"); return; }
             
             let powerNames = [], powerMap = {}; 
             for(let i=1; i<appState.rawPowerData.length; i++){ 
-                const r = appState.rawPowerData[i]; 
-                if(!r[ni]) continue; 
-                const raw = r[ni]; 
-                const clean = normalizeName(raw); 
+                const r = appState.rawPowerData[i]; if(!r[ni]) continue; 
+                const raw = r[ni]; const clean = normalizeName(raw); 
                 if(clean) { powerNames.push(raw); powerMap[clean] = raw; } 
             } 
             appState.availablePowerNames = powerNames; 
-            
             if(powerNames.length === 0) { showToast("警告：戰力表中找不到有效名字", "error"); return; }
             
             let unmatched = [], matchedCount = 0;
             const optIdx = parseInt(document.getElementById('col-reg-opt').value);
 
             for(let i=1; i<appState.rawRegData.length; i++){ 
-                const r = appState.rawRegData[i], name = r[ri]; 
-                if(!name) continue; 
-                
+                const r = appState.rawRegData[i], name = r[ri]; if(!name) continue; 
                 const opt = r[optIdx] || ''; 
                 if(ABSENT_KEYWORDS.some(k => String(opt).replace(/\s+/g, '').toLowerCase().includes(k))) continue; 
-                
                 if(appState.manualMappings[name]) { matchedCount++; continue; } 
-                
                 const clean = normalizeName(name); 
                 if(powerMap[clean]) { matchedCount++; continue; } 
-                
                 const fuzzy = powerNames.find(p => normalizeName(p).includes(clean) || clean.includes(normalizeName(p))); 
                 unmatched.push({ orig: name, guess: fuzzy || "" }); 
             } 
@@ -875,32 +790,23 @@
             const btnRun = document.getElementById('btn-run'); 
             
             if(unmatched.length > 0) { 
-                panel.classList.remove('hidden'); 
-                btnRun.classList.add('hidden'); 
-                container.innerHTML = ''; 
+                panel.classList.remove('hidden'); btnRun.classList.add('hidden'); container.innerHTML = ''; 
                 const sortedOpts = [...powerNames].sort(); 
                 unmatched.forEach(u => { 
-                    let optsHtml = `<option value="">-- 請選擇 --</option>`; 
-                    optsHtml += sortedOpts.map(p => `<option value="${p}" ${p === u.guess ? 'selected' : ''}>${p}</option>`).join('');
+                    let optsHtml = `<option value="">-- 請選擇 --</option>` + sortedOpts.map(p => `<option value="${p}" ${p === u.guess ? 'selected' : ''}>${p}</option>`).join('');
                     container.innerHTML += `<div class="flex items-center gap-2 border-b pb-1 mb-1"><span class="w-1/3 text-sm font-bold text-slate-700 truncate" title="${u.orig}">${u.orig}</span><span class="text-slate-400">➜</span><select id="fix-${u.orig}" class="flex-1 text-sm border rounded p-1 bg-white focus:ring-2 ring-indigo-500">${optsHtml}</select></div>`; 
                 }); 
-                showToast(`有 ${unmatched.length} 位成員名稱不符，請手動校正`, 'info');
+                showToast(`有 ${unmatched.length} 位成員名稱不符，請手動校正`, 'warning');
             } else { 
-                panel.classList.add('hidden'); 
-                btnRun.classList.remove('hidden'); 
+                panel.classList.add('hidden'); btnRun.classList.remove('hidden'); 
                 if(matchedCount > 0) showToast(`驗證完成：${matchedCount} 人匹配成功`, 'success'); 
             } 
         }
 
         function saveManualMappingsAndRun() { 
             const selects = document.querySelectorAll('#match-check-container select'); 
-            selects.forEach(s => { 
-                const orig = s.id.replace('fix-', ''); 
-                if(s.value) appState.manualMappings[orig] = s.value; 
-            }); 
-            saveLocal(); 
-            document.getElementById('match-check-panel').classList.add('hidden'); 
-            document.getElementById('btn-run').classList.remove('hidden'); 
+            selects.forEach(s => { const orig = s.id.replace('fix-', ''); if(s.value) appState.manualMappings[orig] = s.value; }); 
+            saveLocal(); document.getElementById('match-check-panel').classList.add('hidden'); document.getElementById('btn-run').classList.remove('hidden'); 
             handleAllocation(); 
         }
 
@@ -908,37 +814,25 @@
             try { 
                 const ri=parseInt(document.getElementById('col-reg-name').value), oi=parseInt(document.getElementById('col-reg-opt').value); 
                 const ni=parseInt(document.getElementById('col-pow-name').value), vi=parseInt(document.getElementById('col-pow-val').value); 
-                
                 if(isNaN(ri) || isNaN(ni)) throw new Error("請先確認下方「欄位確認」是否已選擇正確的欄位");
 
                 let pMap={}; 
                 for(let i=1; i<appState.rawPowerData.length; i++){ 
-                    const r=appState.rawPowerData[i]; 
-                    if(!r[ni]) continue; 
+                    const r=appState.rawPowerData[i]; if(!r[ni]) continue; 
                     const n=r[ni], vRaw=r[vi]?r[vi].toString().replace(/,/g,''):"0", p=parseFloat(vRaw)||0; 
                     if(!n || n.toString().includes('function')) continue; 
-                    
                     const cleanName = normalizeName(n);
                     pMap[cleanName]={raw:n, p, r:r[3]||""}; 
                 } 
                 
-                let valid=[], absent=[], unknown=[]; 
-                let skippedCount = 0;
+                let valid=[], absent=[], unknown=[], skippedCount = 0;
 
                 for(let i=1; i<appState.rawRegData.length; i++){ 
-                    const r=appState.rawRegData[i];
-                    const name = r[ri]; 
-                    const opt = r[oi]||''; 
-                    
-                    if(!name) {
-                        console.warn(`第 ${i+1} 行被跳過：名稱欄位為空`);
-                        skippedCount++;
-                        continue; 
-                    }
+                    const r=appState.rawRegData[i]; const name = r[ri]; const opt = r[oi]||''; 
+                    if(!name) { skippedCount++; continue; }
                     
                     if(ABSENT_KEYWORDS.some(k => String(opt).replace(/\s+/g, '').toLowerCase().includes(k))) { 
-                        absent.push({name, opt}); 
-                        continue; 
+                        absent.push({name, opt}); continue; 
                     } 
                     
                     const clean = normalizeName(name);
@@ -959,9 +853,7 @@
                     } 
                 } 
                 
-                appState.players=valid; 
-                appState.absentPlayers=absent; 
-                appState.unknownPlayers=unknown; 
+                appState.players=valid; appState.absentPlayers=absent; appState.unknownPlayers=unknown; 
                 
                 runTeamLogic('snake'); 
                 
@@ -971,21 +863,16 @@
                 switchTab('dashboard'); 
                 
                 let msg = '戰略分析完成';
-                if(skippedCount > 0) msg += ` (警告：有 ${skippedCount} 行資料因空白被跳過，請按 F12 查看)`;
+                if(skippedCount > 0) msg += ` (跳過 ${skippedCount} 行空白資料)`;
                 showToast(msg, 'success'); 
-            } catch(e){ 
-                console.error(e);
-                showToast("處理發生錯誤: " + e.message, 'error'); 
-            } 
+            } catch(e){ console.error(e); showToast("處理發生錯誤: " + e.message, 'error'); } 
         }
 
         // --- 戰術邏輯 ---
         function isLockedMember(m) { return m.reason.includes("鎖定") || m.reason.includes("特例") || m.reason.includes("共控"); }
-        
         function isSafeToJoin(player, targetTeam) {
             const hasFamilyInTarget = targetTeam.members.some(m => m.fid === player.fid && m.name !== player.name);
             if (hasFamilyInTarget) return false;
-
             const sameTimeTeams = appState.teams.filter(t => t.active && t.id !== targetTeam.id && t.time === targetTeam.time);
             for (const t of sameTimeTeams) {
                 const hasFamilyInSameTime = t.members.some(m => m.fid === player.fid && m.name !== player.name);
@@ -994,46 +881,28 @@
             return true;
         }
 
-        // --- 核心分配邏輯 (保底 15 人修正版) ---
-        // --- 核心分配邏輯 (支援 M 型化 + 15人保底 + 按鈕變色) ---
         function runTeamLogic(mode = 'snake') {
             appState.lastLogicMode = mode;
             
-            // --- UI 更新: 切換按鈕亮燈狀態 ---
             const btnS = document.getElementById('btn-logic-snake');
             const btnM = document.getElementById('btn-logic-mtype');
-            
-            // 定義樣式：亮起 vs 熄滅
             const activeClass = "bg-white text-indigo-600 shadow-sm ring-1 ring-indigo-100";
             const inactiveClass = "text-slate-500 hover:bg-white/50 hover:text-slate-700 bg-transparent shadow-none";
             const baseClass = "px-4 py-2 rounded-lg text-xs font-bold flex items-center gap-1 transition-all";
-
             if(btnS && btnM) {
-                // 重置基礎 class 並套用狀態
                 btnS.className = baseClass + " " + (mode === 'snake' ? activeClass : inactiveClass);
                 btnM.className = baseClass + " " + (mode === 'm_type' ? activeClass : inactiveClass);
             }
-            // --------------------------------
 
-            // 1. 重置隊伍成員
             const validP = appState.players.slice();
             appState.teams.forEach(t => t.members = []);
-            
-            // 取得所有啟用的隊伍，並按優先級排序
             const activeTeams = appState.teams.filter(t => t.active).sort((a, b) => a.priority - b.priority);
-
             if (activeTeams.length === 0) return;
 
-            // 2. 準備名單：按戰力高 -> 低排序
             let remaining = [...validP].sort((a, b) => b.power - a.power);
-
-            // 檢查總人數是否足夠
             const minRequired = activeTeams.length * 15;
-            if (validP.length < minRequired) {
-                showToast(`⚠️ 警告：總人數 (${validP.length}) 不足，無法讓所有隊伍 (${activeTeams.length}隊) 皆滿 15 人`, 'error');
-            }
+            if (validP.length < minRequired) showToast(`⚠️ 總人數 (${validP.length}) 不足，無法讓所有隊伍 (${activeTeams.length}隊) 皆滿 15 人`, 'warning');
 
-            // --- Phase 0: 處理鎖定名單 (先佔位) ---
             const assign = (p, tid, reason) => {
                 const t = appState.teams.find(x => x.id === tid);
                 if (t && t.active) {
@@ -1046,53 +915,27 @@
             };
 
             [...remaining].forEach(p => {
-                // 保留原有的鎖定邏輯
                 if (p.name.includes("劼吉撈") && !p.name.includes("ATM")) assign(p, 'jQt1', "R5 鎖定");
-                else if (p.name.includes("躺平草仔粿")) { 
-                    const jQt2 = appState.teams.find(t => t.id === 'jQt2'); 
-                    if (jQt2 && jQt2.active) assign(p, 'jQt2', "鎖定 jQt2"); 
-                    else assign(p, 'aQt1', "鎖定 aQt1(備案)"); 
-                }
+                else if (p.name.includes("躺平草仔粿")) { const jQt2 = appState.teams.find(t => t.id === 'jQt2'); if (jQt2 && jQt2.active) assign(p, 'jQt2', "鎖定 jQt2"); else assign(p, 'aQt1', "鎖定 aQt1(備案)"); }
                 else if (p.name.includes("冬來冬往")) assign(p, 'jQt1', "鎖定 jQt");
-                else if (p.name.includes("小冬冬")) { 
-                    const jQt2 = appState.teams.find(t => t.id === 'jQt2'); 
-                    if (jQt2 && jQt2.active) assign(p, 'jQt2', "鎖定 jQt"); 
-                    else assign(p, 'jQt1', "鎖定 jQt"); 
-                }
-                else if (p.reason && p.reason.includes("鎖定") && p.team) {
-                    assign(p, p.team, p.reason);
-                }
+                else if (p.name.includes("小冬冬")) { const jQt2 = appState.teams.find(t => t.id === 'jQt2'); if (jQt2 && jQt2.active) assign(p, 'jQt2', "鎖定 jQt"); else assign(p, 'jQt1', "鎖定 jQt"); }
+                else if (p.reason && p.reason.includes("鎖定") && p.team) { assign(p, p.team, p.reason); }
             });
 
-            // --- Phase 1: 強制保底填充 (優先湊滿 15 人) ---
             let insuranceLoop = 0;
             while (remaining.length > 0 && insuranceLoop++ < 500) {
                 const needyTeams = activeTeams.filter(t => t.members.length < 15);
                 if (needyTeams.length === 0) break;
 
-                // 優先填補最缺人的隊伍
                 needyTeams.sort((a, b) => a.members.length - b.members.length);
                 const targetTeam = needyTeams[0];
                 let candidateIndex = -1;
 
-                // 根據模式決定湊人數的策略
-                // 如果是 M 型，湊人數時優先拿「最低戰力」的人去填坑，保留高戰力給 Phase 2 分配
-                // 如果是 S 型，湊人數時優先拿「最高戰力」的人 (原本邏輯)
-                
                 if (mode === 'm_type') {
-                    // M型保底：優先找志願符合的「低戰力」(從陣列尾端找)
-                    for (let i = remaining.length - 1; i >= 0; i--) {
-                        if (remaining[i].prefTime === targetTeam.time) { candidateIndex = i; break; }
-                    }
-                    if (candidateIndex === -1) {
-                        // 找 Any 的低戰力
-                        for (let i = remaining.length - 1; i >= 0; i--) {
-                            if (remaining[i].prefTime === 'any') { candidateIndex = i; break; }
-                        }
-                    }
-                    if (candidateIndex === -1) candidateIndex = remaining.length - 1; // 抓最低戰力犧牲
+                    for (let i = remaining.length - 1; i >= 0; i--) { if (remaining[i].prefTime === targetTeam.time) { candidateIndex = i; break; } }
+                    if (candidateIndex === -1) { for (let i = remaining.length - 1; i >= 0; i--) { if (remaining[i].prefTime === 'any') { candidateIndex = i; break; } } }
+                    if (candidateIndex === -1) candidateIndex = remaining.length - 1; 
                 } else {
-                    // 原本 S 型保底：優先找志願符合的「高戰力」(從頭找)
                     candidateIndex = remaining.findIndex(p => p.prefTime === targetTeam.time);
                     if (candidateIndex === -1) candidateIndex = remaining.findIndex(p => p.prefTime === 'any');
                     if (candidateIndex === -1) candidateIndex = 0;
@@ -1100,112 +943,79 @@
 
                 if (candidateIndex > -1) {
                     const p = remaining[candidateIndex];
-                    targetTeam.members.push(p);
-                    p.team = targetTeam.id;
-                    if (p.prefTime !== 'any' && p.prefTime !== targetTeam.time) p.reason = "保底補位"; 
-                    else p.reason = "戰力分配";
+                    targetTeam.members.push(p); p.team = targetTeam.id;
+                    if (p.prefTime !== 'any' && p.prefTime !== targetTeam.time) p.reason = "保底補位"; else p.reason = "戰力分配";
                     remaining.splice(candidateIndex, 1);
                 }
             }
 
-            // --- Phase 2: 剩餘人員分配 (核心差異) ---
-            
             if (mode === 'm_type') {
-                // === M型分配邏輯 (Barbell Strategy) ===
-                let pickTop = true; // true=選頭(強), false=選尾(弱)
-                let loopGuard = 0;
-
+                let pickTop = true; let loopGuard = 0;
                 while (remaining.length > 0 && loopGuard++ < 2000) {
                     for (const targetTeam of activeTeams) {
                         if (remaining.length === 0) break;
-
                         let candidateIndex = -1;
-                        
                         if (pickTop) {
-                            // 從頭找 (高戰力)
-                            candidateIndex = remaining.findIndex(p => 
-                                (appState.prioritizePreferences ? (p.prefTime === targetTeam.time || p.prefTime === 'any') : true)
-                            );
+                            candidateIndex = remaining.findIndex(p => (appState.prioritizePreferences ? (p.prefTime === targetTeam.time || p.prefTime === 'any') : true));
                         } else {
-                            // 從尾找 (低戰力)
                             for (let i = remaining.length - 1; i >= 0; i--) {
                                 const p = remaining[i];
                                 const isMatch = appState.prioritizePreferences ? (p.prefTime === targetTeam.time || p.prefTime === 'any') : true;
                                 if (isMatch) { candidateIndex = i; break; }
                             }
                         }
-
-                        // 如果找不到志願符合的，且還有剩下的人，就抓第一順位(或末位)的犧牲者
                         if (candidateIndex === -1 && remaining.length > 0) {
-                            if (pickTop) candidateIndex = 0;
-                            else candidateIndex = remaining.length - 1;
+                            if (pickTop) candidateIndex = 0; else candidateIndex = remaining.length - 1;
                         }
-
                         if (candidateIndex > -1) {
                             const p = remaining[candidateIndex];
-                            targetTeam.members.push(p);
-                            p.team = targetTeam.id;
+                            targetTeam.members.push(p); p.team = targetTeam.id;
                             p.reason = pickTop ? "M型核心" : "M型填補";
                             remaining.splice(candidateIndex, 1);
                         }
                     }
-                    // 每跑完一輪隊伍，切換取人方向 (頭 -> 尾 -> 頭 -> 尾)
                     pickTop = !pickTop;
                 }
-
             } else {
-                // === 原本 S型 / 階梯型分配邏輯 ===
                 remaining.forEach((p) => {
                     let eligibleTeams = activeTeams;
                     if (appState.prioritizePreferences && p.prefTime !== 'any') {
                         const timeMatches = activeTeams.filter(t => t.time === p.prefTime);
                         if (timeMatches.length > 0) eligibleTeams = timeMatches;
                     }
-
                     eligibleTeams.sort((a, b) => {
                         const powerA = a.members.reduce((sum, m) => sum + m.power, 0);
                         const powerB = b.members.reduce((sum, m) => sum + m.power, 0);
                         if (powerA === powerB) return a.members.length - b.members.length;
                         return powerA - powerB; 
                     });
-
                     const targetTeam = eligibleTeams[0];
                     if (targetTeam) {
-                        targetTeam.members.push(p);
-                        p.team = targetTeam.id;
-                        p.reason = "戰力平衡";
+                        targetTeam.members.push(p); p.team = targetTeam.id; p.reason = "戰力平衡";
                     }
                 });
             }
 
-            // M型化不需要做「梯度優化」，只有 S 型模式才執行
-            if (mode !== 'm_type') {
-                enforcePowerGradient(); 
-            }
+            if (mode !== 'm_type') enforcePowerGradient(); 
             
-            checkConflicts(); 
-            renderDashboard();
+            checkConflicts(); renderDashboard();
         }
 
         function enforcePowerGradient() { 
             const active = appState.teams.filter(t => t.active).sort((a, b) => a.priority - b.priority); 
             const getPower = t => t.members.reduce((s, m) => s + m.power, 0); 
             let safety = 0; 
-            
             while (safety++ < 50) { 
                 let changed = false; 
                 for (let i = 0; i < active.length - 1; i++) { 
                     const hi = active[i], lo = active[i + 1]; 
                     if (appState.prioritizePreferences && hi.time !== lo.time) continue;
-
                     let pHi = getPower(hi), pLo = getPower(lo); 
                     if (pHi >= pLo) continue; 
 
                     const movableHi = hi.members.filter(m => !isLockedMember(m)); 
                     const movableLo = lo.members.filter(m => !isLockedMember(m)); 
-                    
-                    movableHi.sort((a, b) => a.power - b.power); 
-                    movableLo.sort((a, b) => b.power - a.power); 
+                    movableHi.sort((a, b) => a.power - b.power); movableLo.sort((a, b) => b.power - a.power); 
                     
                     if (movableHi.length && movableLo.length) { 
                         const weakHi = movableHi[0], strongLo = movableLo[0]; 
@@ -1216,14 +1026,10 @@
                                     if (strongLo.prefTime !== 'any' && strongLo.prefTime !== hi.time) prefOk = false;
                                     if (weakHi.prefTime !== 'any' && weakHi.prefTime !== lo.time) prefOk = false;
                                 }
-
                                 if (prefOk) {
-                                    hi.members.splice(hi.members.indexOf(weakHi), 1); 
-                                    lo.members.splice(lo.members.indexOf(strongLo), 1); 
-                                    weakHi.team = lo.id; weakHi.reason = "梯度調整"; 
-                                    strongLo.team = hi.id; strongLo.reason = "梯度調整"; 
-                                    lo.members.push(weakHi); hi.members.push(strongLo); 
-                                    changed = true; 
+                                    hi.members.splice(hi.members.indexOf(weakHi), 1); lo.members.splice(lo.members.indexOf(strongLo), 1); 
+                                    weakHi.team = lo.id; weakHi.reason = "梯度調整"; strongLo.team = hi.id; strongLo.reason = "梯度調整"; 
+                                    lo.members.push(weakHi); hi.members.push(strongLo); changed = true; 
                                 }
                             }
                         } 
@@ -1234,8 +1040,7 @@
         }
 
         function checkConflicts(){ 
-            let c=0; 
-            appState.conflictMap={}; 
+            let c=0; appState.conflictMap={}; 
             const activeTeamCount = appState.teams.filter(t=>t.active).length; 
             const allAssigned = appState.teams.flatMap(t => t.members); 
             const groups = {}; 
@@ -1261,8 +1066,9 @@
             setText('stat-conflict', c); 
         }
 
+        // --- 優化版志願強制校正 (處理不完美交換) ---
         function autoCorrectPreferences(isAuto = false) {
-            let swapCount = 0; 
+            let swapCount = 0; let failedCount = 0;
             const activeTeams = appState.teams.filter(t => t.active); 
             let wrongPlaceMembers = [];
 
@@ -1274,85 +1080,93 @@
                 }); 
             });
 
-            if (wrongPlaceMembers.length === 0 && !isAuto) return showToast("所有成員皆符合志願", "info");
+            if (wrongPlaceMembers.length === 0) {
+                if (!isAuto) showToast("目前所有成員皆已符合志願或在鎖定狀態", "info");
+                return;
+            }
 
             wrongPlaceMembers.forEach(item => {
                 const { member, sourceTeam } = item; 
                 if (!sourceTeam.members.includes(member)) return;
 
-                const targetTeam = activeTeams.find(t => t.time === member.prefTime);
-                if (targetTeam) {
-                    let candidate = targetTeam.members.find(tMember => !isLockedMember(tMember) && tMember.prefTime === sourceTeam.time);
-                    if (!candidate) candidate = targetTeam.members.find(tMember => !isLockedMember(tMember) && tMember.prefTime === 'any');
-                    
-                    if (candidate) {
-                        if (isSafeToJoin(member, targetTeam) && isSafeToJoin(candidate, sourceTeam)) {
-                            sourceTeam.members = sourceTeam.members.filter(m => m !== member); 
-                            targetTeam.members = targetTeam.members.filter(m => m !== candidate);
-                            
-                            member.team = targetTeam.id; member.reason = "志願校正"; 
-                            candidate.team = sourceTeam.id; candidate.reason = "志願校正(交換)";
-                            
-                            targetTeam.members.push(member); 
-                            sourceTeam.members.push(candidate); 
-                            swapCount++;
+                const targetTeams = activeTeams.filter(t => t.time === member.prefTime);
+                let swapped = false;
+
+                for(let targetTeam of targetTeams) {
+                    // 1. 完美交換：找目標隊伍中「剛好想去來源隊伍時段」的人
+                    let candidate = targetTeam.members.find(tMember => !isLockedMember(tMember) && tMember.prefTime === sourceTeam.time && isSafeToJoin(member, targetTeam) && isSafeToJoin(tMember, sourceTeam));
+                    // 2. 次佳交換：找目標隊伍中「志願為 Any 皆可」的人
+                    if (!candidate) candidate = targetTeam.members.find(tMember => !isLockedMember(tMember) && tMember.prefTime === 'any' && isSafeToJoin(member, targetTeam) && isSafeToJoin(tMember, sourceTeam));
+                    // 3. 強制交換：找目標隊伍中「戰力最低且沒有鎖定」的人強制互換 (犧牲低戰力)
+                    if (!candidate) {
+                        const flexible = targetTeam.members.filter(tMember => !isLockedMember(tMember) && isSafeToJoin(member, targetTeam) && isSafeToJoin(tMember, sourceTeam));
+                        if(flexible.length > 0) {
+                            flexible.sort((a,b) => a.power - b.power);
+                            candidate = flexible[0];
                         }
                     }
+                    
+                    if (candidate) {
+                        sourceTeam.members = sourceTeam.members.filter(m => m !== member); 
+                        targetTeam.members = targetTeam.members.filter(m => m !== candidate);
+                        
+                        member.team = targetTeam.id; member.reason = "志願校正"; 
+                        candidate.team = sourceTeam.id; candidate.reason = "志願校正(交換)";
+                        
+                        targetTeam.members.push(member); 
+                        sourceTeam.members.push(candidate); 
+                        swapCount++; swapped = true;
+                        break;
+                    }
                 }
+                if(!swapped) failedCount++;
             });
 
             if (swapCount > 0) { 
-                if (!isAuto) { checkConflicts(); renderDashboard(); showToast(`已調整 ${swapCount} 位成員`, 'success'); } 
-            } else if (!isAuto) { showToast("無法進行更多安全交換", "info"); }
+                checkConflicts(); renderDashboard(); 
+                if (!isAuto) showToast(`已調整 ${swapCount} 位成員${failedCount > 0 ? `，仍有 ${failedCount} 位受限無法交換` : ''}`, 'success'); 
+            } else if (!isAuto) { 
+                showToast("找不到可安全交換的對象 (家族衝突限制)", "warning"); 
+            }
         }
 
         function autoResolveConflicts() { 
             const activeTeams = appState.teams.filter(t => t.active);
             if (activeTeams.length < 2) return showToast("單一軍團模式無需解決衝突"); 
 
-            let totalFixed = 0;
-            let maxLoops = 20; 
+            let totalFixed = 0; let maxLoops = 20; 
 
             for (let loop = 0; loop < maxLoops; loop++) {
                 checkConflicts(); 
-                
                 let issues = [];
-                
                 Object.keys(appState.conflictMap).forEach(name => {
                     const t = activeTeams.find(t => t.members.some(m => m.name === name));
                     const m = t ? t.members.find(m => m.name === name) : null;
                     if (m && !isLockedMember(m)) issues.push({ member: m, team: t, type: 'conflict', priority: 10 });
                 });
-
                 if (appState.prioritizePreferences) {
                     activeTeams.forEach(t => {
                         t.members.forEach(m => {
                             if (m.prefTime !== 'any' && m.prefTime !== t.time && !isLockedMember(m)) {
-                                if (!issues.find(i => i.member === m)) {
-                                    issues.push({ member: m, team: t, type: 'pref', priority: 5 });
-                                }
+                                if (!issues.find(i => i.member === m)) issues.push({ member: m, team: t, type: 'pref', priority: 5 });
                             }
                         });
                     });
                 }
-
                 if (issues.length === 0) break; 
-
                 issues.sort((a, b) => b.priority - a.priority);
                 let changedInLoop = false;
 
                 for (let issue of issues) {
                     const { member: player, team: currentTeam, type } = issue;
                     let targetTeams = [];
-                    if (type === 'pref') {
-                        targetTeams = activeTeams.filter(t => t.time === player.prefTime);
-                    } else {
+                    if (type === 'pref') { targetTeams = activeTeams.filter(t => t.time === player.prefTime); } 
+                    else {
                         targetTeams = activeTeams.filter(t => t.id !== currentTeam.id && t.time !== currentTeam.time);
                         if (targetTeams.length === 0) targetTeams = activeTeams.filter(t => t.id !== currentTeam.id);
                     }
 
                     let swapSuccess = false;
-
                     for (let targetTeam of targetTeams) {
                         let candidates = targetTeam.members.filter(m => !isLockedMember(m));
                         candidates.sort((a, b) => Math.abs(a.power - player.power) - Math.abs(b.power - player.power));
@@ -1360,34 +1174,20 @@
                         for (let candidate of candidates) {
                             let limit = 500000 + (loop * 500000); 
                             if (Math.abs(candidate.power - player.power) > limit) continue;
-
                             if (!isSafeToJoin(player, targetTeam)) continue;
                             if (!isSafeToJoin(candidate, currentTeam)) continue;
 
-                            if (type === 'pref') {
-                                if (candidate.prefTime !== 'any' && candidate.prefTime === targetTeam.time) continue;
-                            }
-                            
-                            if (type === 'conflict' && appState.prioritizePreferences) {
-                                if (loop < 10 && candidate.prefTime === targetTeam.time && candidate.prefTime !== 'any') continue;
-                            }
+                            if (type === 'pref') { if (candidate.prefTime !== 'any' && candidate.prefTime === targetTeam.time) continue; }
+                            if (type === 'conflict' && appState.prioritizePreferences) { if (loop < 10 && candidate.prefTime === targetTeam.time && candidate.prefTime !== 'any') continue; }
 
                             currentTeam.members = currentTeam.members.filter(m => m !== player);
                             targetTeam.members = targetTeam.members.filter(m => m !== candidate);
                             
-                            player.team = targetTeam.id; 
-                            player.reason = type === 'conflict' ? "衝突修復" : "志願校正";
+                            player.team = targetTeam.id; player.reason = type === 'conflict' ? "衝突修復" : "志願校正";
+                            candidate.team = currentTeam.id; candidate.reason = "交換調整";
                             
-                            candidate.team = currentTeam.id; 
-                            candidate.reason = "交換調整";
-                            
-                            targetTeam.members.push(player);
-                            currentTeam.members.push(candidate);
-                            
-                            changedInLoop = true; 
-                            swapSuccess = true; 
-                            totalFixed++; 
-                            break; 
+                            targetTeam.members.push(player); currentTeam.members.push(candidate);
+                            changedInLoop = true; swapSuccess = true; totalFixed++; break; 
                         }
                         if (swapSuccess) break;
                     }
@@ -1395,8 +1195,7 @@
                 if (!changedInLoop) break; 
             }
 
-            checkConflicts(); 
-            renderDashboard(); 
+            checkConflicts(); renderDashboard(); 
             
             if (totalFixed > 0) showToast(`已自動調整 ${totalFixed} 處設置`, 'success'); 
             else {
@@ -1407,8 +1206,67 @@
             }
         }
 
+        // --- 調度選單 (Action Modal) ---
+        function openMemberAction(name, currentTeamId) {
+            currentActionMember = name;
+            const modal = document.getElementById('member-action-modal');
+            const tName = appState.teams.find(t => t.id === currentTeamId)?.name || '--';
+            
+            setText('action-member-name', name);
+            setText('action-member-info', `當前軍團: ${tName}`);
+            
+            const activeTeams = appState.teams.filter(t => t.active);
+            const list = document.getElementById('action-team-list');
+            list.innerHTML = '';
+            
+            activeTeams.forEach(t => {
+                if (t.id === currentTeamId) return; // 隱藏當前軍團
+                list.innerHTML += `
+                    <button onclick="moveMemberToTeam('${t.id}')" class="w-full text-left px-4 py-3 bg-white border border-slate-200 hover:border-indigo-500 hover:bg-indigo-50 rounded-xl font-bold text-slate-700 transition-all flex justify-between items-center group">
+                        <span>${t.name} <span class="text-xs text-slate-400 ml-1">(${t.time})</span></span>
+                        <span class="material-symbols-rounded text-slate-300 group-hover:text-indigo-500">arrow_forward</span>
+                    </button>`;
+            });
+            modal.classList.remove('hidden');
+        }
+
+        function closeMemberAction() {
+            document.getElementById('member-action-modal').classList.add('hidden');
+            currentActionMember = '';
+        }
+
+        function moveMemberToTeam(targetTeamId) {
+            if(!currentActionMember) return;
+            const activeTeams = appState.teams.filter(t => t.active);
+            let sourceTeam = null, memberObj = null;
+
+            for (let t of activeTeams) {
+                const mIdx = t.members.findIndex(m => m.name === currentActionMember);
+                if (mIdx > -1) { sourceTeam = t; memberObj = t.members[mIdx]; break; }
+            }
+
+            if (sourceTeam && memberObj) {
+                const targetTeam = activeTeams.find(t => t.id === targetTeamId);
+                if(targetTeam) {
+                    sourceTeam.members = sourceTeam.members.filter(m => m.name !== currentActionMember);
+                    memberObj.team = targetTeam.id;
+                    memberObj.reason = "手動調度";
+                    targetTeam.members.push(memberObj);
+                    checkConflicts(); renderDashboard();
+                    showToast(`已移至 ${targetTeam.name}`, 'success');
+                }
+            }
+            closeMemberAction();
+        }
+
+        function removeMemberAction() {
+            if(!currentActionMember) return;
+            manualRemove(currentActionMember);
+            closeMemberAction();
+        }
+
         function manualRemove(name) { 
-            if(!confirm(`確定要將「${name}」移除嗎？`)) return; 
+            if(!confirm(`確定要將「${name}」移除並移入不參加名單嗎？`)) return; 
             let removedPlayer = null; 
             appState.teams.forEach(t => { const idx = t.members.findIndex(m => m.name === name); if(idx > -1) removedPlayer = t.members.splice(idx, 1)[0]; }); 
             const pIdx = appState.players.findIndex(p => p.name === name); 
@@ -1432,35 +1290,24 @@
         function createTeamChart(t) { 
             const ctx = document.getElementById(`chart-${t.id}`); 
             if(ctx) { 
-                // 【修改點】改為使用 sums (戰力總和)
                 const { sums } = getPowerDistribution(t.members);
                 const color = t.id.includes('jQt') ? 'rgba(59, 130, 246, 1)' : 'rgba(249, 115, 22, 1)'; 
                 const bg = t.id.includes('jQt') ? 'rgba(59, 130, 246, 0.1)' : 'rgba(249, 115, 22, 0.1)'; 
                 
                 if(teamCharts[t.id]) teamCharts[t.id].destroy(); 
-                
                 teamCharts[t.id] = new Chart(ctx, { 
                     type: 'line', 
                     data: { 
                         labels: ['T1', 'T2', 'T3', 'T4', 'T5'], 
                         datasets: [{ 
-                            data: sums, // 使用戰力總和
-                            borderColor: color, 
-                            backgroundColor: bg, 
-                            borderWidth: 1.5, 
-                            pointRadius: 2, 
-                            fill: true, 
-                            tension: 0.3 
+                            data: sums, 
+                            borderColor: color, backgroundColor: bg, borderWidth: 1.5, pointRadius: 2, fill: true, tension: 0.3 
                         }] 
                     }, 
                     options: { 
-                        responsive: true, 
-                        maintainAspectRatio: false, 
+                        responsive: true, maintainAspectRatio: false, 
                         plugins: { legend: { display: false }, tooltip: { enabled: false } }, 
-                        scales: { 
-                            x: { display: false }, 
-                            y: { display: false, min: 0 } // Y軸顯示戰力總和
-                        } 
+                        scales: { x: { display: false }, y: { display: false, min: 0 } } 
                     } 
                 }); 
             } 
@@ -1470,7 +1317,11 @@
             const activeTeams = appState.teams.filter(t => t.active);
             const ctxGlobal = document.getElementById('powerChart');
             if (chartInstance) chartInstance.destroy();
-            const divisor = 1000; 
+            
+            // 判斷是否使用 K 作為單位（如果裡面有大數字就除以 1000）
+            const hasLargeNumbers = appState.players.some(p => p.power >= 1000);
+            const divisor = hasLargeNumbers ? 1000 : 1;
+            const labelStr = hasLargeNumbers ? '總戰力 (k)' : '總戰力';
             
             if (ctxGlobal) {
                 chartInstance = new Chart(ctxGlobal, {
@@ -1478,7 +1329,7 @@
                     data: {
                         labels: activeTeams.map(t => t.name),
                         datasets: [{ 
-                            label: '總戰力 (k)', 
+                            label: labelStr, 
                             data: activeTeams.map(t => (t.members.reduce((a, b) => a + b.power, 0) / divisor).toFixed(0)), 
                             backgroundColor: activeTeams.map(t => t.id.includes('jQt') ? 'rgba(59, 130, 246, 0.7)' : 'rgba(249, 115, 22, 0.7)'), 
                             borderColor: activeTeams.map(t => t.id.includes('jQt') ? 'rgba(59, 130, 246, 1)' : 'rgba(249, 115, 22, 1)'), 
@@ -1486,9 +1337,7 @@
                         }]
                     },
                     options: { 
-                        indexAxis: 'y', 
-                        responsive: true, 
-                        maintainAspectRatio: false, 
+                        indexAxis: 'y', responsive: true, maintainAspectRatio: false, 
                         plugins: { legend: { display: false } }, 
                         scales: { x: { beginAtZero: true, grid: { display: false } } } 
                     }
@@ -1514,66 +1363,32 @@
                     data: {
                         labels: ['T1(高)', 'T2', 'T3', 'T4', 'T5(低)'],
                         datasets: [{
-                            label: '人數',
-                            data: counts,
-                            borderColor: 'rgba(99, 102, 241, 1)', 
-                            backgroundColor: 'rgba(99, 102, 241, 0.1)',
-                            borderWidth: 2,
-                            pointRadius: 3,
-                            pointBackgroundColor: 'white',
-                            pointBorderColor: 'rgba(99, 102, 241, 1)',
-                            fill: true,
-                            tension: 0.3
+                            label: '人數', data: counts,
+                            borderColor: 'rgba(99, 102, 241, 1)', backgroundColor: 'rgba(99, 102, 241, 0.1)',
+                            borderWidth: 2, pointRadius: 3, pointBackgroundColor: 'white', pointBorderColor: 'rgba(99, 102, 241, 1)',
+                            fill: true, tension: 0.3
                         }]
                     },
                     options: {
-                        responsive: true,
-                        maintainAspectRatio: false,
+                        responsive: true, maintainAspectRatio: false,
                         plugins: {
                             legend: { display: false },
-                            tooltip: { 
-                                intersect: false,
-                                callbacks: {
-                                    title: () => `全體 M 型化: ${mRatio}%`
-                                }
-                            }
+                            tooltip: { intersect: false, callbacks: { title: () => `全體 M 型化: ${mRatio}%` } }
                         },
                         scales: {
-                            y: { 
-                                beginAtZero: true, 
-                                display: true,
-                                ticks: { stepSize: 1, font: { size: 10 } },
-                                grid: { color: '#f1f5f9' }
-                            },
-                            x: {
-                                grid: { display: false },
-                                ticks: { font: { size: 10 } }
-                            }
+                            y: { beginAtZero: true, display: true, ticks: { stepSize: 1, font: { size: 10 } }, grid: { color: '#f1f5f9' } },
+                            x: { grid: { display: false }, ticks: { font: { size: 10 } } }
                         }
                     }
                 });
             }
         }
 
-        function cycleTeam(name){ 
-            const active=appState.teams.filter(t=>t.active); 
-            if(active.length<2) return; 
-            for(let i=0; i<active.length; i++){ 
-                const t=active[i], m=t.members.find(x=>x.name===name); 
-                if(m){ 
-                    t.members=t.members.filter(x=>x!==m); 
-                    const next=active[(i+1)%active.length]; 
-                    m.team=next.id; m.reason="手動"; next.members.push(m); 
-                    checkConflicts(); renderDashboard(); return; 
-                } 
-            } 
-        }
-
         function exportToDiscord() { 
-            let text = `**🏰 jQt 聯盟戰力配置 (v68.1)**\n📅 日期: ${new Date().toLocaleDateString()}\n\n`; 
+            let text = `**🏰 jQt 聯盟戰力配置 (v68.2)**\n📅 日期: ${new Date().toLocaleDateString()}\n\n`; 
             appState.teams.filter(t => t.active).forEach(t => { 
-                const totalPower = Math.round(t.members.reduce((a,b)=>a+b.power,0)/1000).toLocaleString(); 
-                text += `**${t.name}** (${t.time}) - ${t.members.length}人 - ${totalPower}k\n> 成員: ${t.members.map(m=>m.name).join(', ')}\n\n`; 
+                const totalPower = formatSmart(t.members.reduce((a,b)=>a+b.power,0)); 
+                text += `**${t.name}** (${t.time}) - ${t.members.length}人 - ${totalPower}\n> 成員: ${t.members.map(m=>m.name).join(', ')}\n\n`; 
             }); 
             const el = document.createElement('textarea'); el.value = text; document.body.appendChild(el); el.select(); document.execCommand('copy'); document.body.removeChild(el); showToast("已複製 Discord 格式！", 'success'); 
         }
@@ -1609,107 +1424,61 @@
             localStorage.setItem('jQt_history', JSON.stringify(appState.savedConfigs)); 
             renderHistoryList(); showToast("配置已儲存", 'success'); 
         }
-
-        function loadConfiguration(id) { 
-            const config = appState.savedConfigs.find(c => c.id === id); 
-            if (config) { appState.players = config.players; appState.manualMappings = config.mappings; runTeamLogic('snake'); showToast(`已載入: ${config.name}`, 'success'); } 
-        }
-
-        function deleteConfiguration(id) { 
-            appState.savedConfigs = appState.savedConfigs.filter(c => c.id !== id); 
-            localStorage.setItem('jQt_history', JSON.stringify(appState.savedConfigs)); renderHistoryList(); 
-        }
-
+        function loadConfiguration(id) { const config = appState.savedConfigs.find(c => c.id === id); if (config) { appState.players = config.players; appState.manualMappings = config.mappings; runTeamLogic('snake'); showToast(`已載入: ${config.name}`, 'success'); } }
+        function deleteConfiguration(id) { appState.savedConfigs = appState.savedConfigs.filter(c => c.id !== id); localStorage.setItem('jQt_history', JSON.stringify(appState.savedConfigs)); renderHistoryList(); }
         function renderHistoryList() { 
             const el = document.getElementById('history-list'); if (!el) return; 
             if (appState.savedConfigs.length === 0) { el.innerHTML = '<div class="text-center text-slate-400 py-4 text-sm">尚無存檔</div>'; return; } 
             el.innerHTML = appState.savedConfigs.slice().reverse().map(c => `<div class="flex justify-between items-center bg-slate-50 p-2 rounded border-b last:border-0 hover:bg-slate-100 transition-colors"><div><div class="font-bold text-sm text-slate-700">${c.name}</div><div class="text-xs text-slate-500">${c.date}</div></div><div class="flex gap-2"><button onclick="loadConfiguration(${c.id})" class="text-indigo-600 hover:text-indigo-800 font-bold text-xs">載入</button><button onclick="deleteConfiguration(${c.id})" class="text-red-400 hover:text-red-600 font-bold text-xs">刪除</button></div></div>`).join(''); 
         }
-
-        function exportConfig() { 
-            const dataStr = "data:text/json;charset=utf-8," + encodeURIComponent(JSON.stringify(appState.savedConfigs)); 
-            const downloadAnchorNode = document.createElement('a'); 
-            downloadAnchorNode.setAttribute("href", dataStr); downloadAnchorNode.setAttribute("download", "jQt_configs.json"); 
-            document.body.appendChild(downloadAnchorNode); downloadAnchorNode.click(); downloadAnchorNode.remove(); 
-        }
-
-        function importConfig(input) { 
-            const file = input.files[0]; if (!file) return; 
-            const reader = new FileReader(); 
-            reader.onload = function(e) { 
-                try { 
-                    const imported = JSON.parse(e.target.result); 
-                    if(Array.isArray(imported)) { 
-                        appState.savedConfigs = [...appState.savedConfigs, ...imported]; 
-                        localStorage.setItem('jQt_history', JSON.stringify(appState.savedConfigs)); 
-                        renderHistoryList(); showToast("匯入成功", 'success'); 
-                    } else throw new Error("格式不符"); 
-                } catch(err) { showToast("匯入失敗: 格式錯誤", 'error'); } 
-            }; reader.readAsText(file); 
-        }
+        function exportConfig() { const dataStr = "data:text/json;charset=utf-8," + encodeURIComponent(JSON.stringify(appState.savedConfigs)); const downloadAnchorNode = document.createElement('a'); downloadAnchorNode.setAttribute("href", dataStr); downloadAnchorNode.setAttribute("download", "jQt_configs.json"); document.body.appendChild(downloadAnchorNode); downloadAnchorNode.click(); downloadAnchorNode.remove(); }
+        function importConfig(input) { const file = input.files[0]; if (!file) return; const reader = new FileReader(); reader.onload = function(e) { try { const imported = JSON.parse(e.target.result); if(Array.isArray(imported)) { appState.savedConfigs = [...appState.savedConfigs, ...imported]; localStorage.setItem('jQt_history', JSON.stringify(appState.savedConfigs)); renderHistoryList(); showToast("匯入成功", 'success'); } else throw new Error("格式不符"); } catch(err) { showToast("匯入失敗: 格式錯誤", 'error'); } }; reader.readAsText(file); }
 
         function initTactics(){ 
-            const s=document.getElementById('tactics-team-select'); 
-            s.innerHTML=appState.teams.filter(t=>t.active).map(t=>`<option value="${t.id}">${t.name}</option>`).join(''); 
+            const s=document.getElementById('tactics-team-select'); s.innerHTML=appState.teams.filter(t=>t.active).map(t=>`<option value="${t.id}">${t.name}</option>`).join(''); 
             if(!appState.currentTacticalTeamId) appState.currentTacticalTeamId=s.value; else s.value=appState.currentTacticalTeamId; 
             renderTacticsBoard(); 
         }
-
         function renderTacticsBoard(){ 
-            const tid=document.getElementById('tactics-team-select').value; 
-            appState.currentTacticalTeamId=tid; 
-            const team=appState.teams.find(t=>t.id===tid); 
-            if(!team)return; 
-            let pwr={1:0,2:0,3:0,4:0}; 
-            team.members.forEach(m=>{if(m.missionGroup>0)pwr[m.missionGroup]+=m.power;}); 
+            const tid=document.getElementById('tactics-team-select').value; appState.currentTacticalTeamId=tid; 
+            const team=appState.teams.find(t=>t.id===tid); if(!team)return; 
+            let pwr={1:0,2:0,3:0,4:0}; team.members.forEach(m=>{if(m.missionGroup>0)pwr[m.missionGroup]+=m.power;}); 
             const c=document.getElementById('tactics-container'); c.innerHTML=''; 
             MISSION_GROUPS.forEach(g=>{ 
                 const mems=team.members.filter(m=>m.missionGroup===g.id).sort((a,b)=>b.power-a.power); 
-                let list=mems.map(m=> { 
-                    const safeName = m.name.replace(/\\/g, '\\\\').replace(/'/g, "\\'").replace(/"/g, '&quot;'); 
-                    return `<div class="member-row" onclick="cycleGroup('${safeName}')"><span class="font-bold">${m.name}</span><span class="text-xs text-slate-500">${Math.round(m.power/1000)}k</span></div>` 
-                }).join(''); 
-                c.innerHTML+=`<div class="mission-group-card border-${g.color}-500"><div class="mission-header text-${g.color}-700 flex items-center justify-between px-2 py-1 border-b"><span>${g.name}</span><span class="text-sm bg-white px-2 border rounded shadow-sm">${Math.round(pwr[g.id]/1000)}k</span></div><div class="mission-target text-xs text-slate-600 p-2 border-b bg-slate-50">${g.target.replace(/\n/g,'<br>')}</div><div class="h-64 overflow-y-auto custom-scroll">${list}</div></div>`; 
+                let list=mems.map(m=> { const safeName = m.name.replace(/\\/g, '\\\\').replace(/'/g, "\\'").replace(/"/g, '&quot;'); return `<div class="member-row" onclick="cycleGroup('${safeName}')"><span class="font-bold">${m.name}</span><span class="text-xs text-slate-500">${formatSmart(m.power)}</span></div>` }).join(''); 
+                c.innerHTML+=`<div class="mission-group-card border-${g.color}-500"><div class="mission-header text-${g.color}-700 flex items-center justify-between px-2 py-1 border-b"><span>${g.name}</span><span class="text-sm bg-white px-2 border rounded shadow-sm">${formatSmart(pwr[g.id])}</span></div><div class="mission-target text-xs text-slate-600 p-2 border-b bg-slate-50">${g.target.replace(/\n/g,'<br>')}</div><div class="h-64 overflow-y-auto custom-scroll">${list}</div></div>`; 
             }); 
             const gn=(id)=>team.members.filter(m=>m.missionGroup===id).sort((a,b)=>b.power-a.power).map(m=>m.name).join(', '); 
             document.getElementById('mission-text').value=`【${team.name} 戰場指令】\n` + MISSION_GROUPS.map(g=>`\n${g.name}\n${g.target}\n成員: ${gn(g.id)||"無"}`).join('\n'); 
         }
-
         function cycleGroup(name){ const t=appState.teams.find(x=>x.id===appState.currentTacticalTeamId); const m=t.members.find(x=>x.name===name); if(m){ m.missionGroup=(m.missionGroup%4)+1; renderTacticsBoard(); } }
         function autoDistributeMissions(){ const t=appState.teams.find(x=>x.id===appState.currentTacticalTeamId); const s=[...t.members].sort((a,b)=>b.power-a.power); s.forEach((m,i)=>{ const c=Math.floor(i/4), p=i%4; m.missionGroup=(c%2===0) ? (p+1) : (4-p); }); renderTacticsBoard(); }
         function copyMissionText(){ const e=document.getElementById('mission-text'); e.select(); document.execCommand('copy'); showToast('戰術指令已複製', 'success'); }
         
         function renderSettings(){ 
-            const tb=document.getElementById('team-list-body'); 
-            if(tb){ tb.innerHTML=''; appState.teams.forEach((t)=>{ tb.innerHTML+=`<tr class="border-b"><td class="p-2">${t.name}</td><td class="p-2">${t.time}</td><td class="p-2"><span class="text-xs px-2 py-1 rounded ${t.active?'bg-green-100 text-green-700':'bg-slate-100 text-slate-400'}">${t.active?'啟用':'關閉'}</span></td></tr>`; }); } 
-            const ab=document.getElementById('bind-list-body'); 
-            if(ab){ ab.innerHTML=''; appState.alts.forEach((a,i)=>{ ab.innerHTML+=`<tr class="border-b"><td class="p-2">${a.main}</td><td class="p-2">${a.alt}</td><td class="p-2"><button onclick="delAlt(${i})" class="text-red-500 hover:text-red-700">🗑️ 刪除</button></td></tr>`; }); } 
+            const tb=document.getElementById('team-list-body'); if(tb){ tb.innerHTML=''; appState.teams.forEach((t)=>{ tb.innerHTML+=`<tr class="border-b"><td class="p-2">${t.name}</td><td class="p-2">${t.time}</td><td class="p-2"><span class="text-xs px-2 py-1 rounded ${t.active?'bg-green-100 text-green-700':'bg-slate-100 text-slate-400'}">${t.active?'啟用':'關閉'}</span></td></tr>`; }); } 
+            const ab=document.getElementById('bind-list-body'); if(ab){ ab.innerHTML=''; appState.alts.forEach((a,i)=>{ ab.innerHTML+=`<tr class="border-b"><td class="p-2">${a.main}</td><td class="p-2">${a.alt}</td><td class="p-2"><button onclick="delAlt(${i})" class="text-red-500 hover:text-red-700">🗑️ 刪除</button></td></tr>`; }); } 
             renderLinkerList(); 
         }
-
         function renderLinkerList(){ 
-            const lc=document.getElementById('linker-container'); if(!lc) return; 
-            lc.innerHTML=''; 
+            const lc=document.getElementById('linker-container'); if(!lc) return; lc.innerHTML=''; 
             if(appState.unknownPlayers.length === 0) { lc.innerHTML = '<p class="text-sm text-green-600">目前沒有需要校準的成員。</p>'; return; } 
             const opts=appState.availablePowerNames.filter(n=>!n.includes('function')&&n.length<30); 
             appState.unknownPlayers.forEach(p=>{ 
-                const sel=p.guess; 
-                const sOpts=[...opts].sort((a,b)=>{ if(a===sel)return -1; if(b===sel)return 1; return a.localeCompare(b); }); 
+                const sel=p.guess; const sOpts=[...opts].sort((a,b)=>{ if(a===sel)return -1; if(b===sel)return 1; return a.localeCompare(b); }); 
                 const h=`<option value="">請選擇對應 ID</option>` + sOpts.map(n=>`<option value="${n}" ${n===sel?'selected':''}>${n}</option>`).join(''); 
                 lc.innerHTML+=`<div class="flex gap-2 items-center mb-2"><input disabled value="${p.name}" class="w-1/3 text-xs border p-2 rounded bg-slate-100 font-bold text-slate-700"><span class="text-slate-400">👉</span><select id="map-${p.name}" class="w-2/3 text-xs border p-2 rounded bg-white shadow-sm focus:border-amber-500">${h}</select></div>`; 
             }); 
         }
-
         function addBinding(){ const m=document.getElementById('bind-main').value, a=document.getElementById('bind-alt').value; if(m&&a){ appState.alts.push({main:m, alt:a}); saveLocal(); renderSettings(); document.getElementById('bind-main').value=''; document.getElementById('bind-alt').value=''; showToast('綁定已新增', 'success'); } }
         function delAlt(i){ appState.alts.splice(i,1); saveLocal(); renderSettings(); }
         function applyManualMappings(){ let c=0; appState.unknownPlayers.forEach(p=>{ const e=document.getElementById(`map-${p.name}`); if(e&&e.value){ appState.manualMappings[p.name]=e.value; c++; } }); if(c){ saveLocal(); handleAllocation(); showToast('校正已套用', 'success'); } else showToast("未選擇任何對應關係", 'info'); }
         function clearManualMappings() { if(confirm("確定要刪除校正紀錄嗎？")) { appState.manualMappings = {}; saveLocal(); verifyNames(); showToast('紀錄已清除', 'success'); } }
         
         function initAttendance() { 
-            const activeTeams = appState.teams.filter(t => t.active); 
-            if (activeTeams.length === 0) return showToast("無啟用軍團", 'error'); 
-            const date = new Date().toLocaleDateString(); 
-            setText('att-date-display', `📅 ${date} 點名`); 
+            const activeTeams = appState.teams.filter(t => t.active); if (activeTeams.length === 0) return showToast("無啟用軍團", 'error'); 
+            const date = new Date().toLocaleDateString(); setText('att-date-display', `📅 ${date} 點名`); 
             appState.currentAttendance = { date: date, id: Date.now(), records: {} }; 
             const container = document.getElementById('attendance-container'); container.innerHTML = ''; 
             activeTeams.forEach(t => { 
@@ -1721,70 +1490,41 @@
             }); 
             document.getElementById('attendance-active-area').classList.remove('hidden'); 
         }
-
         function setAttStatus(name, status) { appState.currentAttendance.records[name] = status; document.querySelectorAll(`[id^="att-btn-${name}-"]`).forEach(b => b.classList.remove('active')); document.getElementById(`att-btn-${name}-${status}`).classList.add('active'); }
         function markAllPresent() { for (let name in appState.currentAttendance.records) { setAttStatus(name, 'present'); } }
         function saveAttendance() { if (!appState.currentAttendance.id) return showToast("請先開始新點名", 'error'); appState.attendanceHistory.push(appState.currentAttendance); localStorage.setItem('jQt_attendance', JSON.stringify(appState.attendanceHistory)); renderAttendanceHistory(); document.getElementById('attendance-active-area').classList.add('hidden'); showToast("點名記錄已儲存", 'success'); }
-        
         function renderAttendanceHistory() { 
             const list = document.getElementById('attendance-history-list'); if(list) list.innerHTML = appState.attendanceHistory.slice().reverse().map((r, i) => { const present = Object.values(r.records).filter(s => s === 'present').length; const absent = Object.values(r.records).filter(s => s === 'absent').length; return `<div class="flex justify-between items-center bg-white p-2 rounded border hover:bg-slate-50"><div><div class="font-bold text-sm">${r.date}</div><div class="text-xs text-slate-500">出席: ${present} | 缺席: ${absent}</div></div><button onclick="deleteAttendance(${appState.attendanceHistory.length - 1 - i})" class="text-red-500 hover:text-red-700 text-xs font-bold">刪除</button></div>`; }).join(''); 
             const alertList = document.getElementById('attendance-alert-list'); 
             if(alertList) { 
-                const absentCounts = {}; 
-                appState.attendanceHistory.forEach(h => { for(const [name, status] of Object.entries(h.records)) { if(status === 'absent') absentCounts[name] = (absentCounts[name] || 0) + 1; } }); 
+                const absentCounts = {}; appState.attendanceHistory.forEach(h => { for(const [name, status] of Object.entries(h.records)) { if(status === 'absent') absentCounts[name] = (absentCounts[name] || 0) + 1; } }); 
                 const offenders = Object.entries(absentCounts).filter(([_, c]) => c >= 2).sort((a,b) => b[1] - a[1]); 
                 alertList.innerHTML = offenders.length === 0 ? '<div class="text-xs text-green-600 text-center">目前無人達到禁賽標準 👍</div>' : offenders.map(([name, count]) => `<div class="flex justify-between items-center border-b border-red-100 pb-1 last:border-0"><span class="font-bold text-slate-700 text-sm">${name}</span><span class="bg-red-100 text-red-600 px-2 py-0.5 rounded text-xs font-bold">${count} 次</span></div>`).join(''); 
             } 
         }
         function deleteAttendance(index) { if(!confirm("確定刪除此記錄？")) return; appState.attendanceHistory.splice(index, 1); localStorage.setItem('jQt_attendance', JSON.stringify(appState.attendanceHistory)); renderAttendanceHistory(); }
         
-        function togglePrefMode() { 
-            const checkbox = document.getElementById('toggle-pref'); 
-            appState.prioritizePreferences = checkbox.checked; 
-            runTeamLogic(appState.lastLogicMode); 
-            if (appState.prioritizePreferences) { showToast("已開啟：優先遵循志願", "info"); } 
-            else { showToast("已關閉：僅依戰力平衡", "info"); } 
-        }
-        
-        function toggleAbsentList() { 
-            appState.isAbsentExpanded = !appState.isAbsentExpanded; 
-            renderDashboard(); 
-        }
+        function togglePrefMode() { const checkbox = document.getElementById('toggle-pref'); appState.prioritizePreferences = checkbox.checked; runTeamLogic(appState.lastLogicMode); if (appState.prioritizePreferences) { showToast("已開啟：優先遵循志願", "info"); } else { showToast("已關閉：僅依戰力平衡", "info"); } }
+        function toggleAbsentList() { appState.isAbsentExpanded = !appState.isAbsentExpanded; renderDashboard(); }
 
         function showHoverCard(e, name, power, rank, teamCount, totalAlliancePower, tierObj) {
             const tooltip = document.getElementById('member-tooltip');
             const pct = totalAlliancePower > 0 ? ((power / totalAlliancePower) * 100).toFixed(2) + '%' : '0%';
-            
             const p = appState.players.find(x => x.name === name);
-            const fid = p ? p.fid : '';
-            const origPref = p ? (p.origPref || '無') : '無'; 
+            const fid = p ? p.fid : ''; const origPref = p ? (p.origPref || '無') : '無'; 
 
-            setText('tip-name', name); 
-            setText('tip-fid', fid ? `Family: ${fid}` : '');
-            
-            setText('tip-orig-pref', origPref);
+            setText('tip-name', name); setText('tip-fid', fid ? `Family: ${fid}` : ''); setText('tip-orig-pref', origPref);
 
-            try { 
-                const teamName = e.target.closest('.team-container').querySelector('h3').innerText; 
-                setText('tip-team', teamName); 
-            } catch(err) { setText('tip-team', 'Team'); }
+            try { const teamName = e.target.closest('.team-container').querySelector('h3').innerText; setText('tip-team', teamName); } catch(err) { setText('tip-team', 'Team'); }
             
-            setText('tip-power', formatSmart(power)); 
-            setText('tip-rank', '#' + rank); 
-            setText('tip-total', '/ ' + teamCount); 
-            setText('tip-pct', pct);
+            setText('tip-power', formatSmart(power)); setText('tip-rank', '#' + rank); setText('tip-total', '/ ' + teamCount); setText('tip-pct', pct);
 
             const qEl = document.getElementById('tip-quality');
-            if(tierObj) { 
-                qEl.innerHTML = `<span class="material-symbols-rounded text-xl align-middle mr-1">${tierObj.icon}</span>${tierObj.label}`; 
-                qEl.className = `font-black text-lg flex items-center justify-end ${tierObj.textClass}`; 
-            }
+            if(tierObj) { qEl.innerHTML = `<span class="material-symbols-rounded text-xl align-middle mr-1">${tierObj.icon}</span>${tierObj.label}`; qEl.className = `font-black text-lg flex items-center justify-end ${tierObj.textClass}`; }
             
-            tooltip.classList.remove('opacity-0', 'scale-95'); 
-            tooltip.classList.add('opacity-100', 'scale-100'); 
+            tooltip.classList.remove('opacity-0', 'scale-95'); tooltip.classList.add('opacity-100', 'scale-100'); 
             moveTooltip(e);
         }
-        
         function moveTooltip(e) {
             const tooltip = document.getElementById('member-tooltip'); if (tooltip.classList.contains('opacity-0')) return;
             let x = e.clientX + 15; let y = e.clientY + 15;
@@ -1800,30 +1540,28 @@
         function toggleAllTeams(state) { appState.teams.forEach(t => t.active = state); renderTeamSelection(); }
         function applyTeamSelection() { toggleTeamModal(); runTeamLogic(appState.lastLogicMode || 'snake'); showToast('軍團設定已更新', 'success'); }
 
-        // --- 計算戰力分佈與 M 型指標 ---
-        function getPowerDistribution(members) {
+        // --- 優化版 M型化 (全聯盟基準) ---
+        function getPowerDistribution(members, globalMax = null, globalMin = null) {
             if (!members || members.length === 0) return { counts: [0,0,0,0,0], sums: [0,0,0,0,0], mRatio: 0 };
             
             const powers = members.map(m => m.power);
-            const max = Math.max(...powers);
-            const min = Math.min(...powers);
+            const localMax = Math.max(...powers); const localMin = Math.min(...powers);
+            const max = globalMax !== null ? globalMax : localMax;
+            const min = globalMin !== null ? globalMin : localMin;
             const range = max - min;
-            const counts = [0, 0, 0, 0, 0]; 
-            const sums = [0, 0, 0, 0, 0]; // 新增戰力總和陣列
+            const counts = [0, 0, 0, 0, 0]; const sums = [0, 0, 0, 0, 0]; 
             
-            if (range === 0) {
-                counts[2] = members.length;
-                sums[2] = members.reduce((a,b) => a+b.power, 0);
+            if (range <= 0) {
+                counts[2] = members.length; sums[2] = members.reduce((a,b) => a+b.power, 0);
             } else {
                 const step = range / 5;
                 members.forEach(p => {
                     let idx = Math.floor((max - p.power) / step);
-                    if (idx >= 5) idx = 4; 
-                    counts[idx]++;
-                    sums[idx] += p.power; // 累加戰力
+                    if (idx >= 5) idx = 4;
+                    if (idx < 0) idx = 0;
+                    counts[idx]++; sums[idx] += p.power;
                 });
             }
-
             const mRatio = Math.round(((counts[0] + counts[4]) / members.length) * 100);
             return { counts, sums, mRatio };
         }
@@ -1834,15 +1572,16 @@
             setText('stat-unknown', appState.unknownPlayers.length);
             
             let mismatchCount = 0;
-            appState.teams.filter(t=>t.active).forEach(t => {
-                t.members.forEach(m => {
-                    if (m.prefTime !== 'any' && m.prefTime !== t.time) mismatchCount++;
-                });
-            });
+            appState.teams.filter(t=>t.active).forEach(t => { t.members.forEach(m => { if (m.prefTime !== 'any' && m.prefTime !== t.time) mismatchCount++; }); });
             setText('stat-pref-mismatch', mismatchCount);
 
             const d=document.getElementById('dashboard-container'); if(d) d.innerHTML='';
             let anyLow = false; renderChart();
+
+            // 取得全聯盟最高最低戰力基準
+            const allPowers = appState.players.map(p => p.power);
+            const globalMax = allPowers.length ? Math.max(...allPowers) : 0;
+            const globalMin = allPowers.length ? Math.min(...allPowers) : 0;
 
             const allPlayersSorted = [...appState.players].sort((a,b) => b.power - a.power);
             const totalGlobalPlayers = allPlayersSorted.length || 1; 
@@ -1854,13 +1593,13 @@
                 if(t.members.length < 15) anyLow = true;
                 t.members.sort((a,b)=>b.power-a.power);
                 
-                const { mRatio } = getPowerDistribution(t.members);
+                // 改用絕對標準(全聯盟基準)計算 M 型化比例
+                const { mRatio } = getPowerDistribution(t.members, globalMax, globalMin);
                 let mColor = 'text-slate-400';
                 if (mRatio >= 40) mColor = 'text-red-500 font-bold';
                 else if (mRatio >= 20) mColor = 'text-amber-500';
 
                 let h = `<div class="team-container border-${t.id.includes('jQt')?'blue':'orange'}-200 animate-slide-up">`;
-                
                 h += `
                 <div class="team-col-header flex justify-between items-center">
                     <div>
@@ -1871,7 +1610,7 @@
                         </div>
                     </div>
                     <div class="text-right">
-                        <div class="text-xl font-black text-slate-700">${Math.round(t.members.reduce((a,b)=>a+b.power,0)/1000).toLocaleString()}k</div>
+                        <div class="text-xl font-black text-slate-700">${formatSmart(t.members.reduce((a,b)=>a+b.power,0))}</div>
                         <div class="flex items-center justify-end gap-2">
                             <span class="text-[10px] ${mColor}">M型: ${mRatio}%</span>
                             <div class="h-8 w-16"><canvas id="chart-${t.id}"></canvas></div>
@@ -1911,7 +1650,7 @@
                     const tierJson = JSON.stringify({icon, label: tierText, textClass: iconColor}).replace(/"/g, "&quot;");
 
                     h += `
-                    <div class="member-card ${tierClass}" onclick="event.stopPropagation(); cycleTeam('${safeName}')" onmousemove="moveTooltip(event)" onmouseenter="showHoverCard(event, '${safeName}', ${m.power}, ${idx+1}, ${tCount}, ${allianceTotalPower}, ${tierJson})" onmouseleave="hideHoverCard()">
+                    <div class="member-card ${tierClass}" onclick="event.stopPropagation(); openMemberAction('${safeName}', '${t.id}')" onmousemove="moveTooltip(event)" onmouseenter="showHoverCard(event, '${safeName}', ${m.power}, ${idx+1}, ${tCount}, ${allianceTotalPower}, ${tierJson})" onmouseleave="hideHoverCard()">
                         <div class="power-bar-bg ${barColor}" style="width: ${powerPct}%"></div>
                         <div class="relative z-10 flex justify-between items-center">
                             <div class="flex items-center gap-2 overflow-hidden">
@@ -1920,7 +1659,7 @@
                                 ${w}${absBadge}${ok}
                             </div>
                             <div class="flex items-center gap-2">
-                                <span class="font-mono text-xs font-bold text-slate-500">${Math.round(m.power/1000).toLocaleString()}k</span>
+                                <span class="font-mono text-xs font-bold text-slate-500">${formatSmart(m.power)}</span>
                                 <button class="text-slate-300 hover:text-red-500 transition-colors" onclick="event.stopPropagation(); manualRemove('${safeName}')"><span class="material-symbols-rounded text-base">close</span></button>
                             </div>
                         </div>
