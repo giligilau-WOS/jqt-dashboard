@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>寒霜啟示錄 jQt聯盟 | 戰術指揮中心 v68.2 (HUD Dashboard)</title>
+    <title>寒霜啟示錄 jQt聯盟 | 戰術指揮中心 v68.5 (HUD Dashboard)</title>
     
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
@@ -177,7 +177,7 @@
                     <span class="text-2xl animate-float">🏰</span>
                     <div>
                         <h1 class="font-black text-lg tracking-wide">jQt 聯盟兵工廠</h1>
-                        <p class="text-[9px] text-slate-400 uppercase tracking-widest">COMMANDER v68.2 (HUD)</p>
+                        <p class="text-[9px] text-slate-400 uppercase tracking-widest">COMMANDER v68.5 (HUD)</p>
                     </div>
                 </div>
                 <div class="flex gap-1 self-end w-full md:w-auto overflow-x-auto items-center">
@@ -200,7 +200,7 @@
                 <div class="glass-panel p-8 rounded-2xl bg-white shadow-xl">
                     <div class="text-center mb-8">
                         <div class="inline-flex items-center gap-2 bg-slate-100 rounded-full px-4 py-1.5 mb-4 shadow-inner">
-                            <span class="text-xs font-bold text-slate-500">VERSION 68.2</span>
+                            <span class="text-xs font-bold text-slate-500">VERSION 68.5</span>
                             <span class="w-1 h-1 rounded-full bg-slate-300"></span>
                             <span class="text-xs text-indigo-500 font-bold">✨ HUD DASHBOARD</span>
                         </div>
@@ -399,7 +399,7 @@
                         </div>
                         <div class="border-t border-slate-200 pt-4">
                             <div class="flex justify-between items-center mb-2">
-                                <h4 class="font-bold text-slate-700 text-sm">📊 全員戰力區間分佈</h4>
+                                <h4 class="font-bold text-slate-700 text-sm">📊 全員排名區間分佈</h4>
                                 <span id="global-m-ratio" class="text-xs font-bold text-slate-400 bg-slate-100 px-2 py-0.5 rounded">M: 0%</span>
                             </div>
                             <div class="h-32 w-full"><canvas id="globalDistChart"></canvas></div>
@@ -496,6 +496,14 @@
         </div>
     </main>
 
+    <div class="fixed bottom-0 left-0 right-0 bg-white border-t p-3 flex justify-between items-center md:hidden z-40 shadow-lg">
+        <span class="text-xs font-bold text-slate-600">v68.5</span>
+        <div class="flex gap-2">
+            <button onclick="saveConfiguration()" class="bg-slate-800 text-white px-4 py-2 rounded text-sm font-bold">儲存</button>
+            <button onclick="copyMemberList()" class="bg-indigo-600 text-white px-4 py-2 rounded text-sm font-bold">📋 複製</button>
+        </div>
+    </div>
+
   <script>
         // --- 全域變數設定 ---
         const DEFAULT_TEAMS = [
@@ -534,12 +542,11 @@
         let chartInstance = null; 
         let teamCharts = {}; 
         let globalDistChartInstance = null;
-        let currentActionMember = ''; // 用於調度選單
+        let currentActionMember = ''; 
 
         // --- 核心工具函數 ---
         function setText(id,t){ const e=document.getElementById(id); if(e)e.innerText=t; }
         
-        // 修正版 formatSmart：自動判斷要不要用 k
         function formatSmart(n) { 
             if (n >= 1000) return Math.round(n/1000).toLocaleString() + 'k'; 
             return Number.isInteger(parseFloat(n)) ? parseInt(n).toLocaleString() : parseFloat(n).toFixed(2).replace(/\.00$/, ''); 
@@ -554,6 +561,37 @@
             container.appendChild(el);
             setTimeout(() => el.classList.remove('translate-y-2'), 10);
             setTimeout(() => { el.classList.add('opacity-0'); setTimeout(() => el.remove(), 300); }, 3000);
+        }
+
+        // --- 強效剪貼簿工具 (解決複製失效問題) ---
+        function copyToClipboard(text, successMsg) {
+            if (navigator.clipboard && window.isSecureContext) {
+                navigator.clipboard.writeText(text).then(() => {
+                    showToast(successMsg, 'success');
+                }).catch(err => {
+                    console.warn("Clipboard API failed, using fallback.", err);
+                    fallbackCopy(text, successMsg);
+                });
+            } else {
+                fallbackCopy(text, successMsg);
+            }
+        }
+
+        function fallbackCopy(text, successMsg) {
+            const el = document.createElement('textarea');
+            el.value = text;
+            el.style.position = 'fixed'; 
+            el.style.left = '-9999px';   
+            document.body.appendChild(el);
+            el.focus();
+            el.select();
+            try {
+                document.execCommand('copy');
+                showToast(successMsg, 'success');
+            } catch (err) {
+                showToast('複製失敗，請檢查瀏覽器權限設定', 'error');
+            }
+            document.body.removeChild(el);
         }
 
         function validateUrl(input) { 
@@ -1066,7 +1104,6 @@
             setText('stat-conflict', c); 
         }
 
-        // --- 優化版志願強制校正 (處理不完美交換) ---
         function autoCorrectPreferences(isAuto = false) {
             let swapCount = 0; let failedCount = 0;
             const activeTeams = appState.teams.filter(t => t.active); 
@@ -1093,11 +1130,8 @@
                 let swapped = false;
 
                 for(let targetTeam of targetTeams) {
-                    // 1. 完美交換：找目標隊伍中「剛好想去來源隊伍時段」的人
                     let candidate = targetTeam.members.find(tMember => !isLockedMember(tMember) && tMember.prefTime === sourceTeam.time && isSafeToJoin(member, targetTeam) && isSafeToJoin(tMember, sourceTeam));
-                    // 2. 次佳交換：找目標隊伍中「志願為 Any 皆可」的人
                     if (!candidate) candidate = targetTeam.members.find(tMember => !isLockedMember(tMember) && tMember.prefTime === 'any' && isSafeToJoin(member, targetTeam) && isSafeToJoin(tMember, sourceTeam));
-                    // 3. 強制交換：找目標隊伍中「戰力最低且沒有鎖定」的人強制互換 (犧牲低戰力)
                     if (!candidate) {
                         const flexible = targetTeam.members.filter(tMember => !isLockedMember(tMember) && isSafeToJoin(member, targetTeam) && isSafeToJoin(tMember, sourceTeam));
                         if(flexible.length > 0) {
@@ -1220,7 +1254,7 @@
             list.innerHTML = '';
             
             activeTeams.forEach(t => {
-                if (t.id === currentTeamId) return; // 隱藏當前軍團
+                if (t.id === currentTeamId) return; 
                 list.innerHTML += `
                     <button onclick="moveMemberToTeam('${t.id}')" class="w-full text-left px-4 py-3 bg-white border border-slate-200 hover:border-indigo-500 hover:bg-indigo-50 rounded-xl font-bold text-slate-700 transition-all flex justify-between items-center group">
                         <span>${t.name} <span class="text-xs text-slate-400 ml-1">(${t.time})</span></span>
@@ -1286,22 +1320,50 @@
             } 
         }
 
-        // --- 視覺化與互動 ---
+        // --- M型化 (全聯盟 PR 排名長條圖) ---
+        function getPowerDistribution(teamMembers, allPlayers) {
+            const counts = [0, 0, 0, 0, 0];
+            if (!teamMembers || teamMembers.length === 0 || !allPlayers || allPlayers.length === 0) 
+                return { counts, mRatio: 0 };
+
+            const sortedAlliance = [...allPlayers].sort((a,b) => b.power - a.power);
+            const total = sortedAlliance.length;
+            
+            const tierMap = {};
+            sortedAlliance.forEach((p, index) => {
+                let tier = Math.floor((index / total) * 5); 
+                if (tier >= 5) tier = 4;
+                tierMap[p.name] = tier;
+            });
+
+            teamMembers.forEach(m => {
+                const tier = tierMap[m.name];
+                if (tier !== undefined) counts[tier]++;
+            });
+
+            const mRatio = Math.round(((counts[0] + counts[4]) / teamMembers.length) * 100);
+            return { counts, mRatio };
+        }
+
         function createTeamChart(t) { 
             const ctx = document.getElementById(`chart-${t.id}`); 
             if(ctx) { 
-                const { sums } = getPowerDistribution(t.members);
-                const color = t.id.includes('jQt') ? 'rgba(59, 130, 246, 1)' : 'rgba(249, 115, 22, 1)'; 
-                const bg = t.id.includes('jQt') ? 'rgba(59, 130, 246, 0.1)' : 'rgba(249, 115, 22, 0.1)'; 
+                const { counts } = getPowerDistribution(t.members, appState.players);
+                
+                const cT1 = t.id.includes('jQt') ? 'rgba(59, 130, 246, 1)' : 'rgba(249, 115, 22, 1)';
+                const cT5 = t.id.includes('jQt') ? 'rgba(59, 130, 246, 0.7)' : 'rgba(249, 115, 22, 0.7)';
+                const cMid = 'rgba(203, 213, 225, 0.4)';
                 
                 if(teamCharts[t.id]) teamCharts[t.id].destroy(); 
                 teamCharts[t.id] = new Chart(ctx, { 
-                    type: 'line', 
+                    type: 'bar',
                     data: { 
                         labels: ['T1', 'T2', 'T3', 'T4', 'T5'], 
                         datasets: [{ 
-                            data: sums, 
-                            borderColor: color, backgroundColor: bg, borderWidth: 1.5, pointRadius: 2, fill: true, tension: 0.3 
+                            data: counts, 
+                            backgroundColor: [cT1, cMid, cMid, cMid, cT5], 
+                            borderRadius: 2, 
+                            borderWidth: 0 
                         }] 
                     }, 
                     options: { 
@@ -1318,7 +1380,6 @@
             const ctxGlobal = document.getElementById('powerChart');
             if (chartInstance) chartInstance.destroy();
             
-            // 判斷是否使用 K 作為單位（如果裡面有大數字就除以 1000）
             const hasLargeNumbers = appState.players.some(p => p.power >= 1000);
             const divisor = hasLargeNumbers ? 1000 : 1;
             const labelStr = hasLargeNumbers ? '總戰力 (k)' : '總戰力';
@@ -1333,7 +1394,8 @@
                             data: activeTeams.map(t => (t.members.reduce((a, b) => a + b.power, 0) / divisor).toFixed(0)), 
                             backgroundColor: activeTeams.map(t => t.id.includes('jQt') ? 'rgba(59, 130, 246, 0.7)' : 'rgba(249, 115, 22, 0.7)'), 
                             borderColor: activeTeams.map(t => t.id.includes('jQt') ? 'rgba(59, 130, 246, 1)' : 'rgba(249, 115, 22, 1)'), 
-                            borderWidth: 1 
+                            borderWidth: 1,
+                            borderRadius: 4
                         }]
                     },
                     options: { 
@@ -1348,7 +1410,7 @@
             if (globalDistChartInstance) globalDistChartInstance.destroy();
 
             if (ctxDist && appState.players.length > 0) {
-                const { counts, mRatio } = getPowerDistribution(appState.players);
+                const { counts, mRatio } = getPowerDistribution(appState.players, appState.players);
                 
                 const mBadge = document.getElementById('global-m-ratio');
                 if(mBadge) {
@@ -1359,21 +1421,27 @@
                 }
 
                 globalDistChartInstance = new Chart(ctxDist, {
-                    type: 'line',
+                    type: 'bar',
                     data: {
                         labels: ['T1(高)', 'T2', 'T3', 'T4', 'T5(低)'],
                         datasets: [{
-                            label: '人數', data: counts,
-                            borderColor: 'rgba(99, 102, 241, 1)', backgroundColor: 'rgba(99, 102, 241, 0.1)',
-                            borderWidth: 2, pointRadius: 3, pointBackgroundColor: 'white', pointBorderColor: 'rgba(99, 102, 241, 1)',
-                            fill: true, tension: 0.3
+                            label: '人數', 
+                            data: counts,
+                            backgroundColor: [
+                                'rgba(99, 102, 241, 0.8)', 
+                                'rgba(203, 213, 225, 0.5)', 
+                                'rgba(203, 213, 225, 0.5)', 
+                                'rgba(203, 213, 225, 0.5)', 
+                                'rgba(99, 102, 241, 0.8)'
+                            ],
+                            borderRadius: 4
                         }]
                     },
                     options: {
                         responsive: true, maintainAspectRatio: false,
                         plugins: {
                             legend: { display: false },
-                            tooltip: { intersect: false, callbacks: { title: () => `全體 M 型化: ${mRatio}%` } }
+                            tooltip: { callbacks: { title: () => `全體 M 型化: ${mRatio}%` } }
                         },
                         scales: {
                             y: { beginAtZero: true, display: true, ticks: { stepSize: 1, font: { size: 10 } }, grid: { color: '#f1f5f9' } },
@@ -1384,13 +1452,14 @@
             }
         }
 
+        // --- 匯出與複製功能 ---
         function exportToDiscord() { 
-            let text = `**🏰 jQt 聯盟戰力配置 (v68.2)**\n📅 日期: ${new Date().toLocaleDateString()}\n\n`; 
+            let text = `**🏰 jQt 聯盟戰力配置 (v68.5)**\n📅 日期: ${new Date().toLocaleDateString()}\n\n`; 
             appState.teams.filter(t => t.active).forEach(t => { 
                 const totalPower = formatSmart(t.members.reduce((a,b)=>a+b.power,0)); 
                 text += `**${t.name}** (${t.time}) - ${t.members.length}人 - ${totalPower}\n> 成員: ${t.members.map(m=>m.name).join(', ')}\n\n`; 
             }); 
-            const el = document.createElement('textarea'); el.value = text; document.body.appendChild(el); el.select(); document.execCommand('copy'); document.body.removeChild(el); showToast("已複製 Discord 格式！", 'success'); 
+            copyToClipboard(text, "已複製 Discord 格式！");
         }
 
         function copyMemberList() { 
@@ -1413,10 +1482,15 @@
                 const absNames = appState.absentPlayers.map(p => p.name); 
                 for (let i = 0; i < absNames.length; i += 5) text += absNames.slice(i, i + 5).join('、') + '\n'; 
             } 
-            const el = document.createElement('textarea'); el.value = text; document.body.appendChild(el); el.select(); document.execCommand('copy'); document.body.removeChild(el); showToast("已複製完整名單！", 'success'); 
+            copyToClipboard(text, "已複製完整名單！");
         }
 
-        // --- 存檔/點名/設定 ---
+        function copyMissionText(){ 
+            const e = document.getElementById('mission-text'); 
+            copyToClipboard(e.value, "戰術指令已複製"); 
+        }
+        
+        // --- 存檔/歷史紀錄/設定 ---
         function saveConfiguration() { 
             const name = document.getElementById('save-name')?.value || `配置 ${new Date().toLocaleString()}`; 
             if (appState.savedConfigs.length > 20) appState.savedConfigs.shift(); 
@@ -1434,6 +1508,7 @@
         function exportConfig() { const dataStr = "data:text/json;charset=utf-8," + encodeURIComponent(JSON.stringify(appState.savedConfigs)); const downloadAnchorNode = document.createElement('a'); downloadAnchorNode.setAttribute("href", dataStr); downloadAnchorNode.setAttribute("download", "jQt_configs.json"); document.body.appendChild(downloadAnchorNode); downloadAnchorNode.click(); downloadAnchorNode.remove(); }
         function importConfig(input) { const file = input.files[0]; if (!file) return; const reader = new FileReader(); reader.onload = function(e) { try { const imported = JSON.parse(e.target.result); if(Array.isArray(imported)) { appState.savedConfigs = [...appState.savedConfigs, ...imported]; localStorage.setItem('jQt_history', JSON.stringify(appState.savedConfigs)); renderHistoryList(); showToast("匯入成功", 'success'); } else throw new Error("格式不符"); } catch(err) { showToast("匯入失敗: 格式錯誤", 'error'); } }; reader.readAsText(file); }
 
+        // --- 戰術任務編組區 ---
         function initTactics(){ 
             const s=document.getElementById('tactics-team-select'); s.innerHTML=appState.teams.filter(t=>t.active).map(t=>`<option value="${t.id}">${t.name}</option>`).join(''); 
             if(!appState.currentTacticalTeamId) appState.currentTacticalTeamId=s.value; else s.value=appState.currentTacticalTeamId; 
@@ -1446,16 +1521,19 @@
             const c=document.getElementById('tactics-container'); c.innerHTML=''; 
             MISSION_GROUPS.forEach(g=>{ 
                 const mems=team.members.filter(m=>m.missionGroup===g.id).sort((a,b)=>b.power-a.power); 
-                let list=mems.map(m=> { const safeName = m.name.replace(/\\/g, '\\\\').replace(/'/g, "\\'").replace(/"/g, '&quot;'); return `<div class="member-row" onclick="cycleGroup('${safeName}')"><span class="font-bold">${m.name}</span><span class="text-xs text-slate-500">${formatSmart(m.power)}</span></div>` }).join(''); 
-                c.innerHTML+=`<div class="mission-group-card border-${g.color}-500"><div class="mission-header text-${g.color}-700 flex items-center justify-between px-2 py-1 border-b"><span>${g.name}</span><span class="text-sm bg-white px-2 border rounded shadow-sm">${formatSmart(pwr[g.id])}</span></div><div class="mission-target text-xs text-slate-600 p-2 border-b bg-slate-50">${g.target.replace(/\n/g,'<br>')}</div><div class="h-64 overflow-y-auto custom-scroll">${list}</div></div>`; 
+                let list=mems.map(m=> { 
+                    const safeName = m.name.replace(/\\/g, '\\\\').replace(/'/g, "\\'").replace(/"/g, '&quot;'); 
+                    return `<div class="member-row flex justify-between items-center py-2 px-2 border-b border-slate-100 hover:bg-slate-50 cursor-pointer transition-colors" onclick="cycleGroup('${safeName}')"><span class="font-bold text-sm text-slate-700">${m.name}</span><span class="text-xs text-slate-500 font-mono">${formatSmart(m.power)}</span></div>` 
+                }).join(''); 
+                c.innerHTML+=`<div class="mission-group-card bg-white border-t-4 border-${g.color}-500 rounded-xl shadow-sm overflow-hidden"><div class="mission-header bg-slate-50 text-${g.color}-700 flex items-center justify-between px-3 py-2 border-b border-slate-200"><span class="font-black">${g.name}</span><span class="text-xs bg-white px-2 py-0.5 rounded shadow-sm font-bold font-mono">${formatSmart(pwr[g.id])}</span></div><div class="mission-target text-xs text-slate-600 p-3 border-b bg-slate-50/50 leading-relaxed">${g.target.replace(/\n/g,'<br>')}</div><div class="h-64 overflow-y-auto custom-scroll p-1">${list}</div></div>`; 
             }); 
             const gn=(id)=>team.members.filter(m=>m.missionGroup===id).sort((a,b)=>b.power-a.power).map(m=>m.name).join(', '); 
             document.getElementById('mission-text').value=`【${team.name} 戰場指令】\n` + MISSION_GROUPS.map(g=>`\n${g.name}\n${g.target}\n成員: ${gn(g.id)||"無"}`).join('\n'); 
         }
         function cycleGroup(name){ const t=appState.teams.find(x=>x.id===appState.currentTacticalTeamId); const m=t.members.find(x=>x.name===name); if(m){ m.missionGroup=(m.missionGroup%4)+1; renderTacticsBoard(); } }
         function autoDistributeMissions(){ const t=appState.teams.find(x=>x.id===appState.currentTacticalTeamId); const s=[...t.members].sort((a,b)=>b.power-a.power); s.forEach((m,i)=>{ const c=Math.floor(i/4), p=i%4; m.missionGroup=(c%2===0) ? (p+1) : (4-p); }); renderTacticsBoard(); }
-        function copyMissionText(){ const e=document.getElementById('mission-text'); e.select(); document.execCommand('copy'); showToast('戰術指令已複製', 'success'); }
         
+        // --- 點名系統 ---
         function renderSettings(){ 
             const tb=document.getElementById('team-list-body'); if(tb){ tb.innerHTML=''; appState.teams.forEach((t)=>{ tb.innerHTML+=`<tr class="border-b"><td class="p-2">${t.name}</td><td class="p-2">${t.time}</td><td class="p-2"><span class="text-xs px-2 py-1 rounded ${t.active?'bg-green-100 text-green-700':'bg-slate-100 text-slate-400'}">${t.active?'啟用':'關閉'}</span></td></tr>`; }); } 
             const ab=document.getElementById('bind-list-body'); if(ab){ ab.innerHTML=''; appState.alts.forEach((a,i)=>{ ab.innerHTML+=`<tr class="border-b"><td class="p-2">${a.main}</td><td class="p-2">${a.alt}</td><td class="p-2"><button onclick="delAlt(${i})" class="text-red-500 hover:text-red-700">🗑️ 刪除</button></td></tr>`; }); } 
@@ -1540,32 +1618,6 @@
         function toggleAllTeams(state) { appState.teams.forEach(t => t.active = state); renderTeamSelection(); }
         function applyTeamSelection() { toggleTeamModal(); runTeamLogic(appState.lastLogicMode || 'snake'); showToast('軍團設定已更新', 'success'); }
 
-        // --- 優化版 M型化 (全聯盟基準) ---
-        function getPowerDistribution(members, globalMax = null, globalMin = null) {
-            if (!members || members.length === 0) return { counts: [0,0,0,0,0], sums: [0,0,0,0,0], mRatio: 0 };
-            
-            const powers = members.map(m => m.power);
-            const localMax = Math.max(...powers); const localMin = Math.min(...powers);
-            const max = globalMax !== null ? globalMax : localMax;
-            const min = globalMin !== null ? globalMin : localMin;
-            const range = max - min;
-            const counts = [0, 0, 0, 0, 0]; const sums = [0, 0, 0, 0, 0]; 
-            
-            if (range <= 0) {
-                counts[2] = members.length; sums[2] = members.reduce((a,b) => a+b.power, 0);
-            } else {
-                const step = range / 5;
-                members.forEach(p => {
-                    let idx = Math.floor((max - p.power) / step);
-                    if (idx >= 5) idx = 4;
-                    if (idx < 0) idx = 0;
-                    counts[idx]++; sums[idx] += p.power;
-                });
-            }
-            const mRatio = Math.round(((counts[0] + counts[4]) / members.length) * 100);
-            return { counts, sums, mRatio };
-        }
-
         function renderDashboard(){
             setText('stat-n', appState.players.length);
             setText('stat-power', Math.round(appState.players.reduce((a,b)=>a+b.power,0)).toLocaleString());
@@ -1578,11 +1630,6 @@
             const d=document.getElementById('dashboard-container'); if(d) d.innerHTML='';
             let anyLow = false; renderChart();
 
-            // 取得全聯盟最高最低戰力基準
-            const allPowers = appState.players.map(p => p.power);
-            const globalMax = allPowers.length ? Math.max(...allPowers) : 0;
-            const globalMin = allPowers.length ? Math.min(...allPowers) : 0;
-
             const allPlayersSorted = [...appState.players].sort((a,b) => b.power - a.power);
             const totalGlobalPlayers = allPlayersSorted.length || 1; 
             const globalRankMap = {}; allPlayersSorted.forEach((p, i) => { globalRankMap[p.name] = i + 1; });
@@ -1593,8 +1640,7 @@
                 if(t.members.length < 15) anyLow = true;
                 t.members.sort((a,b)=>b.power-a.power);
                 
-                // 改用絕對標準(全聯盟基準)計算 M 型化比例
-                const { mRatio } = getPowerDistribution(t.members, globalMax, globalMin);
+                const { mRatio } = getPowerDistribution(t.members, appState.players);
                 let mColor = 'text-slate-400';
                 if (mRatio >= 40) mColor = 'text-red-500 font-bold';
                 else if (mRatio >= 20) mColor = 'text-amber-500';
