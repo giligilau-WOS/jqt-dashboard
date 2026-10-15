@@ -804,7 +804,7 @@
 
     <script>
         // 💡 若您已部署 Google Apps Script，可將網址直接貼在下方雙引號內，全盟打開網頁就會自動連線！
-        const DEFAULT_CLOUD_API_URL = ""; 
+        const DEFAULT_CLOUD_API_URL = "https://script.google.com/macros/s/AKfycbxnWbjG-nZa5c1CazwkFiQQ4jIiK9rYXxkWQRc9gyTdspI7lXeu8yjHi32WFC1pkanM/exec"; 
 
         const DEFAULT_TEAMS = [
             {id:'jQt1',name:'jQt軍團一',time:'22:00',active:true,priority:0},
@@ -828,7 +828,7 @@
             "lala lovesong", "卡沛大大"
         ];
 
-        const DEFAULT_OFFICERS = ["劼吉撈", "柒柒", "Rueiii", "周星星", "大隻佬", "阿卡利爾斯", "影子", "Vorte峰"];
+        const DEFAULT_OFFICERS = [];
 
         const MISSION_GROUPS = [
             {
@@ -1040,7 +1040,7 @@
                 if (localSnapshot) {
                     applySnapshotState(JSON.parse(localSnapshot));
                 } else {
-                    loadDemoData(true);
+                    loadDemoData(true);// 已取消自動載入範例
                 }
             }
 
