@@ -1293,10 +1293,11 @@
                 if (adminBtnM) adminBtnM.innerText = `🚪 前台`;
             } else if (appState.isOfficerVerified) {
                 badge.className = "text-[10px] bg-indigo-500 text-white px-2.5 py-0.5 rounded-full font-black shadow";
-                badge.innerText = `👑 幹部調度模式 (${appState.currentUser})`;
+                const displayUser = appState.currentUser ? appState.currentUser : "指揮官";
+                badge.innerText = `👑 幹部調度模式 (${displayUser})`;
                 if (adminBtnD) adminBtnD.innerHTML = `<span>🔐</span> 指揮官後台`;
                 if (adminBtnM) adminBtnM.innerText = `🔐 後台`;
-            } else {
+            }else {
                 badge.className = "text-[10px] bg-slate-700 text-slate-200 px-2.5 py-0.5 rounded-full font-bold";
                 badge.innerText = appState.currentUser ? `🛡️ 盟友 (${appState.currentUser})` : "👀 盟友檢視模式";
                 if (adminBtnD) adminBtnD.innerHTML = `<span>🔐</span> 指揮官後台`;
