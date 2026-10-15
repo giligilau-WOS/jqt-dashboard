@@ -1108,25 +1108,46 @@
             saveLiveSnapshotLocal();
             const url = (document.getElementById('cloud-api-url')?.value || appState.cloudApiUrl || '').trim();
             if (!url) {
-                showToast("已儲存於本機！(若需全盟手機同步，請至「後台：規則與雲端設定」貼上 Apps Script 網址)", "info");
+                showToast("已儲存於本機！(請先至「後台：規則與雲端設定」貼上 Apps Script 網址)", "warning");
+                return;
+            }
+            if (!url.startsWith('https://script.google.com/')) {
+                showToast("網址格式錯誤！請確認貼上的是 https://script.google.com/.../exec 網址", "error");
                 return;
             }
             appState.cloudApiUrl = url;
             localStorage.setItem('jQt_cloud_url', url);
+            const payload = JSON.stringify(buildSnapshotState());
+
             try {
                 showToast("☁️ 正在發布最新陣容與評分至雲端...", "info");
                 const res = await fetch(url, {
                     method: 'POST',
+                    redirect: 'follow',
                     headers: { 'Content-Type': 'text/plain;charset=utf-8' },
-                    body: JSON.stringify(buildSnapshotState())
+                    body: payload
                 });
-                if (res.ok) showToast("🎉 已成功發布至雲端！全盟同步更新完成", "success");
-                else throw new Error("HTTP " + res.status);
+                if (res.ok || res.type === 'opaque') {
+                    showToast("🎉 已成功發布至雲端！全盟同步更新完成", "success");
+                    return;
+                }
+                throw new Error("HTTP " + res.status);
             } catch (e) {
-                showToast("雲端推送失敗，已保存在本機快取", "warning");
+                // 若瀏覽器因 Google 302 轉址觸發 CORS 警告，自動切換 no-cors 穿透模式二次送出
+                try {
+                    await fetch(url, {
+                        method: 'POST',
+                        mode: 'no-cors',
+                        headers: { 'Content-Type': 'text/plain;charset=utf-8' },
+                        body: payload
+                    });
+                    showToast("🎉 已發布至雲端！(穿透模式完成，可點「同步最新」驗證)", "success");
+                } catch (err2) {
+                    console.error("Cloud Push Error:", err2);
+                    showToast("❌ 雲端推送失敗，請確認 Apps Script 部署權限設為「所有人」", "error");
+                }
             }
         }
-
         async function syncFromCloud(showMsg = true) {
             const url = (document.getElementById('cloud-api-url')?.value || appState.cloudApiUrl || '').trim();
             if (!url) {
