@@ -10,15 +10,6 @@
     <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+TC:wght@300;400;500;700;900&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Material+Symbols+Rounded:opsz,wght,FILL,GRAD@24,400,1,0" />
     <script>
-        // 全域錯誤攔截器：若發生任何語法或執行期錯誤，直接顯示在畫面上方便診斷
-        window.addEventListener('error', function(e) {
-            var errBanner = document.getElementById('js-error-banner');
-            if (errBanner) {
-                errBanner.classList.remove('hidden');
-                errBanner.innerText = '⚠️ 系統腳本發生錯誤：' + e.message + ' (行號: ' + e.lineno + ')';
-            }
-        });
-
         tailwind.config = {
             darkMode: 'class',
             theme: {
@@ -96,9 +87,6 @@
     </style>
 </head>
 <body class="min-h-screen flex flex-col transition-colors duration-300 pb-16 md:pb-0">
-    <!-- 錯誤診斷橫幅 (平時隱藏) -->
-    <div id="js-error-banner" class="hidden bg-red-600 text-white text-xs font-bold px-4 py-2 text-center z-[99999]"></div>
-
     <div id="toast-container" class="fixed bottom-16 md:bottom-5 right-4 z-[9999] flex flex-col items-end pointer-events-none"></div>
     <!-- 懸浮名片 -->
     <div id="member-tooltip" class="fixed z-[9999] text-white p-4 rounded-2xl shadow-2xl w-72 pointer-events-none transition-all duration-150 ease-out opacity-0 scale-95 left-0 top-0 hidden md:block">
@@ -243,7 +231,6 @@
                             <div class="flex items-center gap-2">
                                 <h1 class="font-black text-base md:text-lg tracking-wide">jQt 聯盟兵工廠</h1>
                                 <span id="role-badge" class="text-[10px] bg-slate-700 text-slate-200 px-2 py-0.5 rounded-full font-bold">👀 盟友檢視模式</span>
-                                <span id="js-ready-badge" class="text-[9px] bg-slate-800 text-slate-400 px-1.5 py-0.5 rounded">⏳ 載入中</span>
                             </div>
                             <p class="text-[9px] text-slate-400 uppercase tracking-widest">v70.7 Cloud Command & Peer Rating</p>
                         </div>
@@ -282,6 +269,7 @@
                         <span>🔐</span> 指揮官後台
                     </button>
                     <button type="button" onclick="toggleDarkMode()" class="p-2 rounded-xl hover:bg-slate-800 text-sm transition-colors cursor-pointer" title="切換深色模式">🌗</button>
+                    <button type="button" onclick="emergencyResetCache()" class="p-2 rounded-xl hover:bg-red-900/60 text-xs text-slate-400 hover:text-red-300 transition-colors cursor-pointer" title="若快取異常點此重置本機快取">🧹</button>
                 </div>
             </div>
         </div>
@@ -543,14 +531,14 @@
                     </div>
                 </div>
                 <div id="pop-alert" class="hidden bg-red-50 dark:bg-red-950/60 border-l-4 border-red-500 text-red-800 dark:text-red-300 p-3.5 rounded-xl text-xs font-bold flex items-center gap-2"></div>
-                <!-- 空狀態提示 -->
+                <!-- 空狀態提示 (當無任何參戰資料時顯示) -->
                 <div id="empty-roster-alert" class="hidden glass-panel p-8 rounded-3xl text-center border-2 border-dashed border-indigo-300 dark:border-indigo-800 my-4">
                     <div class="text-4xl mb-2">🏰</div>
                     <h3 class="text-lg font-black text-slate-800 dark:text-slate-100">目前尚無出戰陣容資料</h3>
-                    <p class="text-xs text-slate-500 dark:text-slate-400 mt-1 mb-4">若您是指揮官，請點擊下方按鈕開啟「🔐 指揮官後台」匯入資料，或直接載入範例測試資料體驗功能。</p>
+                    <p class="text-xs text-slate-500 dark:text-slate-400 mt-1 mb-4">若您是指揮官，請進入「🔐 指揮官後台」匯入報名表與戰力表並點擊「生成分隊」，或點擊下方按鈕快速載入範例測試。</p>
                     <div class="flex flex-wrap justify-center gap-3">
-                        <button type="button" onclick="syncFromCloud(true)" class="bg-indigo-600 hover:bg-indigo-700 text-white px-4 py-2 rounded-xl text-xs font-bold shadow cursor-pointer">🔄 從雲端/備援檔同步</button>
-                        <button type="button" onclick="loadDemoData(false)" class="bg-emerald-600 hover:bg-emerald-700 text-white px-4 py-2 rounded-xl text-xs font-bold shadow cursor-pointer">🧪 立即載入範例資料</button>
+                        <button type="button" onclick="syncFromCloud(true)" class="bg-indigo-600 hover:bg-indigo-700 text-white px-4 py-2 rounded-xl text-xs font-bold shadow cursor-pointer">🔄 重新從雲端/備援檔讀取</button>
+                        <button type="button" onclick="loadDemoData(false)" class="bg-emerald-600 hover:bg-emerald-700 text-white px-4 py-2 rounded-xl text-xs font-bold shadow cursor-pointer">🧪 立即載入範例名單測試</button>
                         <button type="button" onclick="handleAdminToggle()" class="bg-amber-500 hover:bg-amber-600 text-slate-950 px-4 py-2 rounded-xl text-xs font-black shadow cursor-pointer">🔐 開啟指揮官後台</button>
                     </div>
                 </div>
@@ -643,6 +631,7 @@
             
             <!-- ================= 前台 PAGE 4: 個人綜合戰歷成績單 & 歷屆戰役庫 ================= -->
             <section id="page-history" class="hidden space-y-6 animate-fade-in">
+                <!-- 綜合戰歷成績單 (Report Card) -->
                 <div class="glass-panel p-6 rounded-2xl">
                     <div class="flex flex-col md:flex-row justify-between items-start md:items-center mb-4 border-b border-slate-200 dark:border-slate-700 pb-4 gap-3">
                         <div>
@@ -670,6 +659,7 @@
                         </table>
                     </div>
                 </div>
+                <!-- 歷屆結算場次與團隊存檔庫 -->
                 <div class="glass-panel p-6 rounded-2xl">
                     <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center mb-6 border-b border-slate-200 dark:border-slate-700 pb-4 gap-3">
                         <div>
@@ -687,4 +677,2430 @@
                         <div class="bg-slate-50 dark:bg-slate-800/60 p-5 rounded-2xl border border-slate-200 dark:border-slate-700">
                             <h3 class="font-bold mb-3 text-sm">手動封存當前團隊名單</h3>
                             <input type="text" id="save-name" placeholder="例如：10/18 兵工廠鎖定陣容" class="w-full border dark:border-slate-700 bg-white dark:bg-slate-900 p-2.5 rounded-xl mb-3 text-sm">
-                            <button type="button" onclick="saveConfiguration()" class="w-full bg-indigo-600 text-white py-2.5 rounded-xl font-bold text-sm hover:bg
+                            <button type="button" onclick="saveConfiguration()" class="w-full bg-indigo-600 text-white py-2.5 rounded-xl font-bold text-sm hover:bg-indigo-700 shadow cursor-pointer">💾 立即封存陣容</button>
+                        </div>
+                        <div>
+                            <h3 class="font-bold mb-3 text-sm">📂 歷屆團隊陣容存檔</h3>
+                            <div id="history-list" class="space-y-2 max-h-72 overflow-y-auto custom-scroll border border-slate-200 dark:border-slate-700 rounded-2xl bg-white dark:bg-slate-900 p-3"></div>
+                        </div>
+                        <div>
+                            <h3 class="font-bold mb-3 text-sm">🕒 歷屆賽後點名結算場次</h3>
+                            <div id="attendance-history-list" class="space-y-2 max-h-72 overflow-y-auto custom-scroll border border-slate-200 dark:border-slate-700 rounded-2xl bg-white dark:bg-slate-900 p-3"></div>
+                        </div>
+                    </div>
+                </div>
+            </section>
+            
+            <!-- ================= 後台 PAGE 5: 規則與雲端設定 ================= -->
+            <section id="page-settings" class="hidden space-y-6 animate-fade-in">
+                <div class="glass-panel p-6 rounded-2xl border-l-4 border-l-emerald-500">
+                    <h3 class="text-base font-black text-slate-800 dark:text-slate-100 mb-1 flex items-center gap-2">
+                        ☁️ Google 試算表雲端同步網址 (Apps Script Web App URL)
+                    </h3>
+                    <p class="text-xs text-slate-500 mb-3">貼上您部署的 Google Apps Script 網址後，全盟打開 GitHub 網頁即可同步看到最新陣容、線上送出 1~5 星評分與請假</p>
+                    <div class="flex flex-col sm:flex-row gap-2">
+                        <input type="text" id="cloud-api-url" placeholder="https://script.google.com/macros/s/......./exec" class="modern-input flex-grow" onchange="saveLocal()">
+                        <button type="button" onclick="syncToCloud()" class="bg-emerald-600 hover:bg-emerald-700 text-white px-5 py-2.5 rounded-xl font-black text-xs shrink-0 shadow cursor-pointer">☁️ 立即推送至雲端</button>
+                        <button type="button" onclick="syncFromCloud(true)" class="bg-slate-800 hover:bg-slate-700 text-white px-5 py-2.5 rounded-xl font-bold text-xs shrink-0 cursor-pointer">📥 從雲端拉取測試</button>
+                    </div>
+                </div>
+                <!-- 17人指定同隊綁定群組管理 -->
+                <div class="glass-panel p-6 rounded-2xl border-l-4 border-l-purple-500">
+                    <div class="flex flex-col md:flex-row justify-between items-start md:items-center mb-4 gap-3">
+                        <div>
+                            <h3 class="text-base font-black text-slate-800 dark:text-slate-100 flex items-center gap-2">
+                                🤝 綁定同隊群組管理 (<span id="together-count">0</span>人)
+                            </h3>
+                            <p class="text-xs text-slate-500 mt-0.5">名單內的成員只要有報名，系統會強制將他們全數排在同一支軍團，絕不拆散</p>
+                        </div>
+                        <div class="flex flex-wrap items-center gap-2">
+                            <label class="text-xs font-bold text-slate-600 dark:text-slate-300">指定分發軍團：</label>
+                            <select id="together-target-team" onchange="changeTogetherTarget(this.value)" class="border dark:border-slate-700 bg-white dark:bg-slate-900 rounded-xl px-3 py-1.5 text-xs font-bold text-purple-700 dark:text-purple-300">
+                                <option value="auto">✨ 自動 (依多數人志願時段)</option>
+                                <option value="jQt1">jQt軍團一 (22:00)</option>
+                                <option value="aQt1">aQt軍團一 (22:00)</option>
+                                <option value="jQt2">jQt軍團二 (20:00)</option>
+                                <option value="aQt2">aQt軍團二 (20:00)</option>
+                            </select>
+                            <button type="button" onclick="resetDefaultTogetherGroup()" class="text-xs bg-slate-200 dark:bg-slate-700 hover:bg-slate-300 text-slate-700 dark:text-slate-200 px-3 py-1.5 rounded-xl font-bold cursor-pointer">重置預設17人</button>
+                        </div>
+                    </div>
+                    <div class="flex gap-2 mb-4 max-w-md">
+                        <input type="text" id="together-new-name" placeholder="輸入要加入同隊綁定的玩家名稱..." class="border dark:border-slate-700 bg-white dark:bg-slate-900 p-2 rounded-xl flex-grow text-xs">
+                        <button type="button" onclick="addTogetherMember()" class="bg-purple-600 hover:bg-purple-700 text-white px-4 rounded-xl font-bold text-xs shrink-0 cursor-pointer">＋ 新增</button>
+                    </div>
+                    <div id="together-list-container" class="flex flex-wrap gap-2 bg-purple-50/50 dark:bg-slate-900/60 p-3.5 rounded-xl border border-purple-100 dark:border-slate-700"></div>
+                </div>
+                <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                    <div class="glass-panel p-6 rounded-2xl">
+                        <div class="flex justify-between items-center mb-4">
+                            <h3 class="text-base font-black text-slate-800 dark:text-slate-100">🏰 軍團時段與啟用管理</h3>
+                            <button type="button" onclick="toggleTeamModal()" class="text-xs bg-indigo-50 text-indigo-600 px-3 py-1 rounded-lg font-bold cursor-pointer">編輯參戰狀態</button>
+                        </div>
+                        <div class="overflow-y-auto custom-scroll border border-slate-200 dark:border-slate-700 rounded-xl">
+                            <table class="w-full text-sm text-left">
+                                <thead class="bg-slate-100 dark:bg-slate-800 text-slate-500 text-xs">
+                                    <tr><th class="p-3">軍團名稱</th><th class="p-3">出戰時段</th><th class="p-3">當前狀態</th></tr>
+                                </thead>
+                                <tbody id="team-list-body"></tbody>
+                            </table>
+                        </div>
+                    </div>
+                    <div class="glass-panel p-6 rounded-2xl">
+                        <h3 class="text-base font-black text-slate-800 dark:text-slate-100 mb-2">🔗 家族帳號綁定 (防同隊/防撞期)</h3>
+                        <div class="flex gap-2 mb-4">
+                            <input type="text" id="bind-main" placeholder="主號名稱 (例: 周星星)" class="border dark:border-slate-700 bg-white dark:bg-slate-900 p-2 rounded-xl w-2/5 text-xs">
+                            <input type="text" id="bind-alt" placeholder="小號名稱 (例: 麻麻豆豆~)" class="border dark:border-slate-700 bg-white dark:bg-slate-900 p-2 rounded-xl w-2/5 text-xs">
+                            <button type="button" onclick="addBinding()" class="bg-indigo-600 hover:bg-indigo-700 text-white px-3 rounded-xl font-bold text-xs w-1/5 cursor-pointer">新增</button>
+                        </div>
+                        <div class="h-60 overflow-y-auto custom-scroll border border-slate-200 dark:border-slate-700 rounded-xl">
+                            <table class="w-full text-xs text-left">
+                                <thead class="bg-slate-100 dark:bg-slate-800 text-slate-500 sticky top-0">
+                                    <tr><th class="p-2.5">主號</th><th class="p-2.5">小號關鍵字</th><th class="p-2.5 text-right">操作</th></tr>
+                                </thead>
+                                <tbody id="bind-list-body"></tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+            </section>
+        </div>
+    </main>
+    <!-- 手機版底部快捷列 -->
+    <div class="fixed bottom-0 left-0 right-0 bg-white/95 dark:bg-slate-900/95 backdrop-blur border-t border-slate-200 dark:border-slate-800 px-3 py-2 flex justify-between items-center lg:hidden z-40 shadow-lg">
+        <button type="button" onclick="syncFromCloud(true)" class="text-xs font-bold text-slate-600 dark:text-slate-300 flex items-center gap-1 bg-slate-100 dark:bg-slate-800 px-3 py-1.5 rounded-lg cursor-pointer">
+            <span>🔄</span> 同步最新
+        </button>
+        <div class="flex gap-2">
+            <button type="button" onclick="syncToCloud()" id="mobile-cloud-push" class="hidden bg-emerald-600 text-white px-3 py-1.5 rounded-lg text-xs font-black cursor-pointer">☁️ 發布全盟</button>
+            <button type="button" onclick="copyMemberList()" class="bg-indigo-600 text-white px-3.5 py-1.5 rounded-lg text-xs font-bold cursor-pointer">📋 複製名單</button>
+            <button type="button" onclick="emergencyResetCache()" class="bg-slate-200 dark:bg-slate-800 text-slate-500 px-2 py-1.5 rounded-lg text-xs font-bold cursor-pointer" title="重置快取">🧹</button>
+        </div>
+    </div>
+
+    <script>
+        // 🛡️ 全域錯誤攔截器：萬一有任何未知的執行錯誤，直接顯示於右下角，絕不讓畫面無聲卡死
+        window.addEventListener('error', function(e) {
+            console.error('Runtime Error:', e.error || e.message);
+            const container = document.getElementById('toast-container');
+            if (container) {
+                const el = document.createElement('div');
+                el.className = 'bg-red-600 mb-2 px-4 py-2.5 rounded-xl text-white text-xs font-bold shadow-lg z-[9999]';
+                el.innerText = '⚠️ 執行提示: ' + (e.message || '請點擊右上角🧹重置快取');
+                container.appendChild(el);
+                setTimeout(() => el.remove(), 5000);
+            }
+        });
+
+        // 💡 Google Apps Script 雲端同步網址
+        const DEFAULT_CLOUD_API_URL = "https://script.google.com/macros/s/AKfycbxnWbjG-nZa5c1CazwkFiQQ4jIiK9rYXxkWQRc9gyTdspI7lXeu8yjHi32WFC1pkanM/exec"; 
+        // 💡 GitHub 靜態備援檔案路徑
+        const GITHUB_FALLBACK_JSON = "./jQt_backup.json";
+
+        const DEFAULT_TEAMS = [
+            {id:'jQt1',name:'jQt軍團一',time:'22:00',active:true,priority:0,members:[]},
+            {id:'aQt1',name:'aQt軍團一',time:'22:00',active:true,priority:1,members:[]},
+            {id:'jQt2',name:'jQt軍團二',time:'20:00',active:true,priority:2,members:[]},
+            {id:'aQt2',name:'aQt軍團二',time:'20:00',active:true,priority:3,members:[]}
+        ];
+        
+        const DEFAULT_ALTS = [
+            {main:"主流兔",alt:"盟浪兔"},{main:"主流兔",alt:"兔仔子"},{main:"冬來冬往",alt:"小冬冬"},
+            {main:"劼吉撈",alt:"藍色劼吉撈ATM"},{main:"Masaorange",alt:"小馬殺"},{main:"Masaorange",alt:"小馬哥"},
+            {main:"小螞蟻",alt:"小小螞蟻"},{main:"快樂永伴",alt:"HappyHappy"},{main:"一念關山",alt:"一念觀山"},
+            {main:"PekingDuck",alt:"北京烤鸭"},{main:"YI9908zh",alt:"Yi2"},{main:"周星星",alt:"麻麻豆豆~"},
+            {main:"錢包包",alt:"錢多多"},{main:"Rueiii",alt:"小梅幾"}
+        ];
+        const DEFAULT_TOGETHER_GROUP = [
+            "影子", "Vorte峰", "JJ~", "尼根", "香蕉船梅料", 
+            "ⒿⒶⓎ", "亮柒柒", "冬日暖陽", "Henry", "CΛLΞST", 
+            "Daddy宏", "歐培拉", "草仔糕寶劍", "貓饅頭", "ReiRei", 
+            "lala lovesong", "卡沛大大"
+        ];
+        const DEFAULT_OFFICERS = [];
+        const MISSION_GROUPS = [
+            {
+                id: 1, name: '第 1 組 (10點鐘)',
+                borderClass: 'border-t-4 border-t-red-500',
+                headerClass: 'bg-red-50/70 dark:bg-red-950/40 text-red-700 dark:text-red-300',
+                badgeClass: 'bg-red-500 text-white',
+                target: '方位：10 點鐘方向\n目標：蒸汽鍋爐、1 號武器試驗場、傭兵站、中間據點'
+            },
+            {
+                id: 2, name: '第 2 組 (5點鐘)',
+                borderClass: 'border-t-4 border-t-orange-500',
+                headerClass: 'bg-orange-50/70 dark:bg-orange-950/40 text-orange-700 dark:text-orange-300',
+                badgeClass: 'bg-orange-500 text-white',
+                target: '方位：5 點鐘方向\n目標：中轉站、2 號武器試驗場、軍火庫、中間據點'
+            },
+            {
+                id: 3, name: '第 3 組 (2點鐘)',
+                borderClass: 'border-t-4 border-t-blue-500',
+                headerClass: 'bg-blue-50/70 dark:bg-blue-950/40 text-blue-700 dark:text-blue-300',
+                badgeClass: 'bg-blue-500 text-white',
+                target: '方位：2 點鐘方向\n目標：2 號武器維修廠、4 號武器維修廠、軍火庫、中間據點'
+            },
+            {
+                id: 4, name: '第 4 組 (7點鐘)',
+                borderClass: 'border-t-4 border-t-emerald-500',
+                headerClass: 'bg-emerald-50/70 dark:bg-emerald-950/40 text-emerald-700 dark:text-emerald-300',
+                badgeClass: 'bg-emerald-500 text-white',
+                target: '方位：7 點鐘方向\n目標：1 號武器維修廠、3 號武器維修廠、軍火庫、中間據點'
+            }
+        ];
+        const ABSENT_KEYWORDS = ['不克', '無法', '請假', '不參加', '未參加', '沒空', 'pass', 'no', '不來', '不參戰'];
+        let appState = { 
+            players:[], absentPlayers:[], unknownPlayers:[], availablePowerNames:[], 
+            manualMappings:{}, teams: JSON.parse(JSON.stringify(DEFAULT_TEAMS)), alts: JSON.parse(JSON.stringify(DEFAULT_ALTS)), 
+            togetherGroup: JSON.parse(JSON.stringify(DEFAULT_TOGETHER_GROUP)), togetherTargetTeam:'auto',
+            officers:[], emergencyLeaves:{},
+            lockDeadline: null, isRosterLocked: false, autoSavedLock: false,
+            officerPin: '1234', adminPin: '8888', cloudApiUrl: DEFAULT_CLOUD_API_URL,
+            currentUser: null, isOfficerVerified: false, isAdminMode: false,
+            conflictMap:{}, rawRegData:[], rawPowerData:[], currentTacticalTeamId:'', 
+            lastLogicMode: 'snake', savedConfigs: [], 
+            attendanceHistory: [], currentAttendance: {}, isAbsentExpanded: true, 
+            prioritizePreferences: true, searchQuery: ''
+        };
+        let currentMode = 'cloud'; 
+        let chartInstance = null; 
+        let teamCharts = {}; 
+        let globalDistChartInstance = null;
+        let currentActionMember = ''; 
+        let draggedMemberName = null;
+        let countdownInterval = null;
+
+        // 🧹 緊急重置快取功能（當舊版壞掉的快取卡住時可一鍵修復）
+        function emergencyResetCache() {
+            if (!confirm("確定要清除瀏覽器本機暫存的損壞快取，並重新載入嗎？")) return;
+            localStorage.removeItem('jQt_live_snapshot');
+            localStorage.removeItem('jQt_current_user');
+            localStorage.removeItem('jQt_officer_verified');
+            location.reload();
+        }
+
+        function safeJsonParse(str, fallback) {
+            if (!str) return fallback;
+            try { return JSON.parse(str); } catch (e) { return fallback; }
+        }
+
+        function setText(id, t){ const e = document.getElementById(id); if(e) e.innerText = t; }
+        function escapeHtml(str) { 
+            return String(str || '')
+                .replace(/&/g, '&amp;')
+                .replace(/</g, '&lt;')
+                .replace(/>/g, '&gt;')
+                .replace(/"/g, '&quot;')
+                .replace(/'/g, '&#39;'); 
+        }
+        function escapeJsStr(str) { 
+            return String(str || '')
+                .split('\\').join('\\\\')
+                .split("'").join("\\'")
+                .split('"').join('&quot;')
+                .split('\n').join(' ')
+                .split('\r').join(''); 
+        }
+        function formatSmart(n) { 
+            const num = parseFloat(n) || 0;
+            if (num >= 1000000) return (num / 1000000).toFixed(1).replace(/\.0$/, '') + 'M';
+            if (num >= 1000) return Math.round(num / 1000).toLocaleString() + 'k'; 
+            return Number.isInteger(num) ? parseInt(num).toLocaleString() : num.toFixed(2).replace(/\.00$/, ''); 
+        }
+        
+        function showToast(msg, type='info') {
+            const container = document.getElementById('toast-container');
+            if (!container) return;
+            const el = document.createElement('div');
+            const bg = type === 'error' ? 'bg-red-600' : (type === 'success' ? 'bg-emerald-600' : (type === 'warning' ? 'bg-amber-500' : 'bg-slate-800'));
+            el.className = `${bg} mb-2 px-4 py-2.5 rounded-xl text-white text-xs font-bold shadow-lg transition-all transform translate-y-2 opacity-100 z-[9999] flex items-center gap-2`; 
+            el.innerText = msg; 
+            container.appendChild(el);
+            setTimeout(() => el.classList.remove('translate-y-2'), 10);
+            setTimeout(() => { el.classList.add('opacity-0'); setTimeout(() => el.remove(), 300); }, 3200);
+        }
+        function copyToClipboard(text, successMsg) {
+            if (navigator.clipboard && window.isSecureContext) {
+                navigator.clipboard.writeText(text).then(() => showToast(successMsg, 'success')).catch(() => fallbackCopy(text, successMsg));
+            } else { fallbackCopy(text, successMsg); }
+        }
+        function fallbackCopy(text, successMsg) {
+            const el = document.createElement('textarea');
+            el.value = text; el.style.position = 'fixed'; el.style.left = '-9999px';
+            document.body.appendChild(el); el.focus(); el.select();
+            try { document.execCommand('copy'); showToast(successMsg, 'success'); } 
+            catch (err) { showToast('複製失敗，請手動選取複製', 'error'); }
+            document.body.removeChild(el);
+        }
+        function canEditRoster() {
+            if (appState.isAdminMode) return true;
+            if (appState.isOfficerVerified && !appState.isRosterLocked) return true;
+            return false;
+        }
+        function canEditAttendance() {
+            return appState.isAdminMode || appState.isOfficerVerified;
+        }
+        function isOfficerMember(name) {
+            const clean = normalizeName(name);
+            return (appState.officers || []).some(o => normalizeName(o) === clean);
+        }
+
+        // ✅ 零風險版名稱正規化函式（避免複雜 RegExp 在複製時斷行引發 SyntaxError）
+        function normalizeName(n) { 
+            if (!n) return ""; 
+            let clean = String(n);
+            clean = clean.replace(/\[.*?\]/g, '');
+            clean = clean.replace(/\(R[0-9]\)/gi, '');
+            clean = clean.replace(/R[0-9]\s/gi, '');
+            let strict = clean.toLowerCase().trim().replace(/\s+/g, '');
+            return strict;
+        }
+
+        function isTogetherGroupMember(name) {
+            const cleanP = normalizeName(name);
+            if (!cleanP) return false;
+            return (appState.togetherGroup || []).some(target => {
+                const cleanT = normalizeName(target);
+                if (!cleanT) return false;
+                if (cleanP === cleanT) return true;
+                if (cleanT.length >= 2 && cleanP.includes(cleanT)) return true;
+                return false;
+            });
+        }
+
+        // ✅ 零風險版志願時段解析函式
+        function parsePrefTime(optStr) {
+            if (!optStr) return 'any';
+            const s = String(optStr).toLowerCase();
+            if (s.includes('皆可') || s.includes('都可以') || s.includes('一二') || (s.includes('22') && s.includes('20')) || (s.includes('軍團一') && s.includes('軍團二'))) return 'any';
+            if (s.includes('22:00') || s.includes('22點') || s.includes('2200') || s.includes('軍團一') || s.includes('一團')) return '22:00';
+            if (s.includes('20:00') || s.includes('20點') || s.includes('2000') || s.includes('軍團二') || s.includes('二團')) return '20:00';
+            if (s.includes('一') || s.includes('1')) return '22:00';
+            if (s.includes('二') || s.includes('2')) return '20:00';
+            return 'any';
+        }
+
+        // --- 計算個人歷史統計數據 ---
+        function getPlayerCareerStats(name) {
+            let totalGames = 0, presentCount = 0, absentCount = 0, leaveCount = 0;
+            let starSum = 0, starVotes = 0, totalMerit = 0;
+            (appState.attendanceHistory || []).forEach(h => {
+                const rec = h && h.records ? h.records[name] : null;
+                if (!rec) return;
+                totalGames++;
+                const st = typeof rec === 'string' ? rec : (rec.status || 'present');
+                if (st === 'present') presentCount++;
+                else if (st === 'absent') absentCount++;
+                else if (st === 'leave') leaveCount++;
+                if (typeof rec === 'object') {
+                    if (rec.merit) totalMerit += parseFloat(rec.merit) || 0;
+                    if (rec.ratings) {
+                        Object.values(rec.ratings).forEach(v => {
+                            const s = parseFloat(v);
+                            if (s >= 1 && s <= 5) { starSum += s; starVotes++; }
+                        });
+                    }
+                }
+            });
+            const avgStars = starVotes > 0 ? (starSum / starVotes) : 0;
+            const attRate = totalGames > 0 ? Math.round((presentCount / totalGames) * 100) : 100;
+            const avgMerit = presentCount > 0 ? (totalMerit / presentCount) : 0;
+            return { totalGames, presentCount, absentCount, leaveCount, avgStars, starVotes, totalMerit, avgMerit, attRate };
+        }
+
+        // --- 初始化 (安全防呆包裝：即使快取損壞也絕不影響按鈕運作) ---
+        document.addEventListener('DOMContentLoaded', async () => {
+            try {
+                const sm = localStorage.getItem('jQt_mappings'); 
+                const sh = localStorage.getItem('jQt_history'); 
+                const att = localStorage.getItem('jQt_attendance');
+                const savedAlts = localStorage.getItem('jQt_alts');
+                const savedTogether = localStorage.getItem('jQt_together');
+                const savedTogetherTarget = localStorage.getItem('jQt_together_target');
+                const savedOfficers = localStorage.getItem('jQt_officers');
+                const savedCloudUrl = localStorage.getItem('jQt_cloud_url');
+                const savedUser = localStorage.getItem('jQt_current_user');
+                const savedOfficerVer = localStorage.getItem('jQt_officer_verified') === 'true';
+                const savedLockDeadline = localStorage.getItem('jQt_lock_deadline');
+                const savedTheme = localStorage.getItem('jQt_dark_mode');
+                
+                if (savedTheme === 'true') document.body.classList.add('dark');
+                appState.teams = JSON.parse(JSON.stringify(DEFAULT_TEAMS)); 
+                appState.alts = safeJsonParse(savedAlts, JSON.parse(JSON.stringify(DEFAULT_ALTS)));
+                appState.togetherGroup = safeJsonParse(savedTogether, JSON.parse(JSON.stringify(DEFAULT_TOGETHER_GROUP)));
+                appState.togetherTargetTeam = savedTogetherTarget || 'auto';
+                appState.officers = safeJsonParse(savedOfficers, JSON.parse(JSON.stringify(DEFAULT_OFFICERS)));
+                appState.manualMappings = safeJsonParse(sm, {}); 
+                appState.savedConfigs = safeJsonParse(sh, []); 
+                appState.attendanceHistory = safeJsonParse(att, []);
+                appState.cloudApiUrl = savedCloudUrl || DEFAULT_CLOUD_API_URL;
+                appState.currentUser = savedUser || null;
+                appState.isOfficerVerified = savedOfficerVer;
+                if (savedLockDeadline && !isNaN(parseInt(savedLockDeadline))) {
+                    appState.lockDeadline = parseInt(savedLockDeadline);
+                }
+
+                const r = localStorage.getItem('jQt_url_reg');
+                const p = localStorage.getItem('jQt_url_power');
+                if(r && document.getElementById('url-reg')) { document.getElementById('url-reg').value = r; validateUrl(document.getElementById('url-reg')); }
+                if(p && document.getElementById('url-power')) { document.getElementById('url-power').value = p; validateUrl(document.getElementById('url-power')); }
+                if(appState.cloudApiUrl && document.getElementById('cloud-api-url')) document.getElementById('cloud-api-url').value = appState.cloudApiUrl;
+
+                // [第一層] 優先載入本機快取
+                const localSnapshot = safeJsonParse(localStorage.getItem('jQt_live_snapshot'), null);
+                if (localSnapshot) {
+                    applySnapshotState(localSnapshot);
+                }
+
+                // 先啟動介面與頁籤，確保按鈕 100% 可點擊
+                startCountdownTimer();
+                updateRoleUI();
+                renderSettings(); 
+                renderHistoryList(); 
+                renderAttendanceHistory(); 
+                switchTab('dashboard');
+
+                // [第二層 & 第三層] 背景非同步從雲端或 GitHub 備援檔拉取最新狀態
+                await syncFromCloud(false);
+            } catch (initErr) {
+                console.error("初始化發生異常，自動略過損壞快取:", initErr);
+                updateRoleUI();
+                switchTab('dashboard');
+            }
+        });
+
+        // --- 雲端同步與三層備援引擎 ---
+        function buildSnapshotState() {
+            return {
+                updatedAt: Date.now(),
+                players: appState.players,
+                absentPlayers: appState.absentPlayers,
+                teams: appState.teams,
+                officers: appState.officers,
+                togetherGroup: appState.togetherGroup,
+                togetherTargetTeam: appState.togetherTargetTeam,
+                alts: appState.alts,
+                lockDeadline: appState.lockDeadline,
+                isRosterLocked: appState.isRosterLocked,
+                emergencyLeaves: appState.emergencyLeaves,
+                savedConfigs: appState.savedConfigs,
+                attendanceHistory: appState.attendanceHistory,
+                currentAttendance: appState.currentAttendance,
+                officerPin: appState.officerPin
+            };
+        }
+
+        function applySnapshotState(data) {
+            if (!data || typeof data !== 'object') return;
+            try {
+                if (Array.isArray(data.players)) appState.players = data.players;
+                if (Array.isArray(data.absentPlayers)) appState.absentPlayers = data.absentPlayers;
+                if (Array.isArray(data.teams) && data.teams.length > 0) {
+                    appState.teams = data.teams.map(t => ({
+                        ...t,
+                        members: Array.isArray(t.members) ? t.members : []
+                    }));
+                }
+                if (Array.isArray(data.officers)) appState.officers = data.officers;
+                if (Array.isArray(data.togetherGroup)) appState.togetherGroup = data.togetherGroup;
+                if (data.togetherTargetTeam) appState.togetherTargetTeam = data.togetherTargetTeam;
+                if (Array.isArray(data.alts)) appState.alts = data.alts;
+                if (data.lockDeadline !== undefined) appState.lockDeadline = data.lockDeadline;
+                if (data.isRosterLocked !== undefined) appState.isRosterLocked = data.isRosterLocked;
+                if (data.emergencyLeaves && typeof data.emergencyLeaves === 'object') appState.emergencyLeaves = data.emergencyLeaves;
+                if (Array.isArray(data.savedConfigs)) appState.savedConfigs = data.savedConfigs;
+                if (Array.isArray(data.attendanceHistory)) appState.attendanceHistory = data.attendanceHistory;
+                if (data.currentAttendance && typeof data.currentAttendance === 'object') appState.currentAttendance = data.currentAttendance;
+                if (data.officerPin) appState.officerPin = data.officerPin;
+
+                // 🛡️ 防呆重建：若讀入的 players 有資料，但 teams 裡面的 members 是空的，自動根據 player.team 重建或重新分隊
+                const totalInTeams = (appState.teams || []).reduce((sum, t) => sum + (Array.isArray(t.members) ? t.members.length : 0), 0);
+                if (appState.players.length > 0 && totalInTeams === 0) {
+                    appState.teams.forEach(t => t.members = []);
+                    let assignedCount = 0;
+                    appState.players.forEach(p => {
+                        if (p && p.team) {
+                            const targetT = appState.teams.find(t => t.id === p.team);
+                            if (targetT) { targetT.members.push(p); assignedCount++; }
+                        }
+                    });
+                    if (assignedCount === 0) {
+                        runTeamLogic(appState.lastLogicMode || 'snake');
+                    }
+                }
+
+                startCountdownTimer();
+                checkConflicts();
+                renderDashboard();
+                renderOfficerBadges();
+                renderHistoryList();
+                renderAttendanceHistory();
+                renderReportCard();
+                updateMyTacticalCard();
+            } catch (err) {
+                console.error("套用狀態時發生錯誤:", err);
+            }
+        }
+
+        function saveLiveSnapshotLocal() {
+            try { localStorage.setItem('jQt_live_snapshot', JSON.stringify(buildSnapshotState())); } catch (e) {}
+        }
+
+        async function loadFromGitHubFallback(showMsg = false) {
+            try {
+                const res = await fetch(GITHUB_FALLBACK_JSON + '?t=' + Date.now());
+                if (res.ok) {
+                    const data = await res.json();
+                    if (data && Array.isArray(data.players) && data.players.length > 0) {
+                        applySnapshotState(data);
+                        saveLiveSnapshotLocal();
+                        if (showMsg) showToast("📦 已從 GitHub 備援檔 (jQt_backup.json) 載入陣容！", "success");
+                        return true;
+                    }
+                }
+            } catch (e) {}
+            return false;
+        }
+
+        async function syncToCloud() {
+            saveLiveSnapshotLocal();
+            renderDashboard();
+            const url = (document.getElementById('cloud-api-url')?.value || appState.cloudApiUrl || '').trim();
+            if (!url) {
+                showToast("已儲存於本機快取並更新前台！(若需跨裝置同步請設定 Apps Script 網址)", "success");
+                return;
+            }
+            appState.cloudApiUrl = url;
+            localStorage.setItem('jQt_cloud_url', url);
+            try {
+                showToast("☁️ 正在發布最新陣容與評分至雲端...", "info");
+                const res = await fetch(url, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'text/plain;charset=utf-8' },
+                    body: JSON.stringify(buildSnapshotState())
+                });
+                if (res.ok) {
+                    showToast("🎉 已成功發布至雲端！全盟與本機前台皆已同步更新", "success");
+                } else {
+                    throw new Error("HTTP " + res.status);
+                }
+            } catch (e) {
+                showToast("⚠️ 雲端推送失敗 (請確認 Apps Script 已部署新版本)，但已成功儲存於本機前台！", "warning");
+            }
+        }
+
+        async function syncFromCloud(showMsg = true) {
+            const url = (document.getElementById('cloud-api-url')?.value || appState.cloudApiUrl || '').trim();
+            let cloudLoaded = false;
+
+            if (url) {
+                try {
+                    if (showMsg) showToast("🔄 正在從雲端同步全盟最新資料...", "info");
+                    const res = await fetch(url + (url.includes('?') ? '&' : '?') + 't=' + Date.now());
+                    if (res.ok) {
+                        const data = await res.json();
+                        if (data && Array.isArray(data.players) && data.players.length > 0) {
+                            applySnapshotState(data);
+                            saveLiveSnapshotLocal();
+                            cloudLoaded = true;
+                            if (showMsg) showToast("✅ 已同步全盟最新陣容與星級評分！", "success");
+                        }
+                    }
+                } catch (e) {
+                    console.warn("雲端連線失敗，啟動本地與 GitHub 備援機制:", e);
+                }
+            }
+
+            if (!cloudLoaded) {
+                if (appState.players.length > 0) {
+                    renderDashboard();
+                    if (showMsg) showToast("⚠️ 雲端暫無資料或無法連線，目前顯示本機已儲存陣容", "warning");
+                    return;
+                }
+                const parsed = safeJsonParse(localStorage.getItem('jQt_live_snapshot'), null);
+                if (parsed && Array.isArray(parsed.players) && parsed.players.length > 0) {
+                    applySnapshotState(parsed);
+                    if (showMsg) showToast("已載入本機最新儲存狀態", "info");
+                    return;
+                }
+                const ghLoaded = await loadFromGitHubFallback(showMsg);
+                if (!ghLoaded && showMsg) {
+                    showToast("目前雲端與本機尚無陣容資料，請至後台匯入或點擊「載入範例名單測試」", "warning");
+                }
+            }
+        }
+
+        // --- 身分識別與權限控制 ---
+        function openIdentityModal() {
+            renderIdentityOptions('');
+            const searchEl = document.getElementById('identity-search');
+            if (searchEl) searchEl.value = '';
+            document.getElementById('identity-modal')?.classList.remove('hidden');
+        }
+        function closeIdentityModal() {
+            document.getElementById('identity-modal')?.classList.add('hidden');
+        }
+        function renderIdentityOptions(filterText) {
+            const sel = document.getElementById('identity-select');
+            if (!sel) return;
+            const q = (filterText || '').trim().toLowerCase();
+            const allNames = (appState.players || []).map(p => p.name).sort((a, b) => {
+                const aOff = isOfficerMember(a) ? 0 : 1;
+                const bOff = isOfficerMember(b) ? 0 : 1;
+                if (aOff !== bOff) return aOff - bOff;
+                return String(a).localeCompare(String(b));
+            });
+            const filtered = allNames.filter(n => !q || String(n).toLowerCase().includes(q));
+            if (filtered.length === 0) {
+                sel.innerHTML = `<option value="" disabled>尚無參戰成員名單 (請先由後台匯入或載入範例)</option>`;
+            } else {
+                sel.innerHTML = filtered.map(n => {
+                    const isOff = isOfficerMember(n);
+                    return `<option value="${escapeHtml(n)}" ${n === appState.currentUser ? 'selected' : ''}>${isOff ? '👑 [幹部] ' : '🛡️ '}${escapeHtml(n)}</option>`;
+                }).join('');
+            }
+            onIdentitySelectChange();
+        }
+        function onIdentitySelectChange() {
+            const sel = document.getElementById('identity-select');
+            const pinArea = document.getElementById('officer-pin-area');
+            if (!sel || !pinArea) return;
+            const val = sel.value;
+            pinArea.classList.toggle('hidden', !(val && isOfficerMember(val)));
+        }
+        function confirmIdentity() {
+            const sel = document.getElementById('identity-select');
+            const chosen = sel?.value;
+            if (!chosen) return showToast("請先點選您的遊戲 ID", "warning");
+            appState.currentUser = chosen;
+            localStorage.setItem('jQt_current_user', chosen);
+            if (isOfficerMember(chosen)) {
+                const pinInput = document.getElementById('officer-pin-input')?.value.trim() || '';
+                if (pinInput === appState.officerPin || appState.isAdminMode) {
+                    appState.isOfficerVerified = true;
+                    localStorage.setItem('jQt_officer_verified', 'true');
+                    showToast(`👑 歡迎幹部 ${chosen}！已解鎖成員調度、點名與戰功登錄權限`, 'success');
+                } else {
+                    appState.isOfficerVerified = false;
+                    localStorage.setItem('jQt_officer_verified', 'false');
+                    if (pinInput) showToast("幹部通行碼不正確，目前以盟友互評模式進入", "warning");
+                    else showToast(`歡迎 ${chosen}！您可查看專屬戰術卡並參與 1~5 星互評`, 'success');
+                }
+            } else {
+                appState.isOfficerVerified = false;
+                localStorage.setItem('jQt_officer_verified', 'false');
+                showToast(`歡迎 ${chosen}！已置頂您的戰術指令並開啟 1~5 星評分權限`, 'success');
+            }
+            if (document.getElementById('officer-pin-input')) document.getElementById('officer-pin-input').value = '';
+            closeIdentityModal();
+            updateRoleUI();
+            renderDashboard();
+            renderTacticsBoard();
+            renderActiveAttendanceBoard();
+        }
+        function clearIdentity() {
+            appState.currentUser = null;
+            appState.isOfficerVerified = false;
+            localStorage.removeItem('jQt_current_user');
+            localStorage.removeItem('jQt_officer_verified');
+            closeIdentityModal();
+            updateRoleUI();
+            renderDashboard();
+            renderActiveAttendanceBoard();
+        }
+        function handleAdminToggle() {
+            if (appState.isAdminMode) {
+                appState.isAdminMode = false;
+                updateRoleUI();
+                switchTab('dashboard');
+                showToast("已退出指揮官後台，返回前台檢視", "info");
+            } else {
+                const pwdInput = document.getElementById('admin-pwd-input');
+                if (pwdInput) pwdInput.value = '';
+                document.getElementById('admin-login-modal')?.classList.remove('hidden');
+                setTimeout(() => pwdInput?.focus(), 50);
+            }
+        }
+        function verifyAdminLogin() {
+            const val = document.getElementById('admin-pwd-input')?.value.trim() || '';
+            if (val === appState.adminPin) {
+                appState.isAdminMode = true;
+                appState.isOfficerVerified = true;
+                document.getElementById('admin-login-modal')?.classList.add('hidden');
+                updateRoleUI();
+                renderOfficerBadges();
+                switchTab('input');
+                showToast("🔓 指揮官後台已解鎖！", "success");
+            } else {
+                showToast("管理密碼錯誤！(預設為 8888)", "error");
+            }
+        }
+        function saveSecurityPins() {
+            const oPin = document.getElementById('setting-officer-pin')?.value.trim();
+            const aPin = document.getElementById('setting-admin-pin')?.value.trim();
+            if (oPin) appState.officerPin = oPin;
+            if (aPin) appState.adminPin = aPin;
+            saveLiveSnapshotLocal();
+            showToast("通行碼設定已更新", "success");
+        }
+        function updateRoleUI() {
+            const badge = document.getElementById('role-badge');
+            const userLabelD = document.getElementById('desktop-user-label');
+            const userLabelM = document.getElementById('mobile-user-label');
+            const adminBtnD = document.getElementById('desktop-admin-btn');
+            const adminBtnM = document.getElementById('mobile-admin-btn');
+            const pushBtnD = document.getElementById('btn-cloud-push');
+            const pushBtnM = document.getElementById('mobile-cloud-push');
+            if (userLabelD) userLabelD.innerText = appState.currentUser ? appState.currentUser : '選擇我的 ID';
+            if (userLabelM) userLabelM.innerText = appState.currentUser ? appState.currentUser : '選ID';
+            if (badge) {
+                if (appState.isAdminMode) {
+                    badge.className = "text-[10px] bg-amber-400 text-slate-950 px-2.5 py-0.5 rounded-full font-black shadow";
+                    badge.innerText = "🎖️ 指揮官後台模式";
+                    if (adminBtnD) adminBtnD.innerHTML = `<span>🚪</span> 返回前台`;
+                    if (adminBtnM) adminBtnM.innerText = `🚪 前台`;
+                } else if (appState.isOfficerVerified) {
+                    badge.className = "text-[10px] bg-indigo-500 text-white px-2.5 py-0.5 rounded-full font-black shadow";
+                    const displayUser = appState.currentUser ? appState.currentUser : "指揮官";
+                    badge.innerText = `👑 幹部調度模式 (${displayUser})`;
+                    if (adminBtnD) adminBtnD.innerHTML = `<span>🔐</span> 指揮官後台`;
+                    if (adminBtnM) adminBtnM.innerText = `🔐 後台`;
+                } else {
+                    badge.className = "text-[10px] bg-slate-700 text-slate-200 px-2.5 py-0.5 rounded-full font-bold";
+                    badge.innerText = appState.currentUser ? `🛡️ 盟友 (${appState.currentUser})` : "👀 盟友檢視模式";
+                    if (adminBtnD) adminBtnD.innerHTML = `<span>🔐</span> 指揮官後台`;
+                    if (adminBtnM) adminBtnM.innerText = `🔐 後台`;
+                }
+            }
+            document.getElementById('nav-input')?.classList.toggle('hidden', !appState.isAdminMode);
+            document.getElementById('nav-settings')?.classList.toggle('hidden', !appState.isAdminMode);
+            document.getElementById('btn-manual-lock')?.classList.toggle('hidden', !appState.isAdminMode);
+            const editableRoster = canEditRoster();
+            const officerToolbar = document.getElementById('officer-toolbar');
+            if (officerToolbar) {
+                officerToolbar.classList.toggle('hidden', !editableRoster);
+                officerToolbar.classList.toggle('flex', editableRoster);
+            }
+            document.querySelectorAll('.roster-edit-btn').forEach(btn => {
+                btn.classList.toggle('hidden', !editableRoster);
+            });
+            document.querySelectorAll('.officer-only-btn').forEach(btn => {
+                btn.classList.toggle('hidden', !canEditAttendance());
+            });
+            if (pushBtnD) pushBtnD.classList.toggle('hidden', !canEditAttendance());
+            if (pushBtnM) pushBtnM.classList.toggle('hidden', !canEditAttendance());
+            updateMyTacticalCard();
+        }
+        // --- 個人專屬戰術卡 & 臨時緊急請假 ---
+        function updateMyTacticalCard() {
+            const card = document.getElementById('my-tactical-card');
+            if (!card) return;
+            if (!appState.currentUser || appState.players.length === 0) {
+                card.classList.add('hidden');
+                return;
+            }
+            card.classList.remove('hidden');
+            setText('my-card-name', appState.currentUser);
+            const roleTag = document.getElementById('my-card-role');
+            if (roleTag) roleTag.classList.toggle('hidden', !isOfficerMember(appState.currentUser));
+            const cStats = getPlayerCareerStats(appState.currentUser);
+            const statStr = cStats.totalGames > 0 
+                ? `歷史出席 ${cStats.attRate}% ｜ ⭐ ${cStats.avgStars > 0 ? cStats.avgStars.toFixed(1) : '--'} ｜ 累計戰功 ${cStats.totalMerit}萬`
+                : `本季首戰紀錄`;
+            setText('my-card-stats', statStr);
+            const p = appState.players.find(x => x.name === appState.currentUser);
+            if (!p || !p.team) {
+                const isAbs = appState.absentPlayers.some(x => x.name === appState.currentUser);
+                setText('my-card-assignment', isAbs ? '🚫 您目前已登記於「請假 / 不參加名單」中' : '⏳ 尚未分配軍團');
+                setText('my-card-target', '若需恢復參戰，請聯繫聯盟幹部協助調度');
+                document.getElementById('btn-emergency-leave')?.classList.add('hidden');
+                return;
+            }
+            const team = appState.teams.find(t => t.id === p.team);
+            const mGroup = MISSION_GROUPS.find(g => g.id === p.missionGroup);
+            const groupTitle = mGroup ? mGroup.name : '待系統分配小組';
+            const groupTarget = mGroup ? mGroup.target.replace(/\n/g, ' ｜ ') : '請至「2. 戰術任務」分頁查看據點分配';
+            const leaveNote = appState.emergencyLeaves[p.name];
+            if (leaveNote) {
+                setText('my-card-assignment', `⚠️ 已送出臨時請假申請（原因：${leaveNote}），等待幹部准假移出`);
+            } else {
+                setText('my-card-assignment', `本場編入【${team ? team.name : p.team}】，作戰時間：${team ? team.time : '--'}，所屬小隊：【${groupTitle}】`);
+            }
+            setText('my-card-target', `📍 ${groupTarget}`);
+            document.getElementById('btn-emergency-leave')?.classList.toggle('hidden', appState.isRosterLocked);
+        }
+        async function requestEmergencyLeave() {
+            if (!appState.currentUser) return;
+            if (appState.isRosterLocked) return showToast("名單已正式鎖定，請直接私訊帶隊幹部！", "error");
+            const reason = prompt(`【${appState.currentUser} 臨時緊急請假】\n請簡短輸入請假原因（送出後將在幹部看板亮起紅燈提醒）：`, "臨時加班無法趕上");
+            if (reason === null) return;
+            const cleanReason = reason.trim() || "臨時請假";
+            appState.emergencyLeaves[appState.currentUser] = cleanReason;
+            checkConflicts();
+            renderDashboard();
+            updateMyTacticalCard();
+            saveLiveSnapshotLocal();
+            if (appState.cloudApiUrl) {
+                try {
+                    await fetch(appState.cloudApiUrl, {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'text/plain;charset=utf-8' },
+                        body: JSON.stringify({ action: 'emergency_leave', player: appState.currentUser, reason: cleanReason })
+                    });
+                } catch (e) {}
+            }
+            showToast("✋ 已標記您的臨時請假申請！幹部看板已同步亮起紅燈", "warning");
+        }
+        // --- 後台視覺化幹部名牌勾選器 ---
+        function renderOfficerBadges() {
+            const panel = document.getElementById('officer-badge-panel');
+            const grid = document.getElementById('officer-badge-grid');
+            if (!panel || !grid) return;
+            if (appState.players.length === 0) {
+                panel.classList.add('hidden');
+                return;
+            }
+            panel.classList.remove('hidden');
+            const sorted = [...appState.players].sort((a, b) => b.power - a.power);
+            let offCount = 0;
+            grid.innerHTML = sorted.map(p => {
+                const isOff = isOfficerMember(p.name);
+                if (isOff) offCount++;
+                const safeName = escapeJsStr(p.name);
+                return `
+                <div onclick="toggleOfficerStatus('${safeName}')" data-badge-name="${escapeHtml(p.name)}" class="officer-badge-item cursor-pointer p-2.5 rounded-xl border-2 transition-all flex items-center justify-between select-none ${isOff ? 'border-amber-400 bg-amber-50 dark:bg-amber-950/50 shadow-sm' : 'border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 opacity-75 hover:opacity-100'}">
+                    <div class="overflow-hidden pr-1">
+                        <div class="font-bold text-xs text-slate-800 dark:text-slate-100 truncate">${escapeHtml(p.name)}</div>
+                        <div class="text-[10px] text-slate-400 font-mono">${formatSmart(p.power)}</div>
+                    </div>
+                    <span class="text-base shrink-0">${isOff ? '👑' : '⚪'}</span>
+                </div>`;
+            }).join('');
+            setText('officer-count-badge', offCount);
+        }
+        function toggleOfficerStatus(name) {
+            const clean = normalizeName(name);
+            const idx = appState.officers.findIndex(o => normalizeName(o) === clean);
+            if (idx > -1) appState.officers.splice(idx, 1);
+            else appState.officers.push(name);
+            localStorage.setItem('jQt_officers', JSON.stringify(appState.officers));
+            renderOfficerBadges();
+            renderDashboard();
+            saveLiveSnapshotLocal();
+        }
+        function filterOfficerBadges(q) {
+            const query = (q || '').trim().toLowerCase();
+            document.querySelectorAll('#officer-badge-grid .officer-badge-item').forEach(el => {
+                const name = (el.getAttribute('data-badge-name') || '').toLowerCase();
+                el.classList.toggle('hidden', Boolean(query && !name.includes(query)));
+            });
+        }
+        // --- 部隊鎖定倒數計時器與自動封存 ---
+        function setLockDeadline(val) {
+            if (!val) return;
+            const ts = new Date(val).getTime();
+            if (isNaN(ts)) return;
+            appState.lockDeadline = ts;
+            appState.isRosterLocked = false;
+            appState.autoSavedLock = false;
+            localStorage.setItem('jQt_lock_deadline', String(ts));
+            startCountdownTimer();
+            saveLiveSnapshotLocal();
+            showToast("⏳ 已設定部隊名單鎖定倒數時間！", "success");
+        }
+        function setQuickCountdown(minutes) {
+            const ts = Date.now() + minutes * 60 * 1000;
+            appState.lockDeadline = ts;
+            appState.isRosterLocked = false;
+            appState.autoSavedLock = false;
+            localStorage.setItem('jQt_lock_deadline', String(ts));
+            const dtInput = document.getElementById('lock-datetime-input');
+            if (dtInput) {
+                const d = new Date(ts - new Date().getTimezoneOffset() * 60000);
+                dtInput.value = d.toISOString().slice(0, 16);
+            }
+            startCountdownTimer();
+            saveLiveSnapshotLocal();
+            showToast(`⏳ 已啟動倒數：將於 ${minutes} 分鐘後自動鎖定名單！`, "success");
+        }
+        function clearCountdown() {
+            appState.lockDeadline = null;
+            appState.isRosterLocked = false;
+            localStorage.removeItem('jQt_lock_deadline');
+            document.getElementById('countdown-banner')?.classList.add('hidden');
+            updateRoleUI();
+            renderDashboard();
+            saveLiveSnapshotLocal();
+            showToast("已取消倒數鎖定", "info");
+        }
+        function toggleManualLock() {
+            if (appState.isRosterLocked) {
+                appState.isRosterLocked = false;
+                appState.lockDeadline = null;
+                localStorage.removeItem('jQt_lock_deadline');
+                showToast("🔓 已解除名單鎖定，幹部可繼續調度", "info");
+            } else {
+                appState.lockDeadline = Date.now() - 1000;
+                triggerRosterLockdown();
+            }
+            startCountdownTimer();
+            updateRoleUI();
+            renderDashboard();
+            saveLiveSnapshotLocal();
+        }
+        function triggerRosterLockdown() {
+            appState.isRosterLocked = true;
+            if (!appState.autoSavedLock && appState.players.length > 0) {
+                appState.autoSavedLock = true;
+                saveConfiguration(`🔒 鎖定陣容 (${new Date().toLocaleDateString()})`, true);
+                ensureAttendanceInitialized();
+                showToast("🔒 倒數結束！部隊陣容已正式鎖定並自動歸檔，賽後點名與評分已開放", "warning");
+            }
+            updateRoleUI();
+            renderDashboard();
+        }
+        function startCountdownTimer() {
+            if (countdownInterval) clearInterval(countdownInterval);
+            const banner = document.getElementById('countdown-banner');
+            if (!appState.lockDeadline && !appState.isRosterLocked) {
+                if (banner) banner.classList.add('hidden');
+                return;
+            }
+            if (banner) banner.classList.remove('hidden');
+            const tick = () => {
+                const now = Date.now();
+                const diff = (appState.lockDeadline || 0) - now;
+                const timerEl = document.getElementById('countdown-timer');
+                const iconEl = document.getElementById('lock-status-icon');
+                const textEl = document.getElementById('lock-status-text');
+                const btnEl = document.getElementById('btn-manual-lock');
+                if (diff <= 0 || appState.isRosterLocked) {
+                    if (!appState.isRosterLocked) triggerRosterLockdown();
+                    if (iconEl) iconEl.innerText = '🔒';
+                    if (textEl) textEl.innerText = '本場部隊名單已正式鎖定！';
+                    if (timerEl) {
+                        timerEl.innerText = 'LOCKED (已封存陣容)';
+                        timerEl.className = 'font-mono text-xs md:text-sm font-black text-emerald-400 bg-slate-950/60 px-2.5 py-0.5 rounded-lg border border-emerald-400/30';
+                    }
+                    if (btnEl) btnEl.innerText = '🔓 解除鎖定';
+                    clearInterval(countdownInterval);
+                    return;
+                }
+                const h = String(Math.floor(diff / 3600000)).padStart(2, '0');
+                const m = String(Math.floor((diff % 3600000) / 60000)).padStart(2, '0');
+                const s = String(Math.floor((diff % 60000) / 1000)).padStart(2, '0');
+                if (iconEl) iconEl.innerText = '⏳';
+                if (textEl) textEl.innerText = '距離部隊名單正式鎖定還有：';
+                if (timerEl) {
+                    timerEl.innerText = `${h}時 ${m}分 ${s}秒`;
+                    timerEl.className = 'font-mono text-sm md:text-base font-black text-amber-400 bg-slate-950/60 px-2.5 py-0.5 rounded-lg border border-amber-400/30';
+                }
+                if (btnEl) btnEl.innerText = '🔒 立即手動鎖定';
+            };
+            tick();
+            countdownInterval = setInterval(tick, 1000);
+        }
+        // --- 頁面切換 ---
+        function switchTab(page){
+            document.querySelectorAll('main > div > section').forEach(s => s.classList.add('hidden')); 
+            const target = document.getElementById(`page-${page}`);
+            if(target) target.classList.remove('hidden');
+            
+            document.querySelectorAll('.nav-btn').forEach(b => b.classList.remove('active')); 
+            const btn = document.getElementById(`nav-${page}`);
+            if(btn) btn.classList.add('active');
+            
+            if(page === 'tactics') initTactics(); 
+            if(page === 'settings') renderSettings(); 
+            if(page === 'dashboard') renderDashboard();
+            if(page === 'attendance') { ensureAttendanceInitialized(); renderActiveAttendanceBoard(); }
+            if(page === 'history') { renderReportCard(); renderHistoryList(); renderAttendanceHistory(); }
+        }
+        function switchInputMode(m){
+            currentMode = m; 
+            const cloudBtn = document.getElementById('mode-cloud');
+            const pasteBtn = document.getElementById('mode-paste');
+            const activeCls = ['border-indigo-500', 'bg-indigo-50', 'dark:bg-indigo-950/60', 'text-indigo-600', 'dark:text-indigo-300'];
+            const inactiveCls = ['border-slate-200', 'dark:border-slate-700', 'bg-white', 'dark:bg-slate-800', 'text-slate-600', 'dark:text-slate-300'];
+            if (cloudBtn && pasteBtn) {
+                if (m === 'cloud') {
+                    cloudBtn.classList.add(...activeCls); cloudBtn.classList.remove(...inactiveCls);
+                    pasteBtn.classList.add(...inactiveCls); pasteBtn.classList.remove(...activeCls);
+                } else {
+                    pasteBtn.classList.add(...activeCls); pasteBtn.classList.remove(...inactiveCls);
+                    cloudBtn.classList.add(...inactiveCls); cloudBtn.classList.remove(...activeCls);
+                }
+            }
+            document.getElementById('input-cloud-area')?.classList.toggle('hidden', m !== 'cloud'); 
+            document.getElementById('input-paste-area')?.classList.toggle('hidden', m !== 'paste'); 
+        }
+        function toggleDarkMode() { 
+            const isDark = document.body.classList.toggle('dark'); 
+            localStorage.setItem('jQt_dark_mode', isDark);
+        }
+        function saveLocal(){ 
+            const ur = document.getElementById('url-reg')?.value || '';
+            const up = document.getElementById('url-power')?.value || '';
+            localStorage.setItem('jQt_url_reg', ur); 
+            localStorage.setItem('jQt_url_power', up); 
+            localStorage.setItem('jQt_mappings', JSON.stringify(appState.manualMappings)); 
+            localStorage.setItem('jQt_alts', JSON.stringify(appState.alts));
+            localStorage.setItem('jQt_together', JSON.stringify(appState.togetherGroup));
+            localStorage.setItem('jQt_together_target', appState.togetherTargetTeam);
+            const cUrl = document.getElementById('cloud-api-url')?.value;
+            if (cUrl !== undefined) { appState.cloudApiUrl = cUrl.trim(); localStorage.setItem('jQt_cloud_url', appState.cloudApiUrl); }
+        }
+        function validateUrl(input) { 
+            if (!input || !input.parentElement) return;
+            const icon = input.parentElement.querySelector('.validation-icon'); if(!icon) return;
+            const val = input.value.trim(); 
+            if (!val) { icon.innerText = '⏳'; icon.className = 'validation-icon text-slate-300'; return; } 
+            if (val.includes('docs.google.com') || val.endsWith('.csv') || val.startsWith('http')) { 
+                icon.innerText = '✓'; icon.className = 'validation-icon text-emerald-500 font-bold'; 
+            } else { 
+                icon.innerText = '⚠️'; icon.className = 'validation-icon text-amber-500 animate-pulse'; 
+            } 
+        }
+        function updateLoadingStatus(text, show) { 
+            const el = document.getElementById('loading-status'); 
+            const txt = document.getElementById('loading-text'); 
+            if (!el || !txt) return;
+            if(show) { el.classList.remove('hidden'); txt.innerText = text; } 
+            else { el.classList.add('hidden'); } 
+        }
+        // --- 載入範例資料 ---
+        function loadDemoData(silent = false) {
+            switchInputMode('paste');
+            const demoReg = [
+                "玩家名稱,參戰意願",
+                "影子,軍團一 (22:00)", "Vorte峰,軍團一 (22:00)", "JJ~,軍團一 (22:00)", "尼根,一二皆可", "香蕉船梅料,軍團一 (22:00)",
+                "ⒿⒶⓎ,軍團一 (22:00)", "亮柒柒,一二皆可", "冬日暖陽,軍團一 (22:00)", "Henry,軍團一 (22:00)", "CΛLΞST,一二皆可",
+                "Daddy宏,軍團一 (22:00)", "歐培拉,軍團一 (22:00)", "草仔糕寶劍,一二皆可", "貓饅頭,軍團一 (22:00)", "ReiRei,軍團一 (22:00)",
+                "lala lovesong,一二皆可", "卡沛大大,軍團一 (22:00)",
+                "劼吉撈,軍團一 (22:00)", "藍色劼吉撈ATM,軍團二 (20:00)", "柒柒,一二皆可", "Rueiii,軍團一 (22:00)", "小梅幾,軍團二 (20:00)",
+                "周星星,軍團一 (22:00)", "麻麻豆豆~,軍團二 (20:00)", "大隻佬,軍團二 (20:00)", "阿卡利爾斯,一二皆可", "主流兔,軍團一 (22:00)",
+                "盟浪兔,軍團二 (20:00)", "冬來冬往,軍團一 (22:00)", "小冬冬,軍團二 (20:00)", "躺平草仔粿,軍團二 (20:00)", "Masaorange,軍團一 (22:00)",
+                "小馬殺,軍團二 (20:00)", "小螞蟻,一二皆可", "小小螞蟻,軍團二 (20:00)", "快樂永伴,軍團一 (22:00)", "HappyHappy,軍團二 (20:00)",
+                "一念關山,軍團一 (22:00)", "PekingDuck,一二皆可", "YI9908zh,軍團二 (20:00)", "錢包包,軍團一 (22:00)", "錢多多,軍團二 (20:00)",
+                "寒霜戰神,軍團一 (22:00)", "冰原獵手,軍團一 (22:00)", "極光守護者,軍團二 (20:00)", "暴風雪,一二皆可", "烈焰熔爐,軍團一 (22:00)",
+                "鐵壁狂戰,軍團二 (20:00)", "北境之王,軍團一 (22:00)", "雪地孤狼,軍團二 (20:00)", "白熊騎士,一二皆可",
+                "冰封王座,軍團一 (22:00)", "凛冬將至,軍團二 (20:00)", "破冰者,一二皆可", "星辰大海,軍團一 (22:00)", "深淵凝視,軍團二 (20:00)",
+                "蒼穹之翼,一二皆可", "雷霆萬鈞,軍團一 (22:00)", "幻影刺客,軍團二 (20:00)", "聖光牧師,一二皆可", "暗夜精靈,軍團一 (22:00)",
+                "路人甲,不克參加", "忙線中,請假"
+            ].join("\n");
+            const demoPower = [
+                "成員ID,總戰力,備註",
+                "影子,215000000,", "Vorte峰,205000000,", "JJ~,198000000,", "尼根,192000000,", "香蕉船梅料,186000000,",
+                "ⒿⒶⓎ,181000000,", "亮柒柒,176000000,", "冬日暖陽,172000000,", "Henry,167000000,", "CΛLΞST,163000000,",
+                "Daddy宏,158000000,", "歐培拉,154000000,", "草仔糕寶劍,148000000,", "貓饅頭,142000000,", "ReiRei,136000000,",
+                "lala lovesong,130000000,", "卡沛大大,124000000,",
+                "劼吉撈,245000000,R5", "藍色劼吉撈ATM,115000000,", "柒柒,238000000,R4", "Rueiii,226000000,R4", "小梅幾,98000000,",
+                "周星星,219000000,R4", "麻麻豆豆~,105000000,", "大隻佬,212000000,R4", "阿卡利爾斯,208000000,R4", "主流兔,195000000,",
+                "盟浪兔,92000000,", "冬來冬往,188000000,", "小冬冬,89000000,", "躺平草仔粿,182000000,", "Masaorange,179000000,",
+                "小馬殺,86000000,", "小螞蟻,175000000,", "小小螞蟻,82000000,", "快樂永伴,171000000,", "HappyHappy,79000000,",
+                "一念關山,168000000,", "PekingDuck,165000000,", "YI9908zh,162000000,", "錢包包,159000000,", "錢多多,76000000,",
+                "寒霜戰神,155000000,", "冰原獵手,152000000,", "極光守護者,149000000,", "暴風雪,146000000,", "烈焰熔爐,143000000,",
+                "鐵壁狂戰,140000000,", "北境之王,134000000,", "雪地孤狼,131000000,", "白熊騎士,128000000,",
+                "冰封王座,125000000,", "凛冬將至,122000000,", "破冰者,119000000,", "星辰大海,116000000,", "深淵凝視,113000000,",
+                "蒼穹之翼,110000000,", "雷霆萬鈞,107000000,", "幻影刺客,104000000,", "聖光牧師,101000000,", "暗夜精靈,99000000,"
+            ].join("\n");
+            if (document.getElementById('csv-reg')) document.getElementById('csv-reg').value = demoReg;
+            if (document.getElementById('csv-power')) document.getElementById('csv-power').value = demoPower;
+            preProcessData(silent).then(() => handleAllocation(silent));
+        }
+        async function fetchWithFallback(url) {
+            if (url.includes('docs.google.com') && url.includes('/edit')) url = url.replace(/\/edit.*$/, '/export?format=csv');
+            else if (url.includes('/pubhtml')) url = url.replace(/\/pubhtml.*/, '/pub?output=csv');
+            const steps = [
+                { url: url, name: "直連嘗試" }, 
+                { url: `https://corsproxy.io/?${encodeURIComponent(url)}`, name: "CorsProxy" },
+                { url: `https://api.allorigins.win/raw?url=${encodeURIComponent(url)}`, name: "AllOrigins" },
+                { url: `https://api.codetabs.com/v1/proxy?quest=${encodeURIComponent(url)}`, name: "CodeTabs" }
+            ];
+            const fetchWithTimeout = async (resource, options = {}) => {
+                const { timeout = 8000 } = options; 
+                const controller = new AbortController();
+                const id = setTimeout(() => controller.abort(), timeout);
+                try {
+                    const response = await fetch(resource, { ...options, signal: controller.signal });
+                    clearTimeout(id); return response;
+                } catch (error) { clearTimeout(id); throw error; }
+            };
+            for (const s of steps) {
+                try {
+                    const r = await fetchWithTimeout(s.url);
+                    if (r.ok) {
+                        const t = await r.text();
+                        if (t.trim().startsWith('<!DOCTYPE') || t.trim().startsWith('<html') || t.includes('Moved Temporarily')) continue;
+                        if (t.length < 20) continue;
+                        return t; 
+                    }
+                } catch (e) {}
+            }
+            throw new Error("無法讀取雲端試算表，請確認權限已設為「知道連結的任何人」，或改用「直接貼上 CSV」模式。");
+        }
+        function parseCSV(text) {
+            if (!text) return [];
+            text = String(text).replace(/^\uFEFF/, ''); 
+            const rows = []; let row = []; let val = ''; let inQuote = false;
+            for (let i = 0; i < text.length; i++) {
+                let c = text[i], n = text[i+1];
+                if (c === '"') {
+                    if (inQuote && n === '"') { val += '"'; i++; } else { inQuote = !inQuote; }
+                } else if (c === ',' && !inQuote) {
+                    row.push(val.trim()); val = '';
+                } else if ((c === '\r' || c === '\n') && !inQuote) {
+                    if(c === '\r' && n === '\n') i++; 
+                    row.push(val.trim());
+                    if(row.length > 0 && (row.length > 1 || row[0] !== '')) rows.push(row);
+                    row = []; val = '';
+                } else { val += c; }
+            }
+            if (val || row.length) { row.push(val.trim()); if(row.length > 0) rows.push(row); }
+            return rows;
+        }
+        function getFamilyId(name) { 
+            const cleanName = normalizeName(name); 
+            for(const pair of (appState.alts || [])) { 
+                const main = normalizeName(pair.main), alt = normalizeName(pair.alt); 
+                if(cleanName && alt && (cleanName.includes(alt) || alt.includes(cleanName))) return main; 
+                if(cleanName && main && (cleanName.includes(main) || main.includes(cleanName))) return main; 
+            } 
+            return cleanName; 
+        }
+        function populatePickers(d, id1, id2=null){ 
+            const h = d[0] || []; if(h.length === 0) return;
+            const mk = (i,n) => `<option value="${i}">[${i}] ${escapeHtml(n || '未命名')}</option>`; 
+            const processSelect = (id, keywords, fallbackIdx) => {
+                const el = document.getElementById(id); if(!el) return;
+                el.innerHTML = h.map((x,i) => mk(i,x)).join('');
+                let found = -1;
+                h.forEach((x, i) => { const t = String(x).toLowerCase(); if(keywords.some(k => t.includes(k))) found = i; });
+                if(found > -1) el.value = found;
+                else if(fallbackIdx < h.length) el.value = fallbackIdx;
+            };
+            processSelect(id1, ['name', '名稱', 'id', '暱稱', '名字', '成員', '玩家'], 0);
+            if(id2) { 
+                if(id2.includes('opt')) processSelect(id2, ['option', '選項', '時間', '意願', '參加', '軍團', '報名'], 1); 
+                if(id2.includes('val')) processSelect(id2, ['power', '戰力', '分數', '總戰力'], 1); 
+            }
+        }
+        async function preProcessData(silent = false){ 
+            const btn = document.getElementById('btn-pre'); if(btn) btn.disabled = true; 
+            if(!silent) updateLoadingStatus('讀取與解析資料中...', true); 
+            try { 
+                let r='', p=''; 
+                if(currentMode === 'paste'){ 
+                    r = document.getElementById('csv-reg')?.value || ''; p = document.getElementById('csv-power')?.value || ''; 
+                    if (!r.trim() || !p.trim()) throw new Error("請貼上報名表與戰力表 CSV 資料");
+                } else { 
+                    const ur = document.getElementById('url-reg')?.value || '', up = document.getElementById('url-power')?.value || ''; 
+                    if(!ur || !up) throw new Error("請輸入兩個 Google Sheet 連結"); 
+                    [r,p] = await Promise.all([fetchWithFallback(ur), fetchWithFallback(up)]); 
+                } 
+                appState.rawRegData = parseCSV(r); appState.rawPowerData = parseCSV(p); 
+                populatePickers(appState.rawRegData, 'col-reg-name', 'col-reg-opt'); 
+                populatePickers(appState.rawPowerData, 'col-pow-name', 'col-pow-val'); 
+                document.getElementById('col-picker')?.classList.remove('hidden'); 
+                verifyNames(silent); 
+            } catch(e){ 
+                if(!silent) showToast("錯誤: " + e.message, 'error'); 
+            } finally {
+                if(btn) btn.disabled = false; updateLoadingStatus('', false); 
+            }
+        }
+        function verifyNames(silent = false) { 
+            const ri = parseInt(document.getElementById('col-reg-name')?.value); 
+            const ni = parseInt(document.getElementById('col-pow-name')?.value); 
+            if(isNaN(ri) || isNaN(ni)) return;
+            
+            let powerNames = [], powerMap = {}; 
+            for(let i=1; i<appState.rawPowerData.length; i++){ 
+                const r = appState.rawPowerData[i]; if(!r || !r[ni]) continue; 
+                const raw = r[ni]; const clean = normalizeName(raw); 
+                if(clean) { powerNames.push(raw); powerMap[clean] = raw; } 
+            } 
+            appState.availablePowerNames = powerNames; 
+            
+            let unmatched = [], matchedCount = 0;
+            const optIdx = parseInt(document.getElementById('col-reg-opt')?.value);
+            for(let i=1; i<appState.rawRegData.length; i++){ 
+                const r = appState.rawRegData[i]; if(!r) continue;
+                const name = r[ri]; if(!name) continue; 
+                const opt = r[optIdx] || ''; 
+                if(ABSENT_KEYWORDS.some(k => String(opt).replace(/\s+/g, '').toLowerCase().includes(k))) continue; 
+                if(appState.manualMappings[name]) { matchedCount++; continue; } 
+                const clean = normalizeName(name); 
+                if(powerMap[clean]) { matchedCount++; continue; } 
+                const fuzzy = powerNames.find(p => normalizeName(p).includes(clean) || clean.includes(normalizeName(p))); 
+                unmatched.push({ orig: name, guess: fuzzy || "" }); 
+            } 
+            
+            const panel = document.getElementById('match-check-panel');
+            const container = document.getElementById('match-check-container');
+            if (!panel || !container) return;
+            if(unmatched.length > 0) { 
+                panel.classList.remove('hidden'); container.innerHTML = ''; 
+                const sortedOpts = [...powerNames].sort(); 
+                unmatched.forEach(u => { 
+                    let optsHtml = `<option value="">-- 請選擇對應戰力表 ID --</option>` + sortedOpts.map(p => `<option value="${escapeHtml(p)}" ${p===u.guess?'selected':''}>${escapeHtml(p)}</option>`).join('');
+                    container.innerHTML += `<div class="flex items-center gap-2 border-b border-slate-100 dark:border-slate-800 pb-1.5 mb-1.5"><span class="w-1/3 text-xs font-bold text-slate-700 dark:text-slate-200 truncate">${escapeHtml(u.orig)}</span><span class="text-slate-400">➜</span><select data-orig="${escapeHtml(u.orig)}" class="match-fix-select flex-1 text-xs border dark:border-slate-700 rounded-lg p-1.5 bg-white dark:bg-slate-800">${optsHtml}</select></div>`; 
+                }); 
+            } else { 
+                panel.classList.add('hidden'); 
+                if(!silent && matchedCount > 0) showToast(`驗證完成：${matchedCount} 人匹配成功！`, 'success'); 
+            } 
+        }
+        function saveManualMappingsAndRun() { 
+            document.querySelectorAll('#match-check-container .match-fix-select').forEach(s => { 
+                const orig = s.getAttribute('data-orig'); if(orig && s.value) appState.manualMappings[orig] = s.value; 
+            }); 
+            saveLocal(); document.getElementById('match-check-panel')?.classList.add('hidden'); 
+            handleAllocation(); 
+        }
+        function handleAllocation(silent = false){ 
+            try { 
+                const ri = parseInt(document.getElementById('col-reg-name')?.value), oi = parseInt(document.getElementById('col-reg-opt')?.value); 
+                const ni = parseInt(document.getElementById('col-pow-name')?.value), vi = parseInt(document.getElementById('col-pow-val')?.value); 
+                if(isNaN(ri) || isNaN(ni)) throw new Error("請先執行「1. 讀取試算表資料」確認欄位");
+                let pMap = {}; 
+                for(let i=1; i<appState.rawPowerData.length; i++){ 
+                    const r = appState.rawPowerData[i]; if(!r || !r[ni]) continue; 
+                    const n = r[ni], vRaw = r[vi] ? r[vi].toString().replace(/,/g,'') : "0", p = parseFloat(vRaw) || 0; 
+                    if(!n || n.toString().includes('function')) continue; 
+                    pMap[normalizeName(n)] = {raw:n, p, r:r[2]||r[3]||""}; 
+                } 
+                
+                let valid = [], absent = [], unknown = [], seenNames = new Set();
+                for(let i=1; i<appState.rawRegData.length; i++){ 
+                    const r = appState.rawRegData[i]; if(!r) continue;
+                    const name = r[ri]; const opt = r[oi] || ''; 
+                    if(!name) continue;
+                    
+                    if(ABSENT_KEYWORDS.some(k => String(opt).replace(/\s+/g, '').toLowerCase().includes(k))) { 
+                        absent.push({name, opt}); continue; 
+                    } 
+                    
+                    const clean = normalizeName(name);
+                    let pData = appState.manualMappings[name] ? pMap[normalizeName(appState.manualMappings[name])] : pMap[clean]; 
+                    
+                    const prefTime = parsePrefTime(opt);
+                    const finalName = pData ? pData.raw : name;
+                    if (seenNames.has(finalName)) continue; 
+                    seenNames.add(finalName);
+                    const fid = getFamilyId(finalName); 
+                    if(pData) {
+                        if (String(pData.r).toUpperCase().includes('R4') || String(pData.r).toUpperCase().includes('R5')) {
+                            if (!isOfficerMember(pData.raw)) appState.officers.push(pData.raw);
+                        }
+                        valid.push({ name:pData.raw, orig:name, prefTime, origPref:opt, power:pData.p, remark:pData.r, team:null, reason:'', fid, missionGroup: 0 }); 
+                    } else { 
+                        valid.push({ name, orig:name, prefTime, origPref:opt, power:0, remark:'', team:null, reason:'戰力不明', fid, missionGroup: 0 }); 
+                        unknown.push({ name, guess:'' }); 
+                    } 
+                } 
+                
+                appState.players = valid; appState.absentPlayers = absent; appState.unknownPlayers = unknown; 
+                runTeamLogic(appState.lastLogicMode || 'snake'); 
+                ensureAttendanceInitialized();
+                renderOfficerBadges();
+                saveLiveSnapshotLocal();
+                if(!silent) showToast(`分隊與名牌生成完畢！共 ${valid.length} 位參戰成員，已自動更新看板與本機快取`, 'success'); 
+            } catch(e){ if(!silent) showToast("處理發生錯誤: " + e.message, 'error'); } 
+        }
+        // --- 戰術分隊引擎 ---
+        function isLockedMember(m) { 
+            return (m.reason || '').includes("鎖定") || (m.reason || '').includes("特例") || (m.reason || '').includes("共控") || (m.reason || '').includes("同隊"); 
+        }
+        
+        function isSafeToJoin(player, targetTeam) {
+            const hasFamilyInTarget = targetTeam.members.some(m => m.fid === player.fid && m.name !== player.name);
+            if (hasFamilyInTarget) return false;
+            const sameTimeTeams = appState.teams.filter(t => t.active && t.id !== targetTeam.id && t.time === targetTeam.time);
+            for (const t of sameTimeTeams) {
+                const hasFamilyInSameTime = t.members.some(m => m.fid === player.fid && m.name !== player.name);
+                if (hasFamilyInSameTime) return false;
+            }
+            return true;
+        }
+        function runTeamLogic(mode = 'snake') {
+            appState.lastLogicMode = mode;
+            
+            const btnS = document.getElementById('btn-logic-snake');
+            const btnM = document.getElementById('btn-logic-mtype');
+            const activeClass = "bg-white dark:bg-slate-700 text-indigo-600 dark:text-indigo-300 shadow-sm";
+            const inactiveClass = "text-slate-500 hover:bg-white/50 bg-transparent shadow-none";
+            const baseClass = "px-3 py-1.5 rounded-lg text-xs font-bold flex items-center gap-1 transition-all cursor-pointer";
+            if(btnS && btnM) {
+                btnS.className = baseClass + " " + (mode === 'snake' ? activeClass : inactiveClass);
+                btnM.className = baseClass + " " + (mode === 'm_type' ? activeClass : inactiveClass);
+            }
+            const validP = (appState.players || []).slice();
+            appState.teams.forEach(t => t.members = []);
+            const activeTeams = appState.teams.filter(t => t.active).sort((a, b) => a.priority - b.priority);
+            if (activeTeams.length === 0) return;
+            let remaining = [...validP].sort((a, b) => b.power - a.power);
+            const assign = (p, tid, reason) => {
+                const t = appState.teams.find(x => x.id === tid);
+                if (t && t.active) {
+                    p.team = tid; p.reason = reason; t.members.push(p);
+                    const idx = remaining.findIndex(x => x.name === p.name);
+                    if (idx > -1) remaining.splice(idx, 1);
+                    return true;
+                }
+                return false;
+            };
+            // 階段 1：個別鎖定成員
+            [...remaining].forEach(p => {
+                if (isTogetherGroupMember(p.name) || isTogetherGroupMember(p.orig)) return; 
+                if (p.name.includes("劼吉撈") && !p.name.includes("ATM")) assign(p, 'jQt1', "R5 鎖定");
+                else if (p.name.includes("躺平草仔粿")) { const jQt2 = appState.teams.find(t => t.id === 'jQt2'); if (jQt2 && jQt2.active) assign(p, 'jQt2', "鎖定 jQt2"); else assign(p, 'aQt1', "鎖定 aQt1(備案)"); }
+                else if (p.name.includes("冬來冬往")) assign(p, 'jQt1', "鎖定 jQt");
+                else if (p.name.includes("小冬冬")) { const jQt2 = appState.teams.find(t => t.id === 'jQt2'); if (jQt2 && jQt2.active) assign(p, 'jQt2', "鎖定 jQt"); else assign(p, 'jQt1', "鎖定 jQt"); }
+            });
+            // 階段 1.5：【17人強制同隊群組】集體入座
+            const togetherMembers = remaining.filter(p => isTogetherGroupMember(p.name) || isTogetherGroupMember(p.orig));
+            if (togetherMembers.length > 0) {
+                let targetTogetherTeam = null;
+                if (appState.togetherTargetTeam !== 'auto') {
+                    targetTogetherTeam = activeTeams.find(t => t.id === appState.togetherTargetTeam);
+                }
+                if (!targetTogetherTeam) {
+                    let count22 = 0, count20 = 0;
+                    togetherMembers.forEach(p => {
+                        if (p.prefTime === '22:00') count22++;
+                        else if (p.prefTime === '20:00') count20++;
+                    });
+                    const groupPrefTime = count20 > count22 ? '20:00' : '22:00';
+                    let candidateTeams = activeTeams.filter(t => t.time === groupPrefTime && (30 - t.members.length) >= togetherMembers.length);
+                    if (candidateTeams.length === 0) candidateTeams = activeTeams.filter(t => (30 - t.members.length) >= togetherMembers.length);
+                    if (candidateTeams.length === 0) candidateTeams = activeTeams;
+                    candidateTeams.sort((a, b) => a.members.length - b.members.length);
+                    targetTogetherTeam = candidateTeams[0];
+                }
+                if (targetTogetherTeam) {
+                    togetherMembers.forEach(p => assign(p, targetTogetherTeam.id, "🤝同隊鎖定"));
+                }
+            }
+            const pickBestTeam = (player, candidateTeams) => {
+                let pool = candidateTeams.filter(t => t.members.length < 30);
+                if (pool.length === 0) pool = candidateTeams;
+                const safePool = pool.filter(t => isSafeToJoin(player, t));
+                const usePool = safePool.length > 0 ? safePool : pool;
+                usePool.sort((a, b) => {
+                    const aNeed = a.members.length < 15 ? 1 : 0;
+                    const bNeed = b.members.length < 15 ? 1 : 0;
+                    if (aNeed !== bNeed) return bNeed - aNeed;
+                    const powerA = a.members.reduce((sum, m) => sum + m.power, 0);
+                    const powerB = b.members.reduce((sum, m) => sum + m.power, 0);
+                    if (powerA === powerB) return a.members.length - b.members.length;
+                    return powerA - powerB;
+                });
+                return usePool[0];
+            };
+            if (appState.prioritizePreferences) {
+                const specificPlayers = remaining.filter(p => p.prefTime !== 'any');
+                const anyPlayers = remaining.filter(p => p.prefTime === 'any');
+                if (mode === 'm_type') {
+                    let spList = [...specificPlayers], pickTop = true;
+                    while (spList.length > 0) {
+                        const p = pickTop ? spList.shift() : spList.pop(); pickTop = !pickTop;
+                        const matchingTeams = activeTeams.filter(t => t.time === p.prefTime && t.members.length < 30);
+                        const targetTeam = pickBestTeam(p, matchingTeams.length > 0 ? matchingTeams : activeTeams);
+                        if (targetTeam) { targetTeam.members.push(p); p.team = targetTeam.id; p.reason = (targetTeam.time === p.prefTime) ? "志願優先(M型)" : "時段額滿調劑"; }
+                    }
+                    let anyList = [...anyPlayers];
+                    while (anyList.length > 0) {
+                        const p = pickTop ? anyList.shift() : anyList.pop(); pickTop = !pickTop;
+                        const targetTeam = pickBestTeam(p, activeTeams);
+                        if (targetTeam) { targetTeam.members.push(p); p.team = targetTeam.id; p.reason = "彈性補位(M型)"; }
+                    }
+                } else {
+                    specificPlayers.forEach(p => {
+                        const matchingTeams = activeTeams.filter(t => t.time === p.prefTime && t.members.length < 30);
+                        const targetTeam = pickBestTeam(p, matchingTeams.length > 0 ? matchingTeams : activeTeams);
+                        if (targetTeam) { targetTeam.members.push(p); p.team = targetTeam.id; p.reason = (targetTeam.time === p.prefTime) ? "志願優先" : "時段額滿調劑"; }
+                    });
+                    anyPlayers.forEach(p => {
+                        const targetTeam = pickBestTeam(p, activeTeams);
+                        if (targetTeam) { targetTeam.members.push(p); p.team = targetTeam.id; p.reason = "彈性平衡"; }
+                    });
+                }
+            } else {
+                remaining.forEach(p => {
+                    const targetTeam = pickBestTeam(p, activeTeams);
+                    if (targetTeam) { targetTeam.members.push(p); p.team = targetTeam.id; p.reason = "戰力平衡"; }
+                });
+            }
+            if (mode !== 'm_type') enforcePowerGradient(); 
+            activeTeams.forEach(t => {
+                const sorted = [...t.members].sort((a,b) => b.power - a.power);
+                sorted.forEach((m, i) => {
+                    const c = Math.floor(i / 4), p = i % 4;
+                    m.missionGroup = (c % 2 === 0) ? (p + 1) : (4 - p);
+                });
+            });
+            checkConflicts(); renderDashboard(); updateMyTacticalCard(); saveLiveSnapshotLocal();
+        }
+        function enforcePowerGradient() { 
+            const active = appState.teams.filter(t => t.active).sort((a, b) => a.priority - b.priority); 
+            const getPower = t => t.members.reduce((s, m) => s + m.power, 0); 
+            let safety = 0; 
+            while (safety++ < 50) { 
+                let changed = false; 
+                for (let i = 0; i < active.length - 1; i++) { 
+                    const hi = active[i], lo = active[i + 1]; 
+                    if (appState.prioritizePreferences && hi.time !== lo.time) continue;
+                    if (getPower(hi) >= getPower(lo)) continue; 
+                    const movableHi = hi.members.filter(m => !isLockedMember(m)).sort((a, b) => a.power - b.power); 
+                    const movableLo = lo.members.filter(m => !isLockedMember(m)).sort((a, b) => b.power - a.power); 
+                    
+                    if (movableHi.length && movableLo.length) { 
+                        const weakHi = movableHi[0], strongLo = movableLo[0]; 
+                        if (strongLo.power > weakHi.power && isSafeToJoin(strongLo, hi) && isSafeToJoin(weakHi, lo)) { 
+                            let prefOk = true;
+                            if (appState.prioritizePreferences) {
+                                if (strongLo.prefTime !== 'any' && strongLo.prefTime !== hi.time) prefOk = false;
+                                if (weakHi.prefTime !== 'any' && weakHi.prefTime !== lo.time) prefOk = false;
+                            }
+                            if (prefOk) {
+                                hi.members.splice(hi.members.indexOf(weakHi), 1); lo.members.splice(lo.members.indexOf(strongLo), 1); 
+                                weakHi.team = lo.id; weakHi.reason = "梯度調整"; strongLo.team = hi.id; strongLo.reason = "梯度調整"; 
+                                lo.members.push(weakHi); hi.members.push(strongLo); changed = true; 
+                            }
+                        } 
+                    } 
+                } 
+                if (!changed) break; 
+            } 
+        }
+        function checkConflicts(){ 
+            let c = 0; appState.conflictMap = {}; 
+            const activeTeamCount = appState.teams.filter(t => t.active).length; 
+            const allAssigned = appState.teams.filter(t => t.active).flatMap(t => t.members || []); 
+            const groups = {}; 
+            allAssigned.forEach(p => { 
+                if (appState.emergencyLeaves[p.name]) {
+                    c++; appState.conflictMap[p.name] = "✋請假申請";
+                }
+                if(!groups[p.fid]) groups[p.fid] = []; 
+                groups[p.fid].push(p); 
+            }); 
+            for(const fid in groups) { 
+                const fam = groups[fid]; 
+                if(fam.length > 1) { 
+                    for(let i=0; i<fam.length; i++) { 
+                        for(let j=i+1; j<fam.length; j++) { 
+                            const p1 = fam[i], p2 = fam[j]; 
+                            const t1 = appState.teams.find(t=>t.id===p1.team), t2 = appState.teams.find(t=>t.id===p2.team); 
+                            if(t1 && t2) { 
+                                if(activeTeamCount > 1 && t1.id === t2.id) { 
+                                    c++; appState.conflictMap[p1.name] = "🚫同隊"; appState.conflictMap[p2.name] = "🚫同隊"; 
+                                } else if(t1.time === t2.time && t1.id !== t2.id) { 
+                                    if(!appState.conflictMap[p1.name]) { c++; appState.conflictMap[p1.name] = "⚠️撞期"; appState.conflictMap[p2.name] = "⚠️撞期"; } 
+                                } 
+                            } 
+                        } 
+                    } 
+                } 
+            } 
+            setText('stat-conflict', c); 
+        }
+        function autoCorrectPreferences() {
+            if (!canEditRoster()) return showToast("無調度權限或名單已鎖定", "error");
+            let moveCount = 0;
+            const activeTeams = appState.teams.filter(t => t.active); 
+            let wrongPlaceMembers = [];
+            activeTeams.forEach(sourceTeam => { 
+                sourceTeam.members.forEach(m => { 
+                    if (m.prefTime !== 'any' && m.prefTime !== sourceTeam.time && !isLockedMember(m)) { 
+                        wrongPlaceMembers.push({ member: m, sourceTeam: sourceTeam }); 
+                    } 
+                }); 
+            });
+            if (wrongPlaceMembers.length === 0) return showToast("🎉 目前所有非鎖定成員 100% 符合志願時段！", "success");
+            wrongPlaceMembers.forEach(item => {
+                const { member, sourceTeam } = item; 
+                if (!sourceTeam.members.includes(member)) return;
+                const targetTeams = activeTeams.filter(t => t.time === member.prefTime);
+                let handled = false;
+                for(let targetTeam of targetTeams) {
+                    let candidate = targetTeam.members.find(tMember => !isLockedMember(tMember) && (tMember.prefTime === sourceTeam.time || tMember.prefTime === 'any') && isSafeToJoin(member, targetTeam) && isSafeToJoin(tMember, sourceTeam));
+                    if (candidate) {
+                        sourceTeam.members = sourceTeam.members.filter(m => m !== member); 
+                        targetTeam.members = targetTeam.members.filter(m => m !== candidate);
+                        member.team = targetTeam.id; member.reason = "志願校正"; 
+                        candidate.team = sourceTeam.id; candidate.reason = "彈性互換";
+                        targetTeam.members.push(member); sourceTeam.members.push(candidate); 
+                        moveCount++; handled = true; break;
+                    }
+                }
+                if (!handled) {
+                    const availableTarget = targetTeams.filter(t => t.members.length < 30 && isSafeToJoin(member, t)).sort((a, b) => a.members.length - b.members.length)[0];
+                    if (availableTarget) {
+                        sourceTeam.members = sourceTeam.members.filter(m => m !== member);
+                        member.team = availableTarget.id; member.reason = "志願直調";
+                        availableTarget.members.push(member); moveCount++;
+                    }
+                }
+            });
+            checkConflicts(); renderDashboard(); saveLiveSnapshotLocal();
+            if (moveCount > 0) showToast(`已成功將 ${moveCount} 位成員調回志願時段`, 'success'); 
+            else showToast("無法調動：目標時段已滿或有本尊/分身防撞期限制", "warning"); 
+        }
+        function autoResolveConflicts() { 
+            if (!canEditRoster()) return showToast("無調度權限或名單已鎖定", "error");
+            const activeTeams = appState.teams.filter(t => t.active);
+            let totalFixed = 0;
+            for (let loop = 0; loop < 15; loop++) {
+                checkConflicts(); 
+                let issues = [];
+                Object.keys(appState.conflictMap).forEach(name => {
+                    if (appState.emergencyLeaves[name]) return;
+                    const t = activeTeams.find(t => t.members.some(m => m.name === name));
+                    const m = t ? t.members.find(m => m.name === name) : null;
+                    if (m && !isLockedMember(m)) issues.push({ member: m, team: t, power: m.power });
+                });
+                if (issues.length === 0) break; 
+                issues.sort((a, b) => a.power - b.power);
+                let changedInLoop = false;
+                for (let issue of issues) {
+                    const { member: player, team: currentTeam } = issue;
+                    let targetTeams = activeTeams.filter(t => t.id !== currentTeam.id && t.time !== currentTeam.time);
+                    if (targetTeams.length === 0) targetTeams = activeTeams.filter(t => t.id !== currentTeam.id);
+                    let swapSuccess = false;
+                    for (let targetTeam of targetTeams) {
+                        let candidates = targetTeam.members.filter(m => !isLockedMember(m) && (m.prefTime === 'any' || m.prefTime === currentTeam.time));
+                        if (candidates.length === 0) candidates = targetTeam.members.filter(m => !isLockedMember(m));
+                        candidates.sort((a, b) => Math.abs(a.power - player.power) - Math.abs(b.power - player.power));
+                        for (let candidate of candidates) {
+                            if (!isSafeToJoin(player, targetTeam) || !isSafeToJoin(candidate, currentTeam)) continue;
+                            currentTeam.members = currentTeam.members.filter(m => m !== player);
+                            targetTeam.members = targetTeam.members.filter(m => m !== candidate);
+                            player.team = targetTeam.id; player.reason = "避開本尊";
+                            candidate.team = currentTeam.id; candidate.reason = "交換調整";
+                            targetTeam.members.push(player); currentTeam.members.push(candidate);
+                            changedInLoop = true; swapSuccess = true; totalFixed++; break; 
+                        }
+                        if (swapSuccess) break;
+                    }
+                }
+                if (!changedInLoop) break; 
+            }
+            checkConflicts(); renderDashboard(); saveLiveSnapshotLocal();
+            if (totalFixed > 0) showToast(`已自動錯開 ${totalFixed} 處本尊/分身撞期！`, 'success'); 
+            else showToast("目前已無可自動交換的家族衝突", 'info');
+        }
+        // --- 拖曳與調度選單 ---
+        function onMemberDragStart(e, name) {
+            if (!canEditRoster()) { e.preventDefault(); return; }
+            draggedMemberName = name;
+            e.dataTransfer.setData('text/plain', name);
+            hideHoverCard();
+        }
+        function onTeamDragOver(e, teamEl) { if (!canEditRoster()) return; e.preventDefault(); teamEl.classList.add('drag-over'); }
+        function onTeamDragLeave(e, teamEl) { teamEl.classList.remove('drag-over'); }
+        function onTeamDrop(e, targetTeamId, teamEl) {
+            e.preventDefault();
+            teamEl.classList.remove('drag-over');
+            if (!canEditRoster()) return;
+            const name = draggedMemberName || e.dataTransfer.getData('text/plain');
+            if (!name) return;
+            currentActionMember = name;
+            moveMemberToTeam(targetTeamId);
+            draggedMemberName = null;
+        }
+        function openMemberAction(name, currentTeamId) {
+            if (!canEditRoster()) {
+                showToast(appState.isRosterLocked ? "🔒 名單已正式鎖定，無法更動位置" : "👑 僅限驗證後之聯盟幹部可調整盟友位置", "info");
+                return;
+            }
+            currentActionMember = name;
+            const modal = document.getElementById('member-action-modal');
+            const tName = appState.teams.find(t => t.id === currentTeamId)?.name || '--';
+            setText('action-member-name', name);
+            setText('action-member-info', `當前軍團: ${tName}`);
+            
+            const activeTeams = appState.teams.filter(t => t.active);
+            const list = document.getElementById('action-team-list');
+            if (list) {
+                list.innerHTML = activeTeams.filter(t => t.id !== currentTeamId).map(t => `
+                    <button type="button" onclick="moveMemberToTeam('${t.id}')" class="w-full text-left px-4 py-3 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 hover:border-indigo-500 rounded-xl font-bold text-slate-700 dark:text-slate-200 transition-all flex justify-between items-center group text-sm cursor-pointer">
+                        <span>${escapeHtml(t.name)} <span class="text-xs text-slate-400 ml-1">(${t.time} / ${t.members.length}人)</span></span>
+                        <span class="material-symbols-rounded text-slate-300 group-hover:text-indigo-500">arrow_forward</span>
+                    </button>`).join('');
+            }
+            modal?.classList.remove('hidden');
+        }
+        function closeMemberAction() {
+            document.getElementById('member-action-modal')?.classList.add('hidden');
+            currentActionMember = '';
+        }
+        function moveMemberToTeam(targetTeamId) {
+            if(!currentActionMember || !canEditRoster()) return;
+            const activeTeams = appState.teams.filter(t => t.active);
+            let sourceTeam = null, memberObj = null;
+            for (let t of activeTeams) {
+                const mIdx = t.members.findIndex(m => m.name === currentActionMember);
+                if (mIdx > -1) { sourceTeam = t; memberObj = t.members[mIdx]; break; }
+            }
+            if (sourceTeam && memberObj && sourceTeam.id !== targetTeamId) {
+                const targetTeam = activeTeams.find(t => t.id === targetTeamId);
+                if(targetTeam) {
+                    sourceTeam.members = sourceTeam.members.filter(m => m.name !== currentActionMember);
+                    memberObj.team = targetTeam.id;
+                    memberObj.reason = "幹部調度";
+                    targetTeam.members.push(memberObj);
+                    checkConflicts(); renderDashboard(); updateMyTacticalCard(); saveLiveSnapshotLocal();
+                    showToast(`⚔️ 已將 ${memberObj.name} 調度至 ${targetTeam.name}，戰力已即時更新`, 'success');
+                }
+            }
+            closeMemberAction();
+        }
+        function removeMemberAction() {
+            if(!currentActionMember) return;
+            manualRemove(currentActionMember);
+            closeMemberAction();
+        }
+        function manualRemove(name) { 
+            if (!canEditRoster()) return;
+            let removedPlayer = null; 
+            appState.teams.forEach(t => { const idx = t.members.findIndex(m => m.name === name); if(idx > -1) removedPlayer = t.members.splice(idx, 1)[0]; }); 
+            const pIdx = appState.players.findIndex(p => p.name === name); 
+            if(pIdx > -1) { if(!removedPlayer) removedPlayer = appState.players[pIdx]; appState.players.splice(pIdx, 1); } 
+            if(removedPlayer) { 
+                delete appState.emergencyLeaves[name];
+                removedPlayer.opt = '幹部准假移出'; appState.absentPlayers.push(removedPlayer); 
+                checkConflicts(); renderDashboard(); updateMyTacticalCard(); saveLiveSnapshotLocal();
+                showToast(`已將 ${name} 移至請假名單，總戰力已更新`, 'info'); 
+            } 
+        }
+        function manualRestore(name) { 
+            if (!canEditRoster()) return showToast("僅限幹部於鎖定前可恢復成員", "warning");
+            const idx = appState.absentPlayers.findIndex(p => p.name === name); 
+            if(idx > -1) { 
+                const player = appState.absentPlayers.splice(idx, 1)[0]; 
+                player.reason = '幹部恢復'; player.team = null; appState.players.push(player); 
+                runTeamLogic(appState.lastLogicMode); showToast(`已恢復 ${name} 參戰`, 'success'); 
+            } 
+        }
+        // --- 搜尋過濾 ---
+        function filterMembers(query) {
+            appState.searchQuery = (query || '').trim().toLowerCase();
+            const clearBtn = document.getElementById('clear-search-btn');
+            if (clearBtn) clearBtn.classList.toggle('hidden', !appState.searchQuery);
+            document.querySelectorAll('#dashboard-container .member-card').forEach(card => {
+                const name = (card.getAttribute('data-name') || '').toLowerCase();
+                const fid = (card.getAttribute('data-fid') || '').toLowerCase();
+                if (!appState.searchQuery || name.includes(appState.searchQuery) || fid.includes(appState.searchQuery)) {
+                    card.classList.remove('hidden');
+                    card.classList.toggle('ring-2', Boolean(appState.searchQuery));
+                    card.classList.toggle('ring-indigo-500', Boolean(appState.searchQuery));
+                } else {
+                    card.classList.add('hidden');
+                }
+            });
+        }
+        function clearSearch() {
+            const input = document.getElementById('member-search-input');
+            if (input) input.value = '';
+            filterMembers('');
+        }
+        // --- 圖表與主儀表板渲染 ---
+        function getPowerDistribution(teamMembers, allPlayers) {
+            const counts = [0, 0, 0, 0, 0];
+            if (!teamMembers?.length || !allPlayers?.length) return { counts, mRatio: 0 };
+            const sortedAlliance = [...allPlayers].sort((a,b) => b.power - a.power);
+            const total = sortedAlliance.length;
+            const tierMap = {};
+            sortedAlliance.forEach((p, index) => {
+                let tier = Math.floor((index / total) * 5); 
+                if (tier >= 5) tier = 4;
+                tierMap[p.name] = tier;
+            });
+            teamMembers.forEach(m => { const tier = tierMap[m.name]; if (tier !== undefined) counts[tier]++; });
+            const mRatio = Math.round(((counts[0] + counts[4]) / teamMembers.length) * 100);
+            return { counts, mRatio };
+        }
+        function createTeamChart(t) { 
+            if (typeof Chart === 'undefined') return;
+            const ctx = document.getElementById(`chart-${t.id}`); 
+            if(ctx) { 
+                const { counts } = getPowerDistribution(t.members, appState.players);
+                const cT1 = t.id.includes('jQt') ? 'rgba(59, 130, 246, 1)' : 'rgba(249, 115, 22, 1)';
+                const cT5 = t.id.includes('jQt') ? 'rgba(59, 130, 246, 0.7)' : 'rgba(249, 115, 22, 0.7)';
+                const cMid = 'rgba(148, 163, 184, 0.35)';
+                if(teamCharts[t.id]) teamCharts[t.id].destroy(); 
+                teamCharts[t.id] = new Chart(ctx, { 
+                    type: 'bar',
+                    data: { labels: ['T1', 'T2', 'T3', 'T4', 'T5'], datasets: [{ data: counts, backgroundColor: [cT1, cMid, cMid, cMid, cT5], borderRadius: 2, borderWidth: 0 }] }, 
+                    options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { display: false }, tooltip: { enabled: false } }, scales: { x: { display: false }, y: { display: false, min: 0 } } } 
+                }); 
+            } 
+        }
+        function renderChart() {
+            if (typeof Chart === 'undefined') return;
+            const activeTeams = appState.teams.filter(t => t.active);
+            const ctxGlobal = document.getElementById('powerChart');
+            if (chartInstance) chartInstance.destroy();
+            const hasLargeNumbers = appState.players.some(p => p.power >= 1000);
+            const divisor = hasLargeNumbers ? 1000 : 1;
+            if (ctxGlobal) {
+                chartInstance = new Chart(ctxGlobal, {
+                    type: 'bar',
+                    data: {
+                        labels: activeTeams.map(t => t.name),
+                        datasets: [{ 
+                            data: activeTeams.map(t => Math.round((t.members || []).reduce((a, b) => a + b.power, 0) / divisor)), 
+                            backgroundColor: activeTeams.map(t => t.id.includes('jQt') ? 'rgba(59, 130, 246, 0.75)' : 'rgba(249, 115, 22, 0.75)'), 
+                            borderRadius: 4
+                        }]
+                    },
+                    options: { indexAxis: 'y', responsive: true, maintainAspectRatio: false, plugins: { legend: { display: false } }, scales: { x: { beginAtZero: true, grid: { display: false } } } }
+                });
+            }
+            const ctxDist = document.getElementById('globalDistChart');
+            if (globalDistChartInstance) globalDistChartInstance.destroy();
+            if (ctxDist && appState.players.length > 0) {
+                const { counts, mRatio } = getPowerDistribution(appState.players, appState.players);
+                const mBadge = document.getElementById('global-m-ratio');
+                if(mBadge) mBadge.innerText = `M型: ${mRatio}%`;
+                globalDistChartInstance = new Chart(ctxDist, {
+                    type: 'bar',
+                    data: {
+                        labels: ['T1(頂)', 'T2', 'T3', 'T4', 'T5(底)'],
+                        datasets: [{ data: counts, backgroundColor: ['rgba(99, 102, 241, 0.85)', 'rgba(148, 163, 184, 0.45)', 'rgba(148, 163, 184, 0.45)', 'rgba(148, 163, 184, 0.45)', 'rgba(99, 102, 241, 0.85)'], borderRadius: 4 }]
+                    },
+                    options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { display: false } }, scales: { y: { beginAtZero: true, ticks: { stepSize: 5, font: { size: 10 } }, grid: { display: false } }, x: { grid: { display: false }, ticks: { font: { size: 10 } } } } }
+                });
+            }
+        }
+        function renderDashboard(){
+            appState.teams.forEach(t => { if (!Array.isArray(t.members)) t.members = []; });
+            const totalActivePlayers = appState.teams.filter(t => t.active).reduce((s, t) => s + t.members.length, 0);
+            const totalActivePower = appState.teams.filter(t => t.active).reduce((s, t) => s + t.members.reduce((a, b) => a + b.power, 0), 0);
+            setText('stat-n', totalActivePlayers);
+            setText('stat-power', formatSmart(totalActivePower));
+            setText('stat-unknown', (appState.unknownPlayers || []).length);
+
+            const emptyAlert = document.getElementById('empty-roster-alert');
+            if (emptyAlert) emptyAlert.classList.toggle('hidden', totalActivePlayers > 0);
+            
+            let mismatchCount = 0;
+            appState.teams.filter(t=>t.active).forEach(t => { 
+                t.members.forEach(m => { 
+                    if (m.prefTime !== 'any' && m.prefTime !== t.time && m.reason !== '避開本尊' && m.reason !== '🤝同隊鎖定') mismatchCount++; 
+                }); 
+            });
+            setText('stat-pref-mismatch', mismatchCount);
+            const d = document.getElementById('dashboard-container'); if(d) d.innerHTML = '';
+            let anyLow = false; renderChart();
+            const allPlayersSorted = [...(appState.players || [])].sort((a,b) => b.power - a.power);
+            const totalGlobalPlayers = allPlayersSorted.length || 1; 
+            const globalRankMap = {}; allPlayersSorted.forEach((p, i) => { globalRankMap[p.name] = i + 1; });
+            const editable = canEditRoster();
+            appState.teams.forEach(t => {
+                if(!t.active) return;
+                if(t.members.length > 0 && t.members.length < 15) anyLow = true;
+                t.members.sort((a,b) => b.power - a.power);
+                
+                const { mRatio } = getPowerDistribution(t.members, appState.players);
+                const borderTheme = t.id.includes('jQt') ? 'border-blue-200 dark:border-blue-900/70' : 'border-orange-200 dark:border-orange-900/70';
+                let h = `<div class="team-container ${borderTheme}" ondragover="onTeamDragOver(event, this)" ondragleave="onTeamDragLeave(event, this)" ondrop="onTeamDrop(event, '${t.id}', this)">`;
+                h += `
+                <div class="team-col-header flex justify-between items-center">
+                    <div>
+                        <h3 class="font-black text-base text-slate-800 dark:text-slate-100 flex items-center gap-1.5">
+                            <span>${t.id.includes('jQt') ? '🛡️' : '⚔️'}</span> ${escapeHtml(t.name)}
+                        </h3>
+                        <div class="flex gap-1.5 text-[11px] font-bold mt-1">
+                            <span class="bg-slate-200 dark:bg-slate-700 px-2 py-0.5 rounded-md text-slate-700 dark:text-slate-200">⏰ ${t.time}</span>
+                            <span class="${t.members.length < 15 ? 'bg-red-100 text-red-600' : 'bg-indigo-50 dark:bg-indigo-950 text-indigo-600 dark:text-indigo-300'} px-2 py-0.5 rounded-md">${t.members.length} / 30 人</span>
+                        </div>
+                    </div>
+                    <div class="text-right">
+                        <div class="text-lg font-black text-slate-800 dark:text-slate-100 font-mono">${formatSmart(t.members.reduce((a,b)=>a+b.power,0))}</div>
+                        <div class="flex items-center justify-end gap-2 mt-0.5">
+                            <span class="text-[10px] text-slate-400">M型:${mRatio}%</span>
+                            <div class="h-6 w-14"><canvas id="chart-${t.id}"></canvas></div>
+                        </div>
+                    </div>
+                </div>`;
+                
+                h += `<div class="flex-grow overflow-y-auto p-2.5 custom-scroll space-y-1.5 relative">`;
+                const tCount = t.members.length;
+                const maxTeamPower = t.members.length > 0 ? (t.members[0].power || 1) : 1;
+                t.members.forEach((m, idx) => {
+                    const conflictTag = appState.conflictMap[m.name];
+                    const w = conflictTag ? `<span class="mini-badge bg-red-600 text-white border-red-600 animate-pulse">${conflictTag}</span>` : '';
+                    const isOff = isOfficerMember(m.name);
+                    const officerBadge = isOff ? `<span class="mini-badge bg-amber-400 text-slate-950 border-amber-500 font-black" title="本場聯盟幹部">👑幹部</span>` : '';
+                    
+                    let ok = '';
+                    if (m.prefTime !== 'any' && m.prefTime !== t.time) {
+                        if (m.reason === '避開本尊') ok = `<span class="mini-badge bg-teal-100 dark:bg-teal-950 text-teal-700 border-teal-300">🔄避開本尊</span>`;
+                        else if (m.reason !== '🤝同隊鎖定') ok = `<span class="mini-badge bg-amber-100 dark:bg-amber-950 text-amber-700 border-amber-300">想打${m.prefTime}</span>`;
+                    }
+                    let lockBadge = '';
+                    if (m.reason === '🤝同隊鎖定') lockBadge = `<span class="mini-badge bg-purple-100 dark:bg-purple-950 text-purple-700 border-purple-300">🤝同隊</span>`;
+                    else if (isLockedMember(m)) lockBadge = `<span class="mini-badge bg-indigo-100 dark:bg-indigo-950 text-indigo-600 border-indigo-200">🔒</span>`;
+                    const safeName = escapeJsStr(m.name);
+                    const cStats = getPlayerCareerStats(m.name);
+                    const absBadge = cStats.absentCount > 0 ? `<span class="mini-badge bg-slate-800 text-white border-slate-700" title="歷史無故缺席 ${cStats.absentCount} 次">⚠️缺${cStats.absentCount}</span>` : '';
+                    const starBadge = cStats.avgStars > 0 ? `<span class="mini-badge bg-amber-50 dark:bg-amber-950/60 text-amber-600 border-amber-200">⭐${cStats.avgStars.toFixed(1)}</span>` : '';
+                    const globalRank = globalRankMap[m.name] || totalGlobalPlayers;
+                    const globalPercentile = Math.ceil((globalRank / totalGlobalPlayers) * 100);
+                    
+                    let tierClass = '', icon = 'brightness_1', iconColor = 'text-slate-300', tierText = '中堅戰力';
+                    if (globalPercentile <= 10) { tierClass = 'border-l-4 border-l-yellow-400'; icon = 'grade'; iconColor = 'text-yellow-400'; tierText = 'T0 頂尖大佬'; } 
+                    else if (globalPercentile <= 25) { tierClass = 'border-l-4 border-l-purple-500'; icon = 'stars'; iconColor = 'text-purple-500'; tierText = 'T1 核心主力'; } 
+                    else if (globalPercentile <= 50) { tierClass = 'border-l-4 border-l-blue-400'; icon = 'diamond'; iconColor = 'text-blue-400'; tierText = 'T2 精銳骨幹'; } 
+                    else if (globalPercentile <= 75) { tierClass = 'border-l-4 border-l-emerald-500'; icon = 'verified'; iconColor = 'text-emerald-500'; tierText = 'T3 先鋒隊員'; }
+                    
+                    if(conflictTag) tierClass = 'border-2 border-red-500 bg-red-50/60 dark:bg-red-950/30';
+                    const isMe = appState.currentUser === m.name ? 'my-card-highlight' : '';
+                    const powerPct = Math.max(5, Math.min(100, (m.power / maxTeamPower) * 100));
+                    const barColor = t.id.includes('jQt') ? 'text-blue-500' : 'text-orange-500';
+                    const tierJson = JSON.stringify({icon, label: tierText, textClass: iconColor}).replace(/"/g, "&quot;");
+                    const removeBtnHtml = editable ? `<button type="button" class="text-slate-300 hover:text-red-500 transition-colors p-0.5 cursor-pointer" title="移至請假名單" onclick="event.stopPropagation(); manualRemove('${safeName}')"><span class="material-symbols-rounded text-sm">close</span></button>` : '';
+                    h += `
+                    <div class="member-card ${tierClass} ${editable ? 'editable' : ''} ${isMe}" draggable="${editable}" data-name="${escapeHtml(m.name)}" data-fid="${escapeHtml(m.fid)}" ondragstart="onMemberDragStart(event, '${safeName}')" onclick="event.stopPropagation(); openMemberAction('${safeName}', '${t.id}')" onmousemove="moveTooltip(event)" onmouseenter="showHoverCard(event,'${safeName}', ${m.power}, ${idx+1}, ${tCount}, ${totalActivePower}, ${tierJson})" onmouseleave="hideHoverCard()">
+                        <div class="power-bar-bg ${barColor}" style="width: ${powerPct}%"></div>
+                        <div class="relative z-10 flex justify-between items-center gap-1">
+                            <div class="flex items-center gap-1 overflow-hidden">
+                                <span class="text-[10px] font-mono text-slate-400 w-4 shrink-0">${idx+1}.</span>
+                                <span class="material-symbols-rounded text-sm shrink-0 ${iconColor}">${icon}</span>
+                                <span class="font-bold text-slate-700 dark:text-slate-100 text-xs truncate">${escapeHtml(m.name)}</span>
+                                ${officerBadge}${lockBadge}${w}${absBadge}${starBadge}${ok}
+                            </div>
+                            <div class="flex items-center gap-1 shrink-0">
+                                <span class="font-mono text-xs font-bold text-slate-600 dark:text-slate-300">${formatSmart(m.power)}</span>
+                                ${removeBtnHtml}
+                            </div>
+                        </div>
+                    </div>`;
+                });
+                h += `</div></div>`; 
+                if(d) d.innerHTML += h;
+            });
+            if (appState.searchQuery) filterMembers(appState.searchQuery);
+            setTimeout(() => { appState.teams.forEach(t => { if(t.active) createTeamChart(t); }); }, 50);
+            
+            const absentPanel = document.getElementById('absent-panel');
+            if(absentPanel){
+                const count = (appState.absentPlayers || []).length;
+                if(count > 0){
+                    absentPanel.classList.remove('hidden');
+                    const arrowClass = appState.isAbsentExpanded ? 'rotate-180' : '';
+                    const listClass = appState.isAbsentExpanded ? 'max-h-48 opacity-100 mt-3' : 'max-h-0 opacity-0 overflow-hidden mt-0';
+                    const listHtml = appState.absentPlayers.map(p => {
+                        const safeName = escapeJsStr(p.name);
+                        const restoreBtn = editable ? `<button type="button" class="text-indigo-600 dark:text-indigo-400 hover:underline font-bold ml-1 cursor-pointer" onclick="manualRestore('${safeName}')">↩ 恢復</button>` : '';
+                        return `<span class="bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 px-2.5 py-1 rounded-lg text-slate-600 dark:text-slate-300 flex items-center gap-1.5">${escapeHtml(p.name)} ${restoreBtn}</span>`;
+                    }).join('');
+                    absentPanel.innerHTML = `
+                        <div class="flex items-center justify-between cursor-pointer select-none" onclick="toggleAbsentList()">
+                            <h4 class="font-bold text-slate-600 dark:text-slate-300 text-xs flex items-center gap-1.5">
+                                <span class="material-symbols-rounded text-sm text-red-500">block</span> 
+                                不參加 / 請假名單 (<span id="absent-count">${count}</span>人)
+                            </h4>
+                            <span class="material-symbols-rounded text-slate-400 text-sm transform transition-transform duration-300 ${arrowClass}">keyboard_arrow_down</span>
+                        </div>
+                        <div id="absent-list" class="flex flex-wrap gap-2 overflow-y-auto custom-scroll text-xs transition-all duration-300 ease-in-out ${listClass}">${listHtml}</div>`;
+                } else { 
+                    absentPanel.classList.add('hidden'); absentPanel.innerHTML = ''; 
+                }
+            }
+            const popAlert = document.getElementById('pop-alert');
+            if(popAlert) { 
+                if(anyLow) { 
+                    popAlert.innerHTML = "<span class='material-symbols-rounded text-red-600'>error</span> <span>警告：有參戰軍團未滿 15 人保底門檻！</span>"; 
+                    popAlert.classList.remove('hidden'); 
+                } else { 
+                    popAlert.classList.add('hidden'); 
+                } 
+            }
+        }
+        // --- 戰術任務編組區 ---
+        function initTactics(){ 
+            const s = document.getElementById('tactics-team-select'); 
+            if (!s) return;
+            const activeTeams = appState.teams.filter(t => t.active);
+            s.innerHTML = activeTeams.map(t => `<option value="${t.id}">${escapeHtml(t.name)} (${t.members.length}人)</option>`).join(''); 
+            if(!appState.currentTacticalTeamId || !activeTeams.some(t => t.id === appState.currentTacticalTeamId)) {
+                appState.currentTacticalTeamId = s.value; 
+            } else {
+                s.value = appState.currentTacticalTeamId; 
+            }
+            renderTacticsBoard(); 
+        }
+        function renderTacticsBoard(){ 
+            const selEl = document.getElementById('tactics-team-select');
+            if (!selEl) return;
+            const tid = selEl.value; 
+            appState.currentTacticalTeamId = tid; 
+            const team = appState.teams.find(t => t.id === tid); 
+            if(!team) return; 
+            if (team.members.length > 0 && team.members.every(m => !m.missionGroup)) {
+                const sorted = [...team.members].sort((a,b) => b.power - a.power);
+                sorted.forEach((m, i) => {
+                    const c = Math.floor(i / 4), p = i % 4;
+                    m.missionGroup = (c % 2 === 0) ? (p + 1) : (4 - p);
+                });
+            }
+            let pwr = {1:0, 2:0, 3:0, 4:0}; 
+            team.members.forEach(m => { if(m.missionGroup > 0) pwr[m.missionGroup] += m.power; }); 
+            const editable = canEditRoster();
+            
+            const c = document.getElementById('tactics-container'); if(!c) return; c.innerHTML = ''; 
+            MISSION_GROUPS.forEach(g => { 
+                const mems = team.members.filter(m => m.missionGroup === g.id).sort((a,b) => b.power - a.power); 
+                let list = mems.map(m => { 
+                    const safeName = escapeJsStr(m.name);
+                    const isOff = isOfficerMember(m.name);
+                    const isMe = appState.currentUser === m.name;
+                    const quickBtns = editable ? [1,2,3,4].map(num => 
+                        `<button type="button" onclick="event.stopPropagation(); setMemberMissionGroup('${safeName}', ${num})" class="w-5 h-5 rounded text-[10px] font-bold transition-colors cursor-pointer ${num === g.id ? 'bg-indigo-600 text-white' : 'bg-slate-100 dark:bg-slate-700 text-slate-500 hover:bg-indigo-100'}">${num}</button>`
+                    ).join('') : '';
+                    return `
+                    <div class="flex justify-between items-center py-2 px-2.5 border-b border-slate-100 dark:border-slate-700/60 ${isMe ? 'bg-amber-50 dark:bg-amber-950/40' : ''}">
+                        <div class="overflow-hidden pr-2">
+                            <div class="font-bold text-xs text-slate-800 dark:text-slate-100 truncate">${isOff ? '👑 ' : ''}${escapeHtml(m.name)}</div>
+                            <div class="text-[10px] text-slate-400 font-mono">${formatSmart(m.power)}</div>
+                        </div>
+                        <div class="flex gap-1 shrink-0">${quickBtns}</div>
+                    </div>`;
+                }).join(''); 
+                c.innerHTML += `
+                <div class="bg-white dark:bg-slate-800 ${g.borderClass} rounded-2xl shadow-sm border border-slate-200 dark:border-slate-700 overflow-hidden flex flex-col">
+                    <div class="${g.headerClass} flex items-center justify-between px-3.5 py-2.5 border-b border-slate-200 dark:border-slate-700">
+                        <span class="font-black text-sm">${g.name} <span class="text-xs font-normal opacity-80">(${mems.length}人)</span></span>
+                        <span class="text-xs ${g.badgeClass} px-2 py-0.5 rounded-md shadow-sm font-bold font-mono">${formatSmart(pwr[g.id])}</span>
+                    </div>
+                    <div class="text-xs text-slate-600 dark:text-slate-300 p-3 border-b border-slate-100 dark:border-slate-700 bg-slate-50/50 dark:bg-slate-900/40 leading-relaxed">${g.target.replace(/\n/g,'<br>')}</div>
+                    <div class="h-64 overflow-y-auto custom-scroll p-1 flex-grow">${list || '<div class="text-center text-slate-400 text-xs py-10">尚無成員</div>'}</div>
+                </div>`; 
+            }); 
+            const gn = (id) => team.members.filter(m => m.missionGroup === id).sort((a,b) => b.power - a.power).map(m => m.name).join('、'); 
+            const mt = document.getElementById('mission-text');
+            if (mt) mt.value = `【🏰 ${team.name} (${team.time}) 戰場任務指令】\n` + MISSION_GROUPS.map(g => `\n━━━━━━━━━━━━━━\n📌 ${g.name}\n${g.target}\n👥 成員 (${team.members.filter(m=>m.missionGroup===g.id).length}人)：\n${gn(g.id) || "無"}`).join('\n'); 
+        }
+        function setMemberMissionGroup(name, groupNum) {
+            if (!canEditRoster()) return;
+            const t = appState.teams.find(x => x.id === appState.currentTacticalTeamId); 
+            if(!t) return;
+            const m = t.members.find(x => x.name === name); 
+            if(m){ m.missionGroup = groupNum; renderTacticsBoard(); updateMyTacticalCard(); saveLiveSnapshotLocal(); }
+        }
+        function autoDistributeMissions(){ 
+            if (!canEditRoster()) return;
+            const t = appState.teams.find(x => x.id === appState.currentTacticalTeamId); 
+            if(!t) return;
+            const s = [...t.members].sort((a,b) => b.power - a.power); 
+            s.forEach((m,i) => { const c = Math.floor(i/4), p = i%4; m.missionGroup = (c%2===0) ? (p+1) : (4-p); }); 
+            renderTacticsBoard(); updateMyTacticalCard(); saveLiveSnapshotLocal();
+            showToast(`已完成 ${t.name} S型四組平衡分配`, 'success');
+        }
+        // --- 賽後點名、全民 1~5 星互評與戰功積分系統 ---
+        function ensureAttendanceInitialized() {
+            const activeTeams = appState.teams.filter(t => t.active);
+            if (!appState.currentAttendance || !appState.currentAttendance.id || !appState.currentAttendance.records) {
+                appState.currentAttendance = { date: new Date().toLocaleDateString(), id: Date.now(), records: {} };
+            }
+            activeTeams.forEach(t => {
+                (t.members || []).forEach(m => {
+                    const existing = appState.currentAttendance.records[m.name];
+                    if (!existing || typeof existing === 'string') {
+                        appState.currentAttendance.records[m.name] = {
+                            status: typeof existing === 'string' ? existing : 'present',
+                            ratings: {},
+                            merit: 0,
+                            teamName: t.name
+                        };
+                    } else {
+                        if (!existing.ratings) existing.ratings = {};
+                        existing.teamName = t.name;
+                    }
+                });
+            });
+        }
+        function initAttendance(silent = false) { 
+            appState.currentAttendance = { date: new Date().toLocaleDateString(), id: Date.now(), records: {} };
+            ensureAttendanceInitialized();
+            renderActiveAttendanceBoard();
+            saveLiveSnapshotLocal();
+            if (!silent) showToast("🆕 已重新初始化本場點名與互評計分板", "info");
+        }
+        function renderActiveAttendanceBoard() {
+            ensureAttendanceInitialized();
+            const container = document.getElementById('attendance-container');
+            if (!container) return;
+            setText('att-date-display', `📅 ${appState.currentAttendance.date} 參戰點名與全盟 1~5 星表現互評`);
+            
+            const voterHint = document.getElementById('voter-identity-hint');
+            if (voterHint) {
+                voterHint.innerHTML = appState.currentUser 
+                    ? `👤 您的評分身分：<b class="text-indigo-600 dark:text-indigo-400">${escapeHtml(appState.currentUser)}</b> (點擊 ⭐ 即可為戰友評分)`
+                    : `⚠️ 請先點選右上角「👤 選擇我的 ID」即可參與 1~5 星評分`;
+            }
+            const officerEdit = canEditAttendance();
+            const activeTeams = appState.teams.filter(t => t.active);
+            container.innerHTML = '';
+            let globalIdx = 0;
+            activeTeams.forEach(t => {
+                let rows = (t.members || []).map(m => {
+                    const idx = globalIdx++;
+                    const safeName = escapeJsStr(m.name);
+                    const rec = appState.currentAttendance.records[m.name] || { status: 'present', ratings: {}, merit: 0 };
+                    const ratingsObj = rec.ratings || {};
+                    const ratingVals = Object.values(ratingsObj).map(v => parseFloat(v)).filter(v => v >= 1 && v <= 5);
+                    const avgStar = ratingVals.length > 0 ? (ratingVals.reduce((a,b)=>a+b,0) / ratingVals.length).toFixed(1) : '--';
+                    const myVote = appState.currentUser ? (ratingsObj[appState.currentUser] || 0) : 0;
+                    const starsHtml = [1, 2, 3, 4, 5].map(starNum => {
+                        const isLit = myVote >= starNum;
+                        return `<button type="button" onclick="ratePlayerStar(${idx}, '${safeName}', ${starNum})" class="star-btn ${isLit ? 'text-amber-400' : 'text-slate-300 dark:text-slate-600'}" title="給予 ${starNum} 顆星">★</button>`;
+                    }).join('');
+                    return `
+                    <div class="flex flex-wrap sm:flex-nowrap justify-between items-center py-2.5 px-2 border-b border-slate-100 dark:border-slate-700/60 last:border-0 gap-2">
+                        <div class="w-full sm:w-32 truncate font-bold text-slate-700 dark:text-slate-200 text-xs flex items-center gap-1">
+                            ${isOfficerMember(m.name) ? '👑 ' : ''}<span>${escapeHtml(m.name)}</span>
+                        </div>
+                        <div class="flex items-center justify-between sm:justify-end gap-2 w-full sm:w-auto flex-wrap">
+                            <div class="flex gap-1" data-att-group="${idx}" data-player-name="${escapeHtml(m.name)}">
+                                <button type="button" ${officerEdit ? '' : 'disabled'} onclick="setAttStatus(${idx}, '${safeName}', 'present')" id="att-btn-${idx}-present" class="att-btn present ${rec.status==='present'?'active':''}" title="出席">✓</button>
+                                <button type="button" ${officerEdit ? '' : 'disabled'} onclick="setAttStatus(${idx}, '${safeName}', 'leave')" id="att-btn-${idx}-leave" class="att-btn leave ${rec.status==='leave'?'active':''}" title="請假">◐</button>
+                                <button type="button" ${officerEdit ? '' : 'disabled'} onclick="setAttStatus(${idx}, '${safeName}', 'absent')" id="att-btn-${idx}-absent" class="att-btn absent ${rec.status==='absent'?'active':''}" title="缺席">✗</button>
+                            </div>
+                            <div class="flex items-center gap-1 bg-slate-50 dark:bg-slate-900 px-2 py-1 rounded-xl border border-slate-200 dark:border-slate-700">
+                                <div class="flex items-center gap-0.5">${starsHtml}</div>
+                                <span id="star-avg-${idx}" class="text-[11px] font-mono font-black text-amber-500 ml-1" title="共 ${ratingVals.length} 人評分">${avgStar} (${ratingVals.length})</span>
+                            </div>
+                            <div class="flex items-center gap-1">
+                                <input type="number" step="0.1" ${officerEdit ? '' : 'disabled'} value="${rec.merit || ''}" placeholder="戰功(萬)" onchange="setAttMerit('${safeName}', this.value)" class="w-20 p-1.5 border dark:border-slate-700 bg-slate-50 dark:bg-slate-900 rounded-lg text-xs font-mono text-right disabled:opacity-60">
+                            </div>
+                        </div>
+                    </div>`;
+                }).join('');
+                container.innerHTML += `
+                <div class="bg-white dark:bg-slate-800 rounded-2xl shadow-sm border border-slate-200 dark:border-slate-700 p-4">
+                    <div class="flex justify-between items-center mb-2 border-b border-slate-200 dark:border-slate-700 pb-2">
+                        <h4 class="font-black text-base text-indigo-600 dark:text-indigo-400">${escapeHtml(t.name)} (${t.members.length}人)</h4>
+                        <span class="text-[11px] text-slate-400">出席 / 1~5星互評 / 戰功(萬)</span>
+                    </div>
+                    <div class="max-h-96 overflow-y-auto custom-scroll">${rows || '<div class="text-center text-slate-400 text-xs py-6">尚無成員</div>'}</div>
+                </div>`;
+            });
+        }
+        function setAttStatus(idx, name, status) { 
+            if (!canEditAttendance()) return;
+            ensureAttendanceInitialized();
+            if (appState.currentAttendance.records[name]) {
+                appState.currentAttendance.records[name].status = status; 
+            }
+            const group = document.querySelector(`[data-att-group="${idx}"]`);
+            if (group) {
+                group.querySelectorAll('.att-btn').forEach(b => b.classList.remove('active'));
+                document.getElementById(`att-btn-${idx}-${status}`)?.classList.add('active');
+            }
+            saveLiveSnapshotLocal();
+        }
+        async function ratePlayerStar(idx, targetName, stars) {
+            if (!appState.currentUser) {
+                openIdentityModal();
+                return showToast("請先選擇您的遊戲 ID，即可為戰友評分！", "warning");
+            }
+            ensureAttendanceInitialized();
+            const rec = appState.currentAttendance.records[targetName];
+            if (!rec) return;
+            if (!rec.ratings) rec.ratings = {};
+            rec.ratings[appState.currentUser] = stars;
+            renderActiveAttendanceBoard();
+            saveLiveSnapshotLocal();
+            showToast(`⭐ 您已給予「${targetName}」${stars} 顆星評價！`, "success");
+            if (appState.cloudApiUrl) {
+                try {
+                    await fetch(appState.cloudApiUrl, {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'text/plain;charset=utf-8' },
+                        body: JSON.stringify({ action: 'rate_star', voter: appState.currentUser, target: targetName, stars: stars })
+                    });
+                } catch (e) {}
+            }
+        }
+        function setAttMerit(name, val) {
+            if (!canEditAttendance()) return;
+            ensureAttendanceInitialized();
+            if (appState.currentAttendance.records[name]) {
+                appState.currentAttendance.records[name].merit = parseFloat(val) || 0;
+            }
+            saveLiveSnapshotLocal();
+        }
+        function markAllPresent() { 
+            if (!canEditAttendance()) return;
+            document.querySelectorAll('[data-att-group]').forEach(group => {
+                const idx = group.getAttribute('data-att-group');
+                const name = group.getAttribute('data-player-name');
+                setAttStatus(idx, name, 'present');
+            });
+            showToast("已將全員標記為出席", "info");
+        }
+        function saveAttendance() { 
+            if (!canEditAttendance()) return showToast("僅限幹部或盟主可執行最終結算歸檔", "error");
+            ensureAttendanceInitialized();
+            appState.attendanceHistory.push(JSON.parse(JSON.stringify(appState.currentAttendance))); 
+            localStorage.setItem('jQt_attendance', JSON.stringify(appState.attendanceHistory)); 
+            renderAttendanceHistory(); 
+            renderReportCard();
+            renderDashboard();
+            saveLiveSnapshotLocal();
+            showToast("🏁 本場點名、星級評分與戰功已正式結算並納入全員成績單！", 'success'); 
+        }
+        function copyMvpReport() {
+            ensureAttendanceInitialized();
+            const recs = appState.currentAttendance.records || {};
+            const dateStr = appState.currentAttendance.date || new Date().toLocaleDateString();
+            const entries = Object.entries(recs).map(([name, d]) => {
+                const vals = Object.values(d.ratings || {}).map(Number).filter(v => v >= 1 && v <= 5);
+                const avgStar = vals.length > 0 ? vals.reduce((a,b)=>a+b,0) / vals.length : 0;
+                return { name, status: d.status, merit: d.merit || 0, avgStar, votes: vals.length, teamName: d.teamName || '' };
+            });
+            const topMerit = [...entries].filter(e => e.merit > 0).sort((a, b) => b.merit - a.merit).slice(0, 5);
+            const topStar = [...entries].filter(e => e.avgStar >= 4.0).sort((a, b) => b.avgStar - a.avgStar || b.votes - a.votes).slice(0, 8);
+            const absents = entries.filter(e => e.status === 'absent');
+            let txt = `━━━━━━━━━━━━━━━━━━━━\n🏅 jQt 聯盟兵工廠賽後榮譽戰報\n📅 戰役日期：${dateStr}\n━━━━━━━━━━━━━━━━━━━━\n\n`;
+            if (topMerit.length > 0) {
+                txt += `🔥 【戰功積分風雲榜 Top 5】\n`;
+                topMerit.forEach((e, i) => { txt += `${i+1}. ${e.name} (${e.teamName}) — ${e.merit} 萬分 ${e.avgStar > 0 ? `[⭐${e.avgStar.toFixed(1)}]` : ''}\n`; });
+                txt += `\n`;
+            }
+            if (topStar.length > 0) {
+                txt += `⭐ 【全盟互評高分模範戰友】\n`;
+                txt += topStar.map(e => `${e.name}(⭐${e.avgStar.toFixed(1)})`).join('、') + `\n\n`;
+            }
+            const presentTotal = entries.filter(e => e.status === 'present').length;
+            txt += `📊 本場總出席：${presentTotal} 人\n`;
+            if (absents.length > 0) {
+                txt += `⚠️ 未請假缺席名單：${absents.map(e => e.name).join('、')}\n`;
+            } else {
+                txt += `🎉 本場全員準時出席，0 無故缺席！\n`;
+            }
+            copyToClipboard(txt, "🏅 已複製本場 MVP 與星級榮譽戰報！");
+        }
+        // --- 全盟成員綜合戰歷成績單 (Report Card) ---
+        function renderReportCard() {
+            const tbody = document.getElementById('report-card-body');
+            if (!tbody) return;
+            const nameSet = new Set((appState.players || []).map(p => p.name));
+            (appState.attendanceHistory || []).forEach(h => {
+                if (h && h.records) Object.keys(h.records).forEach(n => nameSet.add(n));
+            });
+            const rowsData = Array.from(nameSet).map(name => {
+                const st = getPlayerCareerStats(name);
+                return { name, ...st };
+            }).sort((a, b) => b.avgStars - a.avgStars || b.totalMerit - a.totalMerit || b.presentCount - a.presentCount);
+            if (rowsData.length === 0) {
+                tbody.innerHTML = `<tr><td colspan="7" class="p-6 text-center text-slate-400">尚無結算成績資料</td></tr>`;
+                return;
+            }
+            tbody.innerHTML = rowsData.map(r => {
+                const starBar = r.avgStars > 0 
+                    ? `<span class="font-black text-amber-500">⭐ ${r.avgStars.toFixed(2)}</span> <span class="text-[10px] text-slate-400">(${r.starVotes}票)</span>`
+                    : `<span class="text-slate-300">尚未評分</span>`;
+                return `
+                <tr class="report-card-row hover:bg-slate-50 dark:hover:bg-slate-800/60 transition-colors" data-rc-name="${escapeHtml(r.name)}">
+                    <td class="p-3 font-bold text-slate-800 dark:text-slate-100">${isOfficerMember(r.name) ? '👑 ' : ''}${escapeHtml(r.name)}</td>
+                    <td class="p-3 text-center font-mono">${r.totalGames}</td>
+                    <td class="p-3 text-center font-mono font-bold ${r.attRate>=90?'text-emerald-600':(r.attRate<70?'text-red-500':'text-amber-500')}">${r.attRate}%</td>
+                    <td class="p-3 text-center font-mono ${r.absentCount>0?'text-red-600 font-black':'text-slate-400'}">${r.absentCount} 次</td>
+                    <td class="p-3 text-center">${starBar}</td>
+                    <td class="p-3 text-right font-mono font-bold text-orange-500">${r.totalMerit > 0 ? r.totalMerit.toFixed(1) : '--'}</td>
+                    <td class="p-3 text-right font-mono text-slate-600 dark:text-slate-300">${r.avgMerit > 0 ? r.avgMerit.toFixed(1) : '--'}</td>
+                </tr>`;
+            }).join('');
+        }
+        function filterReportCard(q) {
+            const query = (q || '').trim().toLowerCase();
+            document.querySelectorAll('#report-card-body .report-card-row').forEach(row => {
+                const name = (row.getAttribute('data-rc-name') || '').toLowerCase();
+                row.classList.toggle('hidden', Boolean(query && !name.includes(query)));
+            });
+        }
+        function renderAttendanceHistory() { 
+            const list = document.getElementById('attendance-history-list'); 
+            if(!list) return;
+            if (!appState.attendanceHistory || appState.attendanceHistory.length === 0) {
+                list.innerHTML = '<div class="text-xs text-slate-400 py-6 text-center">尚無已結算場次</div>';
+                return;
+            }
+            const officerEdit = canEditAttendance();
+            list.innerHTML = appState.attendanceHistory.slice().reverse().map((r, i) => { 
+                const recs = Object.values((r && r.records) || {});
+                const present = recs.filter(x => (typeof x === 'string' ? x : x.status) === 'present').length; 
+                const absent = recs.filter(x => (typeof x === 'string' ? x : x.status) === 'absent').length; 
+                const delBtn = officerEdit ? `<button type="button" onclick="deleteAttendance(${appState.attendanceHistory.length - 1 - i})" class="text-red-500 hover:text-red-700 text-xs font-bold cursor-pointer">刪除</button>` : '';
+                return `
+                <div class="flex justify-between items-center bg-slate-50 dark:bg-slate-800/70 p-3 rounded-xl border border-slate-200 dark:border-slate-700">
+                    <div>
+                        <div class="font-bold text-xs text-slate-800 dark:text-slate-100">📅 ${escapeHtml(r?.date || '')} 結算戰役</div>
+                        <div class="text-[11px] text-slate-500 mt-0.5">出席: <b class="text-emerald-600">${present}</b> ｜ 缺席: <b class="text-red-500">${absent}</b></div>
+                    </div>
+                    ${delBtn}
+                </div>`; 
+            }).join(''); 
+        }
+        function deleteAttendance(index) { 
+            if(!canEditAttendance() || !confirm("確定刪除此筆結算紀錄？")) return; 
+            appState.attendanceHistory.splice(index, 1); 
+            localStorage.setItem('jQt_attendance', JSON.stringify(appState.attendanceHistory)); 
+            renderAttendanceHistory(); renderReportCard(); renderDashboard(); saveLiveSnapshotLocal();
+        }
+        // --- 存檔與歷史回顧 ---
+        function saveConfiguration(customName = null, silent = false) { 
+            const nameInput = document.getElementById('save-name');
+            const name = customName || ((nameInput && nameInput.value.trim()) ? nameInput.value.trim() : `陣容存檔 ${new Date().toLocaleString()}`); 
+            if (appState.savedConfigs.length >= 25) appState.savedConfigs.shift(); 
+            appState.savedConfigs.push({ 
+                id: Date.now(), name: name, date: new Date().toLocaleString(), 
+                players: JSON.parse(JSON.stringify(appState.players)), 
+                absentPlayers: JSON.parse(JSON.stringify(appState.absentPlayers)),
+                teams: JSON.parse(JSON.stringify(appState.teams)),
+                mappings: JSON.parse(JSON.stringify(appState.manualMappings)) 
+            }); 
+            localStorage.setItem('jQt_history', JSON.stringify(appState.savedConfigs)); 
+            if (nameInput && !customName) nameInput.value = '';
+            renderHistoryList(); 
+            saveLiveSnapshotLocal();
+            if (!silent) showToast("當前團隊名單已封存！", 'success'); 
+        }
+        function loadConfiguration(id) { 
+            const config = appState.savedConfigs.find(c => c.id === id); 
+            if (config) { 
+                appState.players = JSON.parse(JSON.stringify(config.players || [])); 
+                appState.absentPlayers = JSON.parse(JSON.stringify(config.absentPlayers || []));
+                if (config.teams) appState.teams = JSON.parse(JSON.stringify(config.teams));
+                else runTeamLogic(appState.lastLogicMode || 'snake');
+                checkConflicts(); renderDashboard(); saveLiveSnapshotLocal(); switchTab('dashboard');
+                showToast(`已載入歷史陣容回顧: ${config.name}`, 'success'); 
+            } 
+        }
+        function deleteConfiguration(id) { 
+            if (!canEditAttendance()) return;
+            appState.savedConfigs = appState.savedConfigs.filter(c => c.id !== id); 
+            localStorage.setItem('jQt_history', JSON.stringify(appState.savedConfigs)); 
+            renderHistoryList(); 
+        }
+        function renderHistoryList() { 
+            const el = document.getElementById('history-list'); if (!el) return; 
+            if (!appState.savedConfigs || appState.savedConfigs.length === 0) { el.innerHTML = '<div class="text-center text-slate-400 py-6 text-xs">尚無封存陣容</div>'; return; } 
+            const officerEdit = canEditAttendance();
+            el.innerHTML = appState.savedConfigs.slice().reverse().map(c => `
+                <div class="flex justify-between items-center bg-slate-50 dark:bg-slate-800/70 p-3 rounded-xl border border-slate-200/70 dark:border-slate-700">
+                    <div>
+                        <div class="font-bold text-xs text-slate-800 dark:text-slate-100">${escapeHtml(c.name)} <span class="text-[11px] text-indigo-500 font-normal">(${(c.players||[]).length}人)</span></div>
+                        <div class="text-[10px] text-slate-400">${escapeHtml(c.date)}</div>
+                    </div>
+                    <div class="flex gap-1.5">
+                        <button type="button" onclick="loadConfiguration(${c.id})" class="bg-indigo-600 hover:bg-indigo-700 text-white px-2.5 py-1 rounded-lg font-bold text-xs cursor-pointer">檢視回顧</button>
+                        ${officerEdit ? `<button type="button" onclick="deleteConfiguration(${c.id})" class="text-red-500 hover:bg-red-50 px-2 py-1 rounded-lg font-bold text-xs cursor-pointer">刪除</button>` : ''}
+                    </div>
+                </div>`).join(''); 
+        }
+        function exportConfig() { 
+            const dataStr = "data:text/json;charset=utf-8," + encodeURIComponent(JSON.stringify(buildSnapshotState())); 
+            const a = document.createElement('a'); a.setAttribute("href", dataStr); a.setAttribute("download", `jQt_backup.json`); 
+            document.body.appendChild(a); a.click(); a.remove(); 
+            showToast("📦 已下載 jQt_backup.json！您可以將它放到 GitHub 專案目錄下作為雲端斷線時的自動備援檔", "info");
+        }
+        function importConfig(input) { 
+            const file = input.files[0]; if (!file) return; 
+            const reader = new FileReader(); 
+            reader.onload = function(e) { 
+                try { 
+                    const imported = JSON.parse(e.target.result); 
+                    applySnapshotState(imported);
+                    saveLiveSnapshotLocal();
+                    showToast("備份檔匯入成功！", 'success'); 
+                } catch(err) { showToast("匯入失敗: JSON 格式錯誤", 'error'); } 
+            }; 
+            reader.readAsText(file); 
+        }
+        // --- 複製與匯出 ---
+        function exportToDiscord() { 
+            let text = `**🏰 jQt 聯盟戰力配置 (v70.7)**\n📅 日期: ${new Date().toLocaleDateString()}\n\n`; 
+            appState.teams.filter(t => t.active).forEach(t => { 
+                const totalPower = formatSmart(t.members.reduce((a,b)=>a+b.power,0)); 
+                text += `**${t.name}** (${t.time}) - ${t.members.length}人 - 總戰力 ${totalPower}\n> 成員: ${t.members.map(m=>m.name).join(', ')}\n\n`; 
+            }); 
+            copyToClipboard(text, "已複製 Discord 簡報格式！");
+        }
+        function copyMemberList() { 
+            const dateStr = new Date().toLocaleDateString(); 
+            let text = `━━━━━━━━━━━━━━━━━━━━\n🏰 jQt 聯盟軍團出戰名單\n📅 ${dateStr}\n━━━━━━━━━━━━━━━━━━━━\n\n`; 
+            let totalCount = 0, totalPower = 0; 
+            appState.teams.filter(t => t.active).forEach(t => { 
+                const tCount = t.members.length; 
+                const tPower = t.members.reduce((a,b)=>a+b.power,0); 
+                const avgPower = tCount > 0 ? (tPower / tCount) : 0; 
+                totalCount += tCount; totalPower += tPower; 
+                const offList = t.members.filter(m => isOfficerMember(m.name)).map(m => m.name).join('、');
+                text += `【${t.name}】\n⏰ 時間：${t.time}\n👑 帶隊幹部：${offList || '待定'}\n👥 人數：${tCount} 人 ｜ ⚔️ 總戰力：${formatSmart(tPower)} (均 ${formatSmart(avgPower)})\n\n成員名單：\n`; 
+                const names = t.members.map(m => m.name); 
+                for (let i = 0; i < names.length; i += 5) text += names.slice(i, i + 5).join('、') + '\n'; 
+                text += `\n────────────────────\n\n`; 
+            }); 
+            text += `━━━━━━━━━━━━━━━━━━━━\n📊 總計：${totalCount} 人參戰 ｜ 💪 總戰力：${formatSmart(totalPower)}\n`; 
+            copyToClipboard(text, "已複製完整公告名單！");
+        }
+        function copyMissionText(){ 
+            const e = document.getElementById('mission-text'); 
+            if (e) copyToClipboard(e.value, "戰術任務指令已複製！"); 
+        }
+        // --- 後台規則與 17人同隊設定 ---
+        function renderSettings(){ 
+            const tb = document.getElementById('team-list-body'); 
+            if(tb){ 
+                tb.innerHTML = appState.teams.map(t => `
+                    <tr class="border-b border-slate-100 dark:border-slate-700">
+                        <td class="p-3 font-bold">${escapeHtml(t.name)}</td>
+                        <td class="p-3 font-mono">${escapeHtml(t.time)}</td>
+                        <td class="p-3"><span class="text-xs px-2.5 py-1 rounded-full font-bold ${t.active ? 'bg-emerald-100 text-emerald-700' : 'bg-slate-100 text-slate-400'}">${t.active ? '參戰中' : '已關閉'}</span></td>
+                    </tr>`).join(''); 
+            } 
+            const ab = document.getElementById('bind-list-body'); 
+            if(ab){ 
+                ab.innerHTML = (appState.alts || []).map((a,i) => `
+                    <tr class="border-b border-slate-100 dark:border-slate-700/60">
+                        <td class="p-2.5 font-bold">${escapeHtml(a.main)}</td>
+                        <td class="p-2.5">${escapeHtml(a.alt)}</td>
+                        <td class="p-2.5 text-right"><button type="button" onclick="delAlt(${i})" class="text-red-500 font-bold cursor-pointer">🗑️ 刪除</button></td>
+                    </tr>`).join(''); 
+            } 
+            renderTogetherSettings();
+        }
+        function renderTogetherSettings() {
+            setText('together-count', (appState.togetherGroup || []).length);
+            const sel = document.getElementById('together-target-team');
+            if (sel) sel.value = appState.togetherTargetTeam || 'auto';
+            const container = document.getElementById('together-list-container');
+            if (!container) return;
+            container.innerHTML = (appState.togetherGroup || []).map((name, idx) => `
+                <span class="bg-white dark:bg-slate-800 border border-purple-200 dark:border-purple-800 text-purple-800 dark:text-purple-200 px-3 py-1 rounded-xl text-xs font-bold flex items-center gap-1.5 shadow-sm">
+                    🤝 ${escapeHtml(name)}
+                    <button type="button" onclick="removeTogetherMember(${idx})" class="text-slate-400 hover:text-red-500 font-black ml-1 cursor-pointer">✕</button>
+                </span>`).join('');
+        }
+        function addTogetherMember() {
+            const input = document.getElementById('together-new-name');
+            const val = (input?.value || '').trim();
+            if (!val) return;
+            if (!appState.togetherGroup.includes(val)) {
+                appState.togetherGroup.push(val);
+                saveLocal(); renderTogetherSettings();
+                if (appState.players.length > 0) runTeamLogic(appState.lastLogicMode);
+            }
+            if (input) input.value = '';
+        }
+        function removeTogetherMember(idx) {
+            appState.togetherGroup.splice(idx, 1);
+            saveLocal(); renderTogetherSettings();
+            if (appState.players.length > 0) runTeamLogic(appState.lastLogicMode);
+        }
+        function changeTogetherTarget(val) {
+            appState.togetherTargetTeam = val;
+            saveLocal();
+            if (appState.players.length > 0) runTeamLogic(appState.lastLogicMode);
+            showToast(`已更新同隊群組目標軍團`, 'success');
+        }
+        function resetDefaultTogetherGroup() {
+            appState.togetherGroup = JSON.parse(JSON.stringify(DEFAULT_TOGETHER_GROUP));
+            appState.togetherTargetTeam = 'auto';
+            saveLocal(); renderTogetherSettings();
+            if (appState.players.length > 0) runTeamLogic(appState.lastLogicMode);
+            showToast('已恢復預設 17 人同隊名單！', 'success');
+        }
+        function addBinding(){ 
+            const m = document.getElementById('bind-main')?.value.trim() || '', a = document.getElementById('bind-alt')?.value.trim() || ''; 
+            if(m && a){ 
+                appState.alts.unshift({main:m, alt:a}); saveLocal(); renderSettings(); 
+                document.getElementById('bind-main').value = ''; document.getElementById('bind-alt').value = ''; 
+                if(appState.players.length > 0) { appState.players.forEach(p => p.fid = getFamilyId(p.name)); checkConflicts(); renderDashboard(); }
+                showToast(`已新增綁定：${m} ⇄ ${a}`, 'success'); 
+            } 
+        }
+        function delAlt(i){ 
+            appState.alts.splice(i,1); saveLocal(); renderSettings(); 
+            if(appState.players.length > 0) { appState.players.forEach(p => p.fid = getFamilyId(p.name)); checkConflicts(); renderDashboard(); }
+        }
+        function togglePrefMode() { 
+            const checkbox = document.getElementById('toggle-pref'); 
+            if (checkbox) appState.prioritizePreferences = checkbox.checked; 
+            runTeamLogic(appState.lastLogicMode); 
+        }
+        function toggleAbsentList() { appState.isAbsentExpanded = !appState.isAbsentExpanded; renderDashboard(); }
+        function showHoverCard(e, name, power, rank, teamCount, totalAlliancePower, tierObj) {
+            const tooltip = document.getElementById('member-tooltip');
+            if(!tooltip) return;
+            const pct = totalAlliancePower > 0 ? ((power / totalAlliancePower) * 100).toFixed(2) + '%' : '0%';
+            const p = appState.players.find(x => x.name === name);
+            setText('tip-name', name); 
+            setText('tip-fid', p?.fid ? `家族 ID: ${p.fid}` : ''); 
+            setText('tip-orig-pref', p?.origPref || '無');
+            setText('tip-reason', p?.reason || '一般分配');
+            try { setText('tip-team', e.target.closest('.team-container').querySelector('h3').innerText); } catch(err) {}
+            setText('tip-power', formatSmart(power)); 
+            setText('tip-rank', '#' + rank); 
+            setText('tip-total', '/ ' + teamCount); 
+            setText('tip-pct', pct);
+            const qEl = document.getElementById('tip-quality');
+            if(qEl && tierObj) { 
+                qEl.innerHTML = `<span class="material-symbols-rounded text-base align-middle mr-1">${tierObj.icon}</span>${tierObj.label}`; 
+                qEl.className = `font-black text-sm flex items-center justify-end ${tierObj.textClass}`; 
+            }
+            tooltip.classList.remove('opacity-0', 'scale-95'); tooltip.classList.add('opacity-100', 'scale-100'); 
+            moveTooltip(e);
+        }
+        function moveTooltip(e) {
+            const tooltip = document.getElementById('member-tooltip'); 
+            if (!tooltip || tooltip.classList.contains('opacity-0')) return;
+            let x = e.clientX + 16, y = e.clientY + 16;
+            if (x + 300 > window.innerWidth) x = e.clientX - 300; 
+            if (y + 280 > window.innerHeight) y = e.clientY - 280;
+            tooltip.style.left = x + 'px'; tooltip.style.top = y + 'px';
+        }
+        function hideHoverCard() { 
+            const tooltip = document.getElementById('member-tooltip'); 
+            if(tooltip) { tooltip.classList.remove('opacity-100', 'scale-100'); tooltip.classList.add('opacity-0', 'scale-95'); }
+        }
+        function toggleTeamModal() { 
+            if (!canEditRoster()) return;
+            const modal = document.getElementById('team-modal'); 
+            if (!modal) return;
+            if (modal.classList.contains('hidden')) { renderTeamSelection(); modal.classList.remove('hidden'); } 
+            else { modal.classList.add('hidden'); } 
+        }
+        function renderTeamSelection() { 
+            const c = document.getElementById('team-select-container');
+            if (!c) return;
+            c.innerHTML = appState.teams.map((t, idx) => `
+                <div class="team-select-card ${t.active ? 'selected' : ''}" onclick="toggleTeamActive(${idx})">
+                    <div class="flex items-center gap-3">
+                        <span class="text-2xl">${t.id.includes('jQt') ? '🛡️' : '⚔️'}</span>
+                        <div>
+                            <div class="font-bold text-slate-800 dark:text-slate-100 text-sm">${escapeHtml(t.name)}</div>
+                            <div class="text-xs text-slate-500">作戰時間：${escapeHtml(t.time)}</div>
+                        </div>
+                    </div>
+                    <div class="w-6 h-6 rounded-lg border flex items-center justify-center font-bold text-xs ${t.active ? 'bg-indigo-600 border-indigo-600 text-white' : 'bg-white dark:bg-slate-900 border-slate-300'}">${t.active ? '✓' : ''}</div>
+                </div>`).join(''); 
+        }
+        function toggleTeamActive(idx) { appState.teams[idx].active = !appState.teams[idx].active; renderTeamSelection(); }
+        function toggleAllTeams(state) { appState.teams.forEach(t => t.active = state); renderTeamSelection(); }
+        function applyTeamSelection() { 
+            if (appState.teams.filter(t => t.active).length === 0) return showToast("請至少勾選一支參戰軍團！", "error");
+            toggleTeamModal(); 
+            runTeamLogic(appState.lastLogicMode || 'snake'); 
+            renderSettings();
+        }
+    </script>
+</body>
+</html>
