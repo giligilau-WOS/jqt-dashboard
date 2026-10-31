@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html lang="zh-TW"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover"><title>分隊工具</title>
+<html lang="zh-TW"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover"><title>分隊工具</title><meta name="theme-color" content="#4338ca"><meta name="apple-mobile-web-app-capable" content="yes"><meta name="mobile-web-app-capable" content="yes"><meta name="apple-mobile-web-app-title" content="分隊工具">
 <style>
 :root{--bg:#f2f3fa;--s1:#fff;--s2:#eceef8;--t1:#1b1f2e;--t2:#60667c;--bd:#dde0ee;--ac:#4f46e5;--acb:#ecebfd;--btxt:#fff;--wn:#9a5b00;--wnb:#fff1d0;--ok:#16793f;--okb:#dff5e7;--dg:#b3261e;--dgb:#fde7e5;--pu:#6a3fb5;--pub:#efe6fb;--sh:0 1px 3px rgba(30,35,70,.08),0 4px 14px rgba(30,35,70,.06)}
 .tj1{--tr:29,78,216}.tj2{--tr:96,165,250}.ta1{--tr:109,40,217}.ta2{--tr:167,139,250}
@@ -398,5 +398,14 @@ document.addEventListener('change',e=>{const c=e.target.closest('[data-c]');if(c
 document.addEventListener('input',e=>{const i=e.target.dataset&&e.target.dataset.i;if(i)UI[i]=e.target.value});
 document.addEventListener('keydown',e=>{if(e.key==='Enter'&&e.target.dataset&&e.target.dataset.i==='selfQ')act('selfGo')});
 document.addEventListener('scroll',e=>{const c=e.target;if(!c||c.id!=='car')return;const i=Math.round(c.scrollLeft/c.clientWidth);if(i!==UI.chart){UI.chart=i;document.querySelectorAll('.dot').forEach((d,j)=>d.classList.toggle('on',j===i))}},true);
+function iconSvg(round){const bar=(x,h,o)=>'<rect x="'+x+'" y="'+(420-h)+'" width="56" height="'+h+'" rx="14" fill="#fff" opacity="'+o+'"/>';
+ return'<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512"><defs><linearGradient id="g" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#4338ca"/><stop offset="1" stop-color="#7c3aed"/></linearGradient></defs><rect width="512" height="512"'+(round?' rx="112"':'')+' fill="url(#g)"/>'+bar(76,280,1)+bar(152,170,.78)+bar(228,110,.55)+bar(304,170,.78)+bar(380,280,1)+'<g stroke="#fff" stroke-width="9" stroke-linecap="round"><path d="M256 140V240M212.7 165L299.3 215M299.3 165L212.7 215"/></g></svg>'}
+function setIcons(){try{const u=s=>'data:image/svg+xml;charset=utf-8,'+encodeURIComponent(s),ic=(id,href,extra)=>{let e=document.getElementById(id);if(!e){e=document.createElement('link');e.id=id;document.head.appendChild(e)}Object.keys(extra||{}).forEach(k=>e.setAttribute(k,extra[k]));e.setAttribute('href',href)};
+ ic('ic-fav',u(iconSvg(true)),{rel:'icon',type:'image/svg+xml'});
+ const png=(svg,n)=>new Promise(res=>{const im=new Image();im.onload=()=>{try{const c=document.createElement('canvas');c.width=c.height=n;c.getContext('2d').drawImage(im,0,0,n,n);res(c.toDataURL('image/png'))}catch(e){res(null)}};im.onerror=()=>res(null);im.src=u(svg)});
+ Promise.all([png(iconSvg(false),180),png(iconSvg(true),192),png(iconSvg(true),512)]).then(([a,b,c])=>{
+  if(a)ic('ic-apple',a,{rel:'apple-touch-icon',sizes:'180x180'});
+  if(b&&c){const base=location.origin+location.pathname,m={name:'分隊工具',short_name:'分隊工具',display:'standalone',start_url:base,scope:base.replace(/[^/]*$/,''),background_color:'#4338ca',theme_color:'#4338ca',icons:[{src:b,sizes:'192x192',type:'image/png'},{src:c,sizes:'512x512',type:'image/png'}]};try{ic('ic-man',URL.createObjectURL(new Blob([JSON.stringify(m)],{type:'application/manifest+json'})),{rel:'manifest'})}catch(e){}}})}catch(e){}}
+setIcons();
 (async()=>{const main=await Store.get('roster-state'),cfg=await Store.get('roster-cfg');S=main||DEF();migrate();if(cfg){UI.cfgAt=cfg.at||0;if(!main||!Object.keys(S.players).length)applyCfg(cfg)}norm();if(!Object.keys(S.players).length&&!SELF){UI.scr='admin';UI.adm='import'}UI.saved=window.storage?'已儲存':'此環境無法儲存，請用備份';render()})();
 </script></body></html>
