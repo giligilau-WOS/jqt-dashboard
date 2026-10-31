@@ -3,10 +3,10 @@
 <script>document.documentElement.dataset.theme=(window.matchMedia&&matchMedia('(prefers-color-scheme: dark)').matches)?'dark':'light'</script>
 <style>
 :root{--bg:#f2f3fa;--s1:#fff;--s2:#eceef8;--t1:#1b1f2e;--t2:#60667c;--bd:#dde0ee;--ac:#4f46e5;--acb:#ecebfd;--btxt:#fff;--wn:#9a5b00;--wnb:#fff1d0;--ok:#16793f;--okb:#dff5e7;--dg:#b3261e;--dgb:#fde7e5;--pu:#6a3fb5;--pub:#efe6fb;--sh:0 1px 3px rgba(30,35,70,.08),0 4px 14px rgba(30,35,70,.06)}
-.tj1{--tr:29,78,216}.tj2{--tr:96,165,250}.ta1{--tr:109,40,217}.ta2{--tr:167,139,250}
+.tj1{--tr:29,78,216}.tj2{--tr:96,165,250}.ta1{--tr:217,95,10}.ta2{--tr:251,170,90}
 html[data-theme="light"]{color-scheme:light}
 html[data-theme="dark"]{color-scheme:dark;--bg:#0e1120;--s1:#181c30;--s2:#222744;--t1:#e8eaf7;--t2:#a2a8c3;--bd:#2d3354;--ac:#8d95ff;--acb:#272d57;--btxt:#0e1120;--wn:#f0c36a;--wnb:#3b2f12;--ok:#7fd9a2;--okb:#17301f;--dg:#ff9b93;--dgb:#3d1c19;--pu:#c3a4ff;--pub:#2c2140;--sh:0 1px 3px rgba(0,0,0,.4)}
-html[data-theme="dark"] .tj1{--tr:76,125,255}html[data-theme="dark"] .tj2{--tr:140,190,255}html[data-theme="dark"] .ta1{--tr:150,105,255}html[data-theme="dark"] .ta2{--tr:196,175,255}
+html[data-theme="dark"] .tj1{--tr:76,125,255}html[data-theme="dark"] .tj2{--tr:140,190,255}html[data-theme="dark"] .ta1{--tr:255,138,52}html[data-theme="dark"] .ta2{--tr:255,194,128}
 *{box-sizing:border-box}
 html{overflow-x:hidden;-webkit-text-size-adjust:100%}
 body{margin:0;background:var(--bg);color:var(--t1);font:15px/1.55 system-ui,-apple-system,"Noto Sans TC","PingFang TC","Microsoft JhengHei",sans-serif;padding-bottom:84px}
@@ -34,6 +34,8 @@ body{overflow-x:clip;max-width:100vw}
 .btn.mtab{display:flex;flex-direction:column;align-items:center;justify-content:center;min-height:68px;padding:6px 2px;line-height:1.3;border-top:4px solid rgb(var(--tr))}
 .btn.mtab small{display:block;font-size:12px;color:var(--t2)}
 .btn.mtab.on{border-top-color:rgb(var(--tr))}
+.sumrow .mini,.sumrow .smt{display:none}
+@media(max-width:759px){.sumrow{display:flex;overflow-x:auto;gap:8px;scroll-snap-type:x proximity;-webkit-overflow-scrolling:touch;padding:4px 4px 8px;margin:0 -4px;scrollbar-width:none}.sumrow::-webkit-scrollbar{display:none}.sumrow .tcard{flex:0 0 min(44vw,176px);scroll-snap-align:start}}
 @media(max-width:759px){#nav{padding:0 6px calc(env(safe-area-inset-bottom) + 14px);gap:4px;border-radius:18px 18px 0 0}#nav button{min-height:60px;padding:10px 2px;font-size:14px;border-radius:12px;margin-top:6px}#nav button.on{background:var(--acb)}body{padding-bottom:124px}}
 main{max-width:1400px;margin:0 auto;padding:12px;display:flex;flex-direction:column;gap:12px;min-width:0}
 main>*,.card,.mcard,.tcard,.sl,.grid>*,.sumrow>*,.mlist>*{min-width:0}
@@ -51,7 +53,7 @@ button,select,input,textarea{font:inherit;color:var(--t1)}
 input,select,textarea{min-height:44px;padding:8px 10px;border:1px solid var(--bd);border-radius:10px;background:var(--s1);font-size:16px}
 textarea{width:100%;min-height:110px;font-family:ui-monospace,monospace;font-size:16px}
 .bd{display:inline-block;font-size:12px;padding:1px 7px;border-radius:6px;background:var(--s2);color:var(--t2);white-space:nowrap}
-.bd.w{background:var(--wnb);color:var(--wn)}.bd.o{background:var(--okb);color:var(--ok)}.bd.a{background:var(--acb);color:var(--ac)}.bd.p{background:var(--pub);color:var(--pu)}.bd.d{background:var(--dgb);color:var(--dg)}
+.bd.w{background:var(--wnb);color:var(--wn)}.bd.o{background:var(--s2);color:var(--t1);font-weight:600}.bd.o::before{content:"✓ "}.bd.a{background:var(--acb);color:var(--ac)}.bd.p{background:var(--pub);color:var(--pu)}.bd.d{background:var(--dgb);color:var(--dg)}
 .grid{display:grid;gap:12px}.g2{grid-template-columns:repeat(auto-fit,minmax(min(100%,280px),1fr))}.g4{grid-template-columns:repeat(auto-fit,minmax(min(100%,150px),1fr))}
 .mt{background:var(--s2);border-radius:12px;padding:10px 12px}.mt .v{font-size:24px;font-weight:700}
 .sumrow{display:grid;gap:10px;grid-template-columns:repeat(auto-fit,minmax(min(100%,155px),1fr))}
@@ -249,7 +251,7 @@ function gapSlide(V,T){const M=['cur','m','s','step'],NM={cur:'目前配置',m:'
   return'<div class="'+tc(t)+'" style="margin:12px 0"><div class="row sp"><b>'+tLabel(t)+'</b><span><b style="font-size:18px">'+f2(s.r)+'×</b> <span class="sub">頂流 ÷ 平均</span></span></div><div class="dbt"><i class="gp" style="left:'+pa+'%;width:'+Math.max(0,ph-pa)+'%"></i><i class="dav" style="left:'+pa+'%"></i>'+(pe?'<i class="deq" style="left:'+pe+'%"></i>':'')+'<i class="dhd" style="left:'+ph+'%"></i></div><div class="sub">平均 '+fmt(s.avg)+' → 頂流 '+fmt(s.head)+'（拉開 '+fmt(s.head-s.avg)+'）· 前 '+s.k+' 名</div></div>'}).join('');
  const best=t=>Math.max(...M.map(m=>D[m][t.id]?D[m][t.id].r:0));
  const tb='<table class="gt"><tr><th></th>'+M.map(m=>'<th style="font-weight:500;color:var(--t2)">'+NM[m]+'</th>').join('')+'</tr>'+T.map(t=>'<tr class="'+tc(t)+'"><td><i class="dotc"></i> '+tLabel(t)+'</td>'+M.map(m=>{const r=D[m][t.id]?D[m][t.id].r:0;return'<td style="text-align:center">'+(r&&Math.abs(r-best(t))<1e-9?'<span class="bd o">'+f2(r)+'</span>':f2(r))+'</td>'}).join('')+'</tr>').join('')+'</table>';
- return chips+rows+'<div class="sub">● 全隊平均　◆ 頂流（前 K 名平均）　◇ 均分時的頂流　線段＝被拉開的距離</div>'+tb+'<div class="sub" style="margin-top:6px">綠色＝該隊在四種配置中倍率最大。倍率越大，頭部和平均拉得越開。模式試算會把同軍團號的人重新發牌（不含固定的人），只供比較，不會套用</div>'}
+ return chips+rows+'<div class="sub">● 全隊平均　◆ 頂流（前 K 名平均）　◇ 均分時的頂流　線段＝被拉開的距離</div>'+tb+'<div class="sub" style="margin-top:6px">有 ✓ 的數字＝該隊在四種配置中倍率最大。倍率越大，頭部和平均拉得越開。模式試算會把同軍團號的人重新發牌（不含固定的人），只供比較，不會套用</div>'}
 function carousel(V,T){const fo=UI.fold.chart,hd='<div class="card"><div class="row sp" data-a="fold" data-v="chart" style="cursor:pointer;min-height:44px"><b>戰力分析圖表 <span class="sub">7 張，可左右滑動</span></b><span class="btn sm">'+(fo?'展開':'收合')+'</span></div></div>';if(fo)return hd;return hd+carouselBody(V,T)}
 function carouselBody(V,T){const pw=t=>V.tm[t.id].map(p=>p.power).sort((a,b)=>b-a),unit='單位：'+(UNIT==='原始'?'原始數字':UNIT),mxN=Math.max(2,...T.map(t=>V.tm[t.id].length));
  const ser=f=>T.map(t=>({cls:tc(t),pts:f(pw(t))})).filter(s=>s.pts.length);
@@ -262,12 +264,12 @@ function carouselBody(V,T){const pw=t=>V.tm[t.id].map(p=>p.power).sort((a,b)=>b-
  const S3=lineSvg(T.map(t=>{const c=[0,0,0,0,0];V.tm[t.id].forEach(p=>c[tier[p.id]]++);return{cls:tc(t),pts:c.map((n,i)=>[i+1,n])}}),{x0:1,x1:5,y0:0,xt:[1,2,3,4,5],xf:v=>'T'+Math.round(v),yf:v=>Math.round(v),dots:1})+legend(T)+'<div class="sub">T1 最強、T5 最弱，以目前所有編隊成員的戰力排名切五等分。兩端高、中間低就是 M 型</div>';
  const tt=T.map(t=>stats(V.tm[t.id]).tot),mx=Math.max(1,...tt);
  const S4=T.map((t,i)=>'<div class="hb '+tc(t)+'"><span class="l">'+tLabel(t)+'</span><div class="tr"><i style="width:'+tt[i]/mx*100+'%"></i></div><span>'+fmt(tt[i])+'</span></div>').join('');
- const S5=T.map(t=>{const ms=V.tm[t.id],j=ms.filter(p=>p.al==='jQt').length,a=ms.filter(p=>p.al==='aQt').length,o=ms.length-j-a,n=ms.length||1;return'<div class="hb tj1"><span class="l">'+tLabel(t)+'</span><div class="tr"><i style="width:'+j/n*100+'%"></i><i class="ta1" style="width:'+a/n*100+'%"></i></div><span class="sub">'+j+' / '+a+(o?' / '+o:'')+'</span></div>'}).join('')+'<div class="sub">藍色為 jQt，紫色為 aQt（右側數字依序為 jQt / aQt / 其他）</div>';
+ const S5=T.map(t=>{const ms=V.tm[t.id],j=ms.filter(p=>p.al==='jQt').length,a=ms.filter(p=>p.al==='aQt').length,o=ms.length-j-a,n=ms.length||1;return'<div class="hb tj1"><span class="l">'+tLabel(t)+'</span><div class="tr"><i style="width:'+j/n*100+'%"></i><i class="ta1" style="width:'+a/n*100+'%"></i></div><span class="sub">'+j+' / '+a+(o?' / '+o:'')+'</span></div>'}).join('')+'<div class="sub">藍色為 jQt，橘色為 aQt（右側數字依序為 jQt / aQt / 其他）</div>';
  const sl=[['平均 vs 頂流',SG],['戰力曲線',S0],['累計戰力占比',S1],['頭部名額對比',S2],['戰力五等分',S3],['隊伍總戰力',S4],['聯盟組成',S5]];
  return'<div class="card" style="padding:0"><div class="car" id="car">'+sl.map((s,i)=>'<div class="sl"><div class="row sp"><b>'+s[0]+'</b><span class="sub">'+(i+1)+' / '+sl.length+' · 左右滑動</span></div>'+s[1]+'</div>').join('')+'</div><div class="row" style="justify-content:center;padding:0 0 10px"><button class="btn sm" data-a="chart" data-v="'+((UI.chart+sl.length-1)%sl.length)+'">‹</button>'+sl.map((s,i)=>'<span class="dot '+(i===UI.chart?'on':'')+'" data-a="chart" data-v="'+i+'"></span>').join('')+'<button class="btn sm" data-a="chart" data-v="'+((UI.chart+1)%sl.length)+'">›</button></div></div>'}
 function sumCard(t,V){const s=stats(V.tm[t.id]),eq=eqRatio(t.lg,V),n=s.n,low=n<E().min,hi=n>E().max;
- return'<div class="tcard '+tc(t)+(UI.team===t.id?' sel':'')+'" data-a="team" data-v="'+t.id+'"><div class="row sp"><b>'+tLabel(t)+'</b><span class="bd">'+tTime(t)+'</span></div><div class="big">'+n+'<span class="sub"> / '+E().max+'</span></div>'+(hi?'<span class="bd d">超 '+(n-E().max)+' 人</span>':low?'<span class="bd w">差 '+(E().min-n)+' 人</span>':'<span class="bd o">達標</span>')
- +'<div style="margin-top:6px"><div class="kv"><span>總戰力</span><b>'+fmt(s.tot)+'</b></div><div class="kv"><span>平均</span><b>'+fmt(s.avg)+'</b></div><div class="kv"><span>頭部平均（前 '+s.k+'）</span><b>'+fmt(s.head)+'</b></div><div class="kv"><span>頭部 ÷ 平均</span><b>'+f2(s.r)+(eq?' <span class="sub">對照 '+f2(eq)+'</span>':'')+'</b></div></div></div>'}
+ return'<div class="tcard '+tc(t)+(UI.team===t.id?' sel':'')+'" data-a="team" data-v="'+t.id+'"><div class="row sp"><b>'+tLabel(t)+'</b><span class="bd"><span class="lgt">'+tTime(t)+'</span><span class="smt">'+(t.tm==='22'?'22:00':'20:00')+'</span></span></div><div class="big">'+n+'<span class="sub"> / '+E().max+'</span></div>'+(hi?'<span class="bd d">超 '+(n-E().max)+' 人</span>':low?'<span class="bd w">差 '+(E().min-n)+' 人</span>':'<span class="bd o">達標</span>')
+ +'<div class="mini">×'+f2(s.r)+'</div><div class="kvs" style="margin-top:6px"><div class="kv"><span>總戰力</span><b>'+fmt(s.tot)+'</b></div><div class="kv"><span>平均</span><b>'+fmt(s.avg)+'</b></div><div class="kv"><span>頭部平均（前 '+s.k+'）</span><b>'+fmt(s.head)+'</b></div><div class="kv"><span>頭部 ÷ 平均</span><b>'+f2(s.r)+(eq?' <span class="sub">對照 '+f2(eq)+'</span>':'')+'</b></div></div></div>'}
 function listHtml(t,V,gall){const fo=UI.fold.list,hd='<div class="card '+tc(t)+'"><div class="row sp" data-a="fold" data-v="list" style="cursor:pointer;min-height:44px"><span class="row"><i class="dotc"></i><b>成員卡 · '+tLabel(t)+'</b><span class="sub">'+(V.tm[t.id]||[]).length+' 人</span></span><span class="btn sm">'+(fo?'展開':'收合')+'</span></div></div>';if(fo)return hd;return hd+listBody(t,V,gall)}
 function listBody(t,V,gall){const ms=V.tm[t.id],s=stats(ms);let a=ms.map((p,i)=>({p,r:i+1,h:hist(p.id)}));
  if(UI.sort==='hist')a.sort((x,y)=>y.h.a-x.h.a||y.h.l-x.h.l||y.p.power-x.p.power);else if(UI.sort==='name')a.sort((x,y)=>x.p.name.localeCompare(y.p.name));
@@ -294,7 +296,7 @@ function sheetHtml(pid){const p=S.players[pid];if(!p)return'';const V=view(),pl=
 function updSheet(){const s=$('#sh'),o=$('#ov');if(UI.sheet&&S.players[UI.sheet]){s.innerHTML=sheetHtml(UI.sheet);s.style.display='block';o.style.display='block'}else{s.style.display='none';o.style.display='none';UI.sheet=null}}
 
 function vBoard(IS){const V=view(),T=tOn();if(!T.length)return'<div class="card">目前沒有啟用的軍團，請到「後台設定」開啟</div>';const gall=Math.max(1,...[].concat(...T.map(t=>V.tm[t.id])).map(p=>p.power)),t=tById(UI.team)||T[0];
- return'<div class="sub">點一張軍團卡片，下方會列出該隊所有人</div><div class="sumrow">'+T.map(x=>sumCard(x,V)).join('')+'</div>'+listHtml(t,V,gall)+carousel(V,T)+zones(V)}
+ return'<div class="sub">點一張軍團卡片，下方會列出該隊所有人（手機可左右滑動看其他軍團）</div><div class="sumrow" style="--n:'+T.length+'">'+T.map(x=>sumCard(x,V)).join('')+'</div>'+listHtml(t,V,gall)+carousel(V,T)+zones(V)}
 function vOverview(IS){const V=view(),cn=k=>Object.values(S.players).filter(p=>!p.wait&&eff(p)===k).length,e=E(),mt=(l,v,s)=>'<div class="mt"><div class="sub">'+l+'</div><div class="v">'+v+'</div><div class="sub">'+(s||'&nbsp;')+'</div></div>',sn=S.snaps[S.snaps.length-1];
  const mp=UI.mp?(()=>{const d=genDraft(UI.mp);let n=0;Object.values(S.players).forEach(p=>{const pl=V.where[p.id];if(!p.fixed&&pl&&d[p.id]&&d[p.id].t!==pl.t)n++});return'<div class="card" style="background:var(--s2);margin-top:8px"><b>預覽：改用「'+({m:'M 型',s:'S 型',step:'階梯'}[UI.mp])+'」將移動 '+n+' 人</b><div class="sub">已固定的人不動，投票不動</div><div class="row" style="margin-top:8px"><button class="btn pri" data-a="mpApply">確認套用</button><button class="btn" data-a="mpCancel">取消</button></div></div>'})():'';
  return'<div class="card"><div class="row sp"><div><input data-c="evName" value="'+esc(e.name)+'" style="font-weight:600;min-width:0;width:100%;max-width:220px"></div><div class="row">'+(e.final?'<span class="bd o">已定版</span><button class="btn sm" data-a="unfinal">解除定版</button>':'<button class="btn sm" data-a="final">定版</button>')+'<button class="btn sm" data-a="newEv">開新場次</button></div></div></div>'
