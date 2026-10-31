@@ -3,6 +3,475 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>jQt 資料讀取測試（修正版）</title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body { font-family: 'Microsoft JhengHei', sans-serif; padding: 20px; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); min-height: 100vh; }
+        .container { max-width: 1000px; margin: 0 auto; background: white; padding: 30px; border-radius: 16px; box-shadow: 0 20px 60px rgba(0,0,0,0.3); }
+        h1 { color: #4f46e5; margin-bottom: 10px; font-size: 28px; }
+        .subtitle { color: #6b7280; margin-bottom: 30px; font-size: 14px; }
+        .section { margin-bottom: 25px; padding: 20px; background: #f9fafb; border-radius: 12px; border: 2px solid #e5e7eb; }
+        .section h2 { color: #1f2937; margin-bottom: 15px; font-size: 18px; display: flex; align-items: center; gap: 8px; }
+        label { display: block; margin-bottom: 8px; font-weight: bold; color: #374151; font-size: 14px; }
+        input, textarea, select { width: 100%; padding: 12px; border: 2px solid #d1d5db; border-radius: 8px; font-size: 14px; transition: all 0.3s; }
+        input:focus, textarea:focus, select:focus { outline: none; border-color: #4f46e5; box-shadow: 0 0 0 3px rgba(79, 70, 229, 0.1); }
+        textarea { min-height: 120px; font-family: 'Courier New', monospace; resize: vertical; }
+        button { background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; padding: 14px 28px; border: none; border-radius: 8px; cursor: pointer; font-weight: bold; font-size: 15px; transition: all 0.3s; box-shadow: 0 4px 12px rgba(102, 126, 234, 0.4); }
+        button:hover { transform: translateY(-2px); box-shadow: 0 6px 20px rgba(102, 126, 234, 0.6); }
+        button:active { transform: translateY(0); }
+        button:disabled { background: #9ca3af; cursor: not-allowed; transform: none; box-shadow: none; }
+        .btn-secondary { background: #6b7280; box-shadow: 0 4px 12px rgba(107, 114, 128, 0.3); }
+        .status { padding: 14px; margin: 15px 0; border-radius: 8px; font-weight: bold; display: flex; align-items: center; gap: 10px; animation: slideIn 0.3s ease; }
+        @keyframes slideIn { from { opacity: 0; transform: translateY(-10px); } to { opacity: 1; transform: translateY(0); } }
+        .status.success { background: #d1fae5; color: #065f46; border: 2px solid #34d399; }
+        .status.error { background: #fee2e2; color: #991b1b; border: 2px solid #f87171; }
+        .status.info { background: #dbeafe; color: #1e40af; border: 2px solid #60a5fa; }
+        .hidden { display: none; }
+        .log-box { background: #1f2937; color: #10b981; padding: 15px; border-radius: 8px; font-family: 'Courier New', monospace; font-size: 12px; max-height: 300px; overflow-y: auto; white-space: pre-wrap; margin-top: 15px; }
+        .log-box::-webkit-scrollbar { width: 8px; }
+        .log-box::-webkit-scrollbar-track { background: #374151; border-radius: 4px; }
+        .log-box::-webkit-scrollbar-thumb { background: #60a5fa; border-radius: 4px; }
+        .mode-btn { display: inline-flex; align-items: center; gap: 8px; padding: 10px 20px; background: white; border: 2px solid #e5e7eb; border-radius: 8px; cursor: pointer; transition: all 0.3s; margin-right: 10px; font-weight: 600; color: #6b7280; }
+        .mode-btn.active { background: #4f46e5; color: white; border-color: #4f46e5; }
+        .field-selector { display: grid; grid-template-columns: 1fr 1fr; gap: 15px; margin-top: 15px; }
+        @media (max-width: 768px) { .field-selector { grid-template-columns: 1fr; } }
+        .validation-icon { position: absolute; right: 12px; top: 50%; transform: translateY(-50%); font-size: 18px; }
+        .input-wrapper { position: relative; }
+        .spinner { display: inline-block; width: 16px; height: 16px; border: 3px solid rgba(255,255,255,0.3); border-radius: 50%; border-top-color: white; animation: spin 0.8s linear infinite; }
+        @keyframes spin { to { transform: rotate(360deg); } }
+        .result-table { width: 100%; border-collapse: collapse; margin-top: 15px; }
+        .result-table th { background: #4f46e5; color: white; padding: 10px; text-align: left; }
+        .result-table td { padding: 10px; border-bottom: 1px solid #e5e7eb; }
+        .result-table tr:hover { background: #f3f4f6; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🛡️ jQt 資料讀取系統（修正版）</h1>
+        <p class="subtitle">診斷與修正「按鈕無反應」問題 v1.0</p>
+
+        <!-- 模式選擇 -->
+        <div class="section">
+            <h2>📌 選擇輸入模式</h2>
+            <div style="margin-bottom: 15px;">
+                <button class="mode-btn active" id="mode-paste" onclick="switchMode('paste')">
+                    📋 貼上模式
+                </button>
+                <button class="mode-btn" id="mode-url" onclick="switchMode('url')">
+                    🔗 URL 模式
+                </button>
+            </div>
+
+            <!-- 貼上模式 -->
+            <div id="input-paste" style="display: block;">
+                <div style="margin-bottom: 15px;">
+                    <label>📝 報名表資料（CSV）</label>
+                    <textarea id="csv-reg" placeholder="從 Google Sheets 複製貼上報名表資料...&#10;範例：&#10;姓名,選項&#10;玩家A,一軍&#10;玩家B,二軍"></textarea>
+                </div>
+                <div>
+                    <label>⚔️ 戰力表資料（CSV）</label>
+                    <textarea id="csv-power" placeholder="從 Google Sheets 複製貼上戰力表資料...&#10;範例：&#10;姓名,戰力&#10;玩家A,5000000&#10;玩家B,4500000"></textarea>
+                </div>
+            </div>
+
+            <!-- URL 模式 -->
+            <div id="input-url" class="hidden">
+                <div style="margin-bottom: 15px;">
+                    <label>🔗 報名表 URL</label>
+                    <div class="input-wrapper">
+                        <input type="text" id="url-reg" placeholder="https://docs.google.com/spreadsheets/d/...">
+                        <span class="validation-icon">⏳</span>
+                    </div>
+                </div>
+                <div>
+                    <label>🔗 戰力表 URL</label>
+                    <div class="input-wrapper">
+                        <input type="text" id="url-power" placeholder="https://docs.google.com/spreadsheets/d/...">
+                        <span class="validation-icon">⏳</span>
+                    </div>
+                </div>
+            </div>
+
+            <div style="margin-top: 20px;">
+                <button id="btn-load" onclick="loadData()">
+                    <span id="btn-text">🚀 讀取 & 檢查</span>
+                </button>
+                <button class="btn-secondary" onclick="clearAll()">🗑️ 清空</button>
+            </div>
+        </div>
+
+        <!-- 狀態顯示 -->
+        <div id="status-area"></div>
+
+        <!-- 欄位選擇器 -->
+        <div id="col-picker" class="section hidden">
+            <h2>🎯 選擇資料欄位</h2>
+            <p style="color: #6b7280; font-size: 13px; margin-bottom: 15px;">請確認以下欄位對應是否正確</p>
+            
+            <div class="field-selector">
+                <div>
+                    <label>報名表 - 姓名欄位</label>
+                    <select id="col-reg-name"></select>
+                </div>
+                <div>
+                    <label>報名表 - 志願欄位</label>
+                    <select id="col-reg-opt"></select>
+                </div>
+                <div>
+                    <label>戰力表 - 姓名欄位</label>
+                    <select id="col-pow-name"></select>
+                </div>
+                <div>
+                    <label>戰力表 - 戰力欄位</label>
+                    <select id="col-pow-val"></select>
+                </div>
+            </div>
+
+            <div style="margin-top: 20px;">
+                <button onclick="processData()">✅ 確認並處理資料</button>
+            </div>
+        </div>
+
+        <!-- 結果顯示 -->
+        <div id="result-area" class="section hidden">
+            <h2>📊 處理結果</h2>
+            <div id="result-content"></div>
+        </div>
+
+        <!-- 除錯日誌 -->
+        <div class="section">
+            <h2>🐛 除錯日誌</h2>
+            <div class="log-box" id="debug-log">系統就緒，等待操作...</div>
+        </div>
+    </div>
+
+    <script>
+        let currentMode = 'paste';
+        let rawRegData = [];
+        let rawPowerData = [];
+
+        function log(type, message) {
+            const logBox = document.getElementById('debug-log');
+            const time = new Date().toLocaleTimeString();
+            const colors = {
+                INFO: '#60a5fa',
+                SUCCESS: '#10b981',
+                ERROR: '#ef4444',
+                WARN: '#f59e0b'
+            };
+            const color = colors[type] || '#60a5fa';
+            logBox.innerHTML += `<span style="color: ${color}">[${time}] [${type}]</span> ${message}\n`;
+            logBox.scrollTop = logBox.scrollHeight;
+        }
+
+        function showStatus(message, type) {
+            const icons = {
+                info: 'ℹ️',
+                success: '✅',
+                error: '❌'
+            };
+            const area = document.getElementById('status-area');
+            area.innerHTML = `<div class="status ${type}">${icons[type] || ''} ${message}</div>`;
+            log(type.toUpperCase(), message);
+        }
+
+        function switchMode(mode) {
+            currentMode = mode;
+            document.getElementById('input-paste').style.display = mode === 'paste' ? 'block' : 'none';
+            document.getElementById('input-url').style.display = mode === 'url' ? 'block' : 'none';
+            
+            document.querySelectorAll('.mode-btn').forEach(btn => btn.classList.remove('active'));
+            document.getElementById(`mode-${mode}`).classList.add('active');
+            
+            log('INFO', `切換到 ${mode === 'paste' ? '貼上' : 'URL'} 模式`);
+        }
+
+        function clearAll() {
+            document.getElementById('csv-reg').value = '';
+            document.getElementById('csv-power').value = '';
+            document.getElementById('url-reg').value = '';
+            document.getElementById('url-power').value = '';
+            document.getElementById('debug-log').innerHTML = '日誌已清空\n';
+            document.getElementById('status-area').innerHTML = '';
+            document.getElementById('col-picker').classList.add('hidden');
+            document.getElementById('result-area').classList.add('hidden');
+            rawRegData = [];
+            rawPowerData = [];
+            log('INFO', '已清空所有資料');
+        }
+
+        function parseCSV(text) {
+            log('INFO', '開始解析 CSV...');
+            if (!text || !text.trim()) {
+                throw new Error('CSV 資料為空');
+            }
+
+            // 移除 BOM
+            if (text.charCodeAt(0) === 0xFEFF) {
+                text = text.slice(1);
+                log('INFO', '已移除 BOM');
+            }
+
+            // 偵測分隔符
+            const firstLine = text.split(/\r?\n/)[0];
+            const delimiter = (firstLine.match(/\t/g) || []).length > 2 ? '\t' : ',';
+            log('INFO', `偵測分隔符: ${delimiter === '\t' ? 'TAB' : 'COMMA'}`);
+
+            // 解析
+            const lines = text.trim().split(/\r?\n/);
+            const result = [];
+
+            for (let line of lines) {
+                line = line.trim();
+                if (!line) continue;
+
+                let fields;
+                if (delimiter === ',') {
+                    fields = [];
+                    let current = '';
+                    let inQuotes = false;
+                    
+                    for (let char of line) {
+                        if (char === '"') {
+                            inQuotes = !inQuotes;
+                        } else if (char === ',' && !inQuotes) {
+                            fields.push(current.trim().replace(/^["']|["']$/g, ''));
+                            current = '';
+                        } else {
+                            current += char;
+                        }
+                    }
+                    fields.push(current.trim().replace(/^["']|["']$/g, ''));
+                } else {
+                    fields = line.split('\t').map(f => f.trim().replace(/^["']|["']$/g, ''));
+                }
+
+                result.push(fields);
+            }
+
+            log('SUCCESS', `解析完成: ${result.length} 行, ${result[0]?.length || 0} 欄`);
+            return result;
+        }
+
+        async function fetchWithFallback(url) {
+            log('INFO', `嘗試讀取: ${url.substring(0, 50)}...`);
+
+            // 轉換 Google Sheets URL
+            if (url.includes('docs.google.com/spreadsheets')) {
+                if (url.includes('/edit')) {
+                    url = url.replace(/\/edit.*/, '/export?format=csv');
+                } else if (url.includes('/pubhtml')) {
+                    url = url.replace(/\/pubhtml.*/, '/pub?output=csv');
+                }
+                log('INFO', '已轉換為 CSV 匯出 URL');
+            }
+
+            const methods = [
+                { name: '直接連線', url: url },
+                { name: 'CORS Proxy', url: `https://corsproxy.io/?${encodeURIComponent(url)}` }
+            ];
+
+            for (let method of methods) {
+                try {
+                    log('INFO', `嘗試: ${method.name}`);
+                    const response = await fetch(method.url);
+                    if (!response.ok) throw new Error(`HTTP ${response.status}`);
+                    
+                    const text = await response.text();
+                    if (text.trim().startsWith('<')) {
+                        log('WARN', '收到 HTML，嘗試下一個方法');
+                        continue;
+                    }
+                    
+                    log('SUCCESS', `${method.name} 成功`);
+                    return text;
+                } catch (error) {
+                    log('ERROR', `${method.name} 失敗: ${error.message}`);
+                }
+            }
+
+            throw new Error('所有連線方法均失敗');
+        }
+
+        async function loadData() {
+            const btn = document.getElementById('btn-load');
+            const btnText = document.getElementById('btn-text');
+            
+            btn.disabled = true;
+            btnText.innerHTML = '<span class="spinner"></span> 讀取中...';
+            
+            try {
+                let regText = '';
+                let powerText = '';
+
+                if (currentMode === 'paste') {
+                    regText = document.getElementById('csv-reg').value;
+                    powerText = document.getElementById('csv-power').value;
+                    
+                    if (!regText || !powerText) {
+                        throw new Error('請貼上報名表和戰力表資料');
+                    }
+                    
+                    log('INFO', '使用貼上模式讀取資料');
+                } else {
+                    const urlReg = document.getElementById('url-reg').value.trim();
+                    const urlPower = document.getElementById('url-power').value.trim();
+                    
+                    if (!urlReg || !urlPower) {
+                        throw new Error('請輸入兩個 URL');
+                    }
+                    
+                    showStatus('讀取報名表...', 'info');
+                    regText = await fetchWithFallback(urlReg);
+                    
+                    showStatus('讀取戰力表...', 'info');
+                    powerText = await fetchWithFallback(urlPower);
+                }
+
+                showStatus('解析資料...', 'info');
+                rawRegData = parseCSV(regText);
+                rawPowerData = parseCSV(powerText);
+
+                if (rawRegData.length === 0 || rawPowerData.length === 0) {
+                    throw new Error('解析後資料為空');
+                }
+
+                // 填充欄位選擇器
+                populateSelectors();
+                
+                document.getElementById('col-picker').classList.remove('hidden');
+                showStatus('資料讀取成功！請確認欄位對應', 'success');
+
+            } catch (error) {
+                showStatus(`錯誤: ${error.message}`, 'error');
+                log('ERROR', error.message);
+            } finally {
+                btn.disabled = false;
+                btnText.textContent = '🚀 讀取 & 檢查';
+            }
+        }
+
+        function populateSelectors() {
+            const regHeaders = rawRegData[0] || [];
+            const powerHeaders = rawPowerData[0] || [];
+
+            log('INFO', `報名表欄位: ${regHeaders.join(', ')}`);
+            log('INFO', `戰力表欄位: ${powerHeaders.join(', ')}`);
+
+            // 填充選擇器
+            fillSelector('col-reg-name', regHeaders, ['name', '姓名', '名稱']);
+            fillSelector('col-reg-opt', regHeaders, ['option', '選項', '志願', '意願']);
+            fillSelector('col-pow-name', powerHeaders, ['name', '姓名', '名稱']);
+            fillSelector('col-pow-val', powerHeaders, ['power', '戰力', '實力']);
+        }
+
+        function fillSelector(id, headers, keywords) {
+            const select = document.getElementById(id);
+            select.innerHTML = '';
+            
+            let defaultIndex = 0;
+            headers.forEach((header, index) => {
+                const option = document.createElement('option');
+                option.value = index;
+                option.textContent = `欄位 ${index + 1}: ${header || '(空白)'}`;
+                select.appendChild(option);
+
+                // 自動選擇
+                const headerLower = header.toLowerCase();
+                if (keywords.some(kw => headerLower.includes(kw))) {
+                    defaultIndex = index;
+                }
+            });
+
+            select.value = defaultIndex;
+            log('INFO', `${id} 自動選擇: 欄位 ${defaultIndex + 1}`);
+        }
+
+        function processData() {
+            try {
+                const regNameCol = parseInt(document.getElementById('col-reg-name').value);
+                const regOptCol = parseInt(document.getElementById('col-reg-opt').value);
+                const powNameCol = parseInt(document.getElementById('col-pow-name').value);
+                const powValCol = parseInt(document.getElementById('col-pow-val').value);
+
+                log('INFO', `處理資料: 報名表(姓名:${regNameCol}, 志願:${regOptCol}), 戰力表(姓名:${powNameCol}, 戰力:${powValCol})`);
+
+                // 建立戰力對應表
+                const powerMap = {};
+                for (let i = 1; i < rawPowerData.length; i++) {
+                    const row = rawPowerData[i];
+                    const name = row[powNameCol];
+                    const power = parseFloat((row[powValCol] || '0').toString().replace(/,/g, '')) || 0;
+                    if (name) {
+                        powerMap[name.trim()] = power;
+                    }
+                }
+
+                log('INFO', `建立戰力表: ${Object.keys(powerMap).length} 筆`);
+
+                // 處理報名表
+                const players = [];
+                for (let i = 1; i < rawRegData.length; i++) {
+                    const row = rawRegData[i];
+                    const name = row[regNameCol];
+                    const opt = row[regOptCol] || '';
+                    
+                    if (!name) continue;
+
+                    const power = powerMap[name.trim()] || 0;
+                    players.push({
+                        name: name.trim(),
+                        option: opt.trim(),
+                        power: power,
+                        powerDisplay: power.toLocaleString()
+                    });
+                }
+
+                log('SUCCESS', `處理完成: ${players.length} 位玩家`);
+
+                // 顯示結果
+                displayResults(players);
+
+            } catch (error) {
+                showStatus(`處理錯誤: ${error.message}`, 'error');
+                log('ERROR', error.message);
+            }
+        }
+
+        function displayResults(players) {
+            const resultArea = document.getElementById('result-area');
+            const resultContent = document.getElementById('result-content');
+            
+            let html = `<p style="margin-bottom: 15px;">成功處理 <strong>${players.length}</strong> 位玩家資料</p>`;
+            html += '<table class="result-table"><thead><tr><th>姓名</th><th>志願</th><th>戰力</th></tr></thead><tbody>';
+            
+            players.slice(0, 20).forEach(p => {
+                const alertIcon = p.power === 0 ? ' ⚠️' : '';
+                html += `<tr><td>${p.name}${alertIcon}</td><td>${p.option}</td><td>${p.powerDisplay}</td></tr>`;
+            });
+            
+            html += '</tbody></table>';
+            
+            if (players.length > 20) {
+                html += `<p style="margin-top: 10px; color: #6b7280; font-size: 13px;">（僅顯示前 20 筆，共 ${players.length} 筆）</p>`;
+            }
+
+            resultContent.innerHTML = html;
+            resultArea.classList.remove('hidden');
+            
+            showStatus(`✅ 處理完成！共 ${players.length} 位玩家`, 'success');
+        }
+
+        // 初始化
+        log('INFO', '系統初始化完成');
+        log('INFO', '請選擇輸入模式並輸入資料');
+    </script>
+</body>
+</html><!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>寒霜啟示錄 jQt聯盟 | 戰術指揮中心 v70.7 (Cloud Command)</title>
     
     <script src="https://cdn.tailwindcss.com"></script>
