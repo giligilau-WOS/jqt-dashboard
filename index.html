@@ -35,6 +35,11 @@ body{overflow-x:clip;max-width:100vw}
 .btn.mtab small{display:block;font-size:12px;color:var(--t2)}
 .btn.mtab.on{border-top-color:rgb(var(--tr))}
 .sumrow .mini,.sumrow .smt{display:none}
+.sug{border:1px solid var(--bd);border-radius:12px;background:var(--s1);margin-top:6px;overflow:hidden}
+.sg{padding:12px 14px;min-height:48px;display:flex;align-items:center;gap:6px;flex-wrap:wrap;border-bottom:1px solid var(--bd);cursor:pointer}
+.sg:last-child{border-bottom:0}
+.sg:active{background:var(--acb)}
+#selfres{display:flex;flex-direction:column;gap:12px}#selfres:empty{display:none}
 @media(max-width:759px){.sumrow{display:flex;overflow-x:auto;gap:8px;scroll-snap-type:x proximity;-webkit-overflow-scrolling:touch;padding:4px 4px 8px;margin:0 -4px;scrollbar-width:none}.sumrow::-webkit-scrollbar{display:none}.sumrow .tcard{flex:0 0 min(44vw,176px);scroll-snap-align:start}}
 @media(max-width:759px){#nav{padding:0 6px calc(env(safe-area-inset-bottom) + 14px);gap:4px;border-radius:18px 18px 0 0}#nav button{min-height:60px;padding:10px 2px;font-size:14px;border-radius:12px;margin-top:6px}#nav button.on{background:var(--acb)}body{padding-bottom:124px}}
 main{max-width:1400px;margin:0 auto;padding:12px;display:flex;flex-direction:column;gap:12px;min-width:0}
@@ -365,7 +370,7 @@ function vAdmin(IS){return'<div class="tabsb">'+ADM.map(([k,l])=>'<button class=
 function render(){if(!S)return;UNIT=unitOf();const IS=issues(),T=tOn();if(!T.find(t=>t.id===UI.team))UI.team=T[0]?T[0].id:null;
  const th='<button class="btn sm" data-a="theme" aria-label="切換深淺色">'+THEMES[S.theme||'auto']+'</button>';
  $('#top').innerHTML=SELF?'<b>我的位置</b><span class="grow"></span>'+th:'<b>分隊工具</b><div id="nav">'+NAV.map(n=>'<button class="'+(UI.scr===n[0]?'on':'')+'" data-a="nav" data-v="'+n[0]+'">'+n[1]+(n[0]==='admin'&&IS.A.length?' <span class="bd w">'+IS.A.length+'</span>':'')+'</button>').join('')+'</div><span class="sub" id="stat">'+esc(UI.saved)+'</span><button class="btn sm mbtn" data-a="menu" aria-label="選單">⋯</button><div class="tacts'+(UI.menu?' open':'')+'"><button class="btn sm" data-a="undo">復原</button><button class="btn sm" data-a="publish">公開</button><button class="btn sm" data-a="theme" aria-label="切換深淺色">外觀：'+({auto:'自動',light:'淺色',dark:'深色'}[S.theme||'auto'])+'</button><button class="btn sm" data-a="lcheck">版面診斷</button>'+(UI.lc?'<div class="lc">'+(function(){const l=UI.lc;return '視窗寬 '+l.W+'，頁面寬 '+l.sw+(l.items.length?'；超出：'+l.items.map(i=>esc(i.t)+'('+i.w+')'+(i.txt?'「'+esc(i.txt)+'」':'')).join('、'):'；沒有發現超出的元素')})()+'</div>':'')+'</div>';
- const fn={board:vBoard,mission:vMission,att:vAtt,self:vSelf,admin:vAdmin}[SELF?'self':UI.scr]||vBoard;
+ const fn={board:vBoard,mission:vMission,att:vAtt,self:vSelf2,admin:vAdmin}[SELF?'self':UI.scr]||vBoard;
  $('#main').innerHTML=fn(IS)+'<div class="sub" style="text-align:center">版本 '+APP_VERSION+'</div>';$('#plist').innerHTML=Object.values(S.players).map(p=>'<option value="'+esc(p.name)+'">').join('');updSheet();renderBanner();
  const c=$('#car');if(c)c.scrollLeft=UI.chart*c.clientWidth}
 function guard(){if(E().final){toast('已定版，請先到「後台設定 → 總覽」解除定版');return true}return false}
@@ -422,7 +427,7 @@ function act(a,v,w){const P=S.players;switch(a){
  case'rkReset':if(UI.rkr){UI.rkr=false;mut(()=>{S.rules=DEF().rules},'已重置規則')}else{UI.rkr=true;toast('再按一次「重置規則」才會執行');setTimeout(()=>UI.rkr=false,4000)}break;
  case'reqOk':{const q=S.req[+v],me=byN(q.me),o=byN(q.other);if(!me||!o)return toast('找不到對應的玩家，請手動到分身綁定新增');mut(()=>{S.rules.alts.push({m:o.id,a:me.id});S.req.splice(+v,1)},'已綁定')}break;
  case'reqNo':mut(()=>{S.req.splice(+v,1)});break;
- case'selfGo':{const p=byN(UI.selfQ||'');UI.selfRes=p?{pid:p.id}:{none:true};render()}break;
+ case'selfGo':{let p=byN(UI.selfQ||'');if(!p){const c=suggest(UI.selfQ||'');if(c.length===1)p=c[0].p;else if(c.length>1){UI.selfRes=null;render();toast('找到 '+c.length+' 個相近的名字，請點選你的名字');break}}UI.selfRes=p?{pid:p.id}:{none:true};render()}break;
  case'selfExc':S.rules.exc[v]={scope:w,ev:E().id,by:'ally',at:Date.now()};save();toast('已確認');render();break;
  case'repT':UI.report=!UI.report;render();break;
  case'repSend':{const r=UI.selfRes;if(!r||r.none||!UI.repO)return toast('請先查詢自己的名字，並填入對方名字');S.req.push({me:S.players[r.pid].name,kind:UI.repK||'alt',other:UI.repO,at:Date.now()});save();UI.report=false;UI.repO='';toast('已送出，等幹部確認');render()}break;
@@ -438,7 +443,23 @@ function chg(c,v,el){switch(c){
  case'evName':mut(()=>{E().name=el.value||'兵工廠'});break;case'repK':UI.repK=el.value;break}}
 document.addEventListener('click',e=>{if(e.target.id==='ov'){UI.sheet=null;render();return}const b=e.target.closest('[data-a]');if(b)act(b.dataset.a,b.dataset.v,b.dataset.w)});
 document.addEventListener('change',e=>{const c=e.target.closest('[data-c]');if(c)chg(c.dataset.c,c.dataset.v,e.target)});
-document.addEventListener('input',e=>{const i=e.target.dataset&&e.target.dataset.i;if(i)UI[i]=e.target.value});
+function suggest(q){q=nz(q);if(!q)return[];const out=[];Object.values(S.players).forEach(p=>{let best=0,via='';[p.name].concat((p.aliases||[]).map(a=>a.n)).forEach((n,i)=>{const k=nz(n);let s=0;if(k===q)s=100;else if(k.startsWith(q))s=80;else if(k.includes(q))s=60;else if(q.length>=2){const m=sim(q,k);if(m>=.5)s=m*50}if(s>best){best=s;via=i?n:''}});if(best)out.push({p,best,via})});out.sort((a,b)=>b.best-a.best||a.p.name.localeCompare(b.p.name));return out.slice(0,8)}
+function sugHtml(q){if(!nz(q))return'';const c=suggest(q);if(!c.length)return'<div class="sub" style="padding:8px 2px">找不到相近的名字，可以少打幾個字，或用下方「從名單選擇」</div>';return'<div class="sug">'+c.map(x=>'<div class="sg" data-pick="'+x.p.id+'"><b>'+esc(x.p.name)+'</b>'+(x.via?'<span class="sub">（曾用名 '+esc(x.via)+'）</span>':'')+'</div>').join('')+'</div>'}
+function pickPlayer(pid){const p=S.players[pid];if(!p)return;UI.selfQ=p.name;UI.selfRes={pid:p.id};render()}
+function vSelf2(IS){const r=UI.selfRes,names=Object.values(S.players).sort((a,b)=>a.name.localeCompare(b.name));
+ let h='<div class="card"><h3>查詢我的位置</h3><div class="sub">輸入名字裡的幾個字，下面會自動列出相近的名字，點一下就能查看</div><div class="row" style="margin-top:8px"><input data-i="selfQ" autocomplete="off" autocapitalize="off" placeholder="輸入你的遊戲名稱" style="flex:1;min-width:0" value="'+esc(UI.selfQ)+'"><button class="btn pri" data-a="selfGo">查詢</button></div><div id="sug">'+(r?'':sugHtml(UI.selfQ))+'</div><div class="row" style="margin-top:8px"><span class="sub">或</span><select id="pickSel" style="flex:1;min-width:0"><option value="">從名單選擇…（共 '+names.length+' 人）</option>'+names.map(p=>'<option value="'+p.id+'">'+esc(p.name)+'</option>').join('')+'</select></div></div>';
+ h+='<div id="selfres">';
+ if(!S.pub)h+='<div class="card">幹部還沒有公開名單</div>';else if(r){if(r.none)h+='<div class="card">找不到這個名字。可以少打幾個字，或用上面的「從名單選擇」。如果你改過名，請聯絡幹部</div>';else{const p=S.players[r.pid],e=S.pub.map[r.pid];
+  if(!e)h+='<div class="card">這個名字是公開之後才加入的，等幹部再次公開</div>';
+  else if(e.st==='in')h+='<div class="card"><div class="sub">'+esc(p.name)+'</div><div style="font-size:20px;font-weight:700">'+e.t+' · '+e.time+'</div>'+(e.g?'<div style="margin-top:8px"><div class="sub">我的小組</div><b>'+esc(e.g)+'</b><div class="sub">'+esc(e.gt)+'</div></div>':'')+'</div>';
+  else h+='<div class="card"><b style="font-size:16px">'+({wait:'你目前在候補',out:'你已登記為不克參加',none:'這場沒有找到你的投票紀錄'}[e.st])+'</b><div class="sub">'+({wait:'有空位時，幹部會通知你',out:'想改變的話，請聯絡幹部',none:'如果你已經投票，請聯絡幹部'}[e.st])+'</div></div>';
+  S.rules.alts.filter(a=>a.m===r.pid||a.a===r.pid).forEach(a=>{const k=a.m+'|'+a.a,ex=S.rules.exc[k],other=S.players[a.m===r.pid?a.a:a.m];if(!other)return;const pm=S.pub.map[a.m],pl=S.pub.map[a.a];if(pm&&pl&&pm.st==='in'&&pl.st==='in'&&pm.time===pl.time)h+='<div class="card"><b>你的帳號 '+esc(p.name)+' 與 '+esc(other.name)+' 在同一時段</b><div class="sub">兩個帳號都要參加嗎？</div>'+(ex?'<div style="margin-top:6px"><span class="bd o">已確認 · '+(ex.scope==='always'?'之後都適用':'只這場')+'</span> <span class="sub">幹部可隨時撤銷</span></div>':'<div class="row" style="margin-top:6px"><button class="btn sm" data-a="selfExc" data-v="'+k+'" data-w="once">確認，只這場</button><button class="btn sm" data-a="selfExc" data-v="'+k+'" data-w="always">確認，之後都適用</button></div>')+'</div>'});
+  h+='<div class="sub">公開版本 · '+new Date(S.pub.at).toLocaleString()+' 更新</div>'}}
+ h+='</div>';
+ h+='<div class="card"><button class="btn" data-a="repT">我是分身，或我改過名</button>'+(UI.report?'<div style="margin-top:8px"><div class="row"><select data-c="repK"><option value="alt">我是分身，主號是</option><option value="rename">我改過名，舊名字是</option></select><input data-i="repO" placeholder="主號或舊名字" value="'+esc(UI.repO||'')+'" style="flex:1;min-width:0"><button class="btn pri" data-a="repSend">送出回報</button></div><div class="sub">回報只會交給幹部確認，確認前不會變更任何位置</div></div>':'')+'</div>';return h}
+document.addEventListener('click',e=>{const b=e.target.closest('[data-pick]');if(b)pickPlayer(b.dataset.pick)});
+document.addEventListener('change',e=>{if(e.target.id==='pickSel'&&e.target.value)pickPlayer(e.target.value)});
+document.addEventListener('input',e=>{const i=e.target.dataset&&e.target.dataset.i;if(i)UI[i]=e.target.value;if(i==='selfQ'){UI.selfRes=null;const s=$('#sug');if(s)s.innerHTML=sugHtml(e.target.value);const r=$('#selfres');if(r)r.innerHTML=''}});
 document.addEventListener('keydown',e=>{if(e.key==='Enter'&&e.target.dataset&&e.target.dataset.i==='selfQ')act('selfGo')});
 document.addEventListener('scroll',e=>{const c=e.target;if(!c||c.id!=='car')return;const i=Math.round(c.scrollLeft/c.clientWidth);if(i!==UI.chart){UI.chart=i;document.querySelectorAll('.dot').forEach((d,j)=>d.classList.toggle('on',j===i))}},true);
 document.addEventListener('visibilitychange',()=>{if(!document.hidden&&Date.now()-UI.lastCheck>30*60*1000)checkUpdate(false)});
