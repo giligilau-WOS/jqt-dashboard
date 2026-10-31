@@ -75,7 +75,8 @@ const ADM=[['overview','總覽'],['import','匯入'],['fix','修正'],['rules','
 const DEF=()=>({seq:1,players:{},alias:{},draft:{},autoLinks:[],rules:{together:[],locks:{},alts:[],exc:{}},pend:[],snaps:[],events:[],pub:null,req:[],
  ev:{id:'e'+Date.now(),name:'兵工廠',type:'foundry',min:15,max:30,K:5,mode:'m',pri:'jQt',unit:'auto',
   teams:[{id:'j1',lg:1,al:'jQt',on:true,tm:'22'},{id:'a1',lg:1,al:'aQt',on:true,tm:'22'},{id:'j2',lg:2,al:'jQt',on:true,tm:'20'},{id:'a2',lg:2,al:'aQt',on:true,tm:'20'}],final:null,att:{},attDone:false,mo:{}}});
-const Store={async get(k){try{if(window.storage){const r=await window.storage.get(k);if(r&&r.value)return JSON.parse(r.value)}}catch(e){}return null},
+const Store={err:'',async get(k){try{const v=localStorage.getItem(k);return v?JSON.parse(v):null}catch(e){return null}},
+ async set(k,v){try{localStorage.setItem(k,JSON.stringify(v));this.err='';return true}catch(e){this.err=String(e&&e.message||e);return false}}};
  async set(k,v){try{if(window.storage){await window.storage.set(k,JSON.stringify(v));return true}}catch(e){}return false}};
 const cfgOf=()=>({at:Date.now(),rules:S.rules,cfg:{teams:E().teams,min:E().min,max:E().max,K:E().K,mode:E().mode,pri:E().pri,unit:E().unit}});
 function applyCfg(c){if(!c)return;if(c.rules)S.rules=JSON.parse(JSON.stringify(c.rules));if(c.cfg)Object.assign(S.ev,JSON.parse(JSON.stringify(c.cfg)))}
