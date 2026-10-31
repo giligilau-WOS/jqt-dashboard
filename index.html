@@ -29,6 +29,12 @@ body{overflow-x:clip;max-width:100vw}
 .tacts .lc{flex-basis:100%;font-size:12px;color:rgba(255,255,255,.92);overflow-wrap:anywhere}
 @media(min-width:760px){#top{position:sticky;top:0}}
 @media(max-width:759px){.mbtn{display:inline-flex;align-items:center}.tacts{display:none;width:100%}.tacts.open{display:flex}#top{padding:4px 10px;min-height:44px}}
+.mtabs{display:grid;gap:6px}
+.mk{display:none}
+.btn.mtab{display:flex;flex-direction:column;align-items:center;justify-content:center;min-height:68px;padding:6px 2px;line-height:1.3;border-top:4px solid rgb(var(--tr))}
+.btn.mtab small{display:block;font-size:12px;color:var(--t2)}
+.btn.mtab.on{border-top-color:rgb(var(--tr))}
+@media(max-width:759px){#nav{padding:0 6px calc(env(safe-area-inset-bottom) + 14px);gap:4px;border-radius:18px 18px 0 0}#nav button{min-height:60px;padding:10px 2px;font-size:14px;border-radius:12px;margin-top:6px}#nav button.on{background:var(--acb)}body{padding-bottom:124px}}
 main{max-width:1400px;margin:0 auto;padding:12px;display:flex;flex-direction:column;gap:12px;min-width:0}
 main>*,.card,.mcard,.tcard,.sl,.grid>*,.sumrow>*,.mlist>*{min-width:0}
 .card,.mcard,.tcard{overflow-wrap:anywhere}
@@ -325,7 +331,7 @@ function vRules(IS){const P=Object.values(S.players),R=S.rules,nm=id=>S.players[
 function vMission(IS){const V=view(),T=tOn(),e=E(),foundry=e.type==='foundry',chip=(a,v,w,t)=>'<span data-a="'+a+'" data-v="'+v+'" data-w="'+w+'" style="display:inline-block;font-size:13px;padding:5px 10px;border-radius:8px;background:var(--s2);margin:2px 4px 2px 0;cursor:pointer">'+t+'</span>';
  let h='<div class="card"><div class="row sp"><b>活動類型</b><div class="row"><button class="btn '+(foundry?'on':'')+'" data-a="mtype" data-v="foundry">兵工廠 · 4 組</button><button class="btn '+(!foundry?'on':'')+'" data-a="mtype" data-v="canyon">峽谷會戰 · 左中右</button></div></div></div>';
  if(!T.length)return h+'<div class="card">沒有啟用的軍團</div>';if(!tById(UI.mt)||!tById(UI.mt).on)UI.mt=T[0].id;const t=tById(UI.mt);
- let txt='';h+='<div class="row">'+T.map(x=>'<button class="btn sm '+tc(x)+' '+(UI.mt===x.id?'on':'')+'" style="border-left:5px solid rgb(var(--tr))" data-a="mt" data-v="'+x.id+'">'+tLabel(x)+'</button>').join('')+'</div><div class="sub">'+(foundry?'兵工廠：依戰力蛇形分成 4 組':'峽谷會戰：左中右三路')+'。點成員可切換分組</div>';
+ let txt='';h+='<div class="mtabs" style="grid-template-columns:repeat('+T.length+',minmax(0,1fr))">'+T.map(x=>'<button class="btn mtab '+tc(x)+' '+(UI.mt===x.id?'on':'')+'" data-a="mt" data-v="'+x.id+'"><b>'+x.al+'</b><small>軍團'+(x.lg===1?'一':'二')+'</small><small>'+(x.tm==='22'?'22:00':'20:00')+'</small></button>').join('')+'</div><div class="sub">'+(foundry?'兵工廠：依戰力蛇形分成 4 組':'峽谷會戰：左中右三路')+'。點成員可切換分組</div>';
  if(foundry){const G=foundryG(t.id);h+='<div class="grid '+tc(t)+'" style="grid-template-columns:repeat(auto-fit,minmax(min(100%,220px),1fr))">'+G.map((g,j)=>{txt+='\n'+GN[j][0]+'（'+GN[j][1]+'）\n目標：'+GN[j][2]+'\n成員：'+(g.map(m=>m.name).join('、')||'無')+'\n';return'<div class="card"><div class="row sp"><b>'+GN[j][0]+'</b><span class="bd">'+GN[j][1]+'</span></div><div class="sub">'+g.length+' 人 · '+fmt(g.reduce((s,m)=>s+m.power,0))+'</div><div class="sub">'+GN[j][2]+'</div><div style="margin-top:6px">'+g.map(m=>chip('mgrp',m.id,4,esc(m.name))).join('')+'</div></div>'}).join('')+'</div>'}
  else{const c=canyonR(t.id),R=c.R,tot=[].concat(R.L,R.M,R.R).reduce((s,m)=>s+m.power,0),sm=k=>R[k].reduce((s,m)=>s+m.power,0),core=k=>(c.ms||[]).slice(0,c.K).filter(m=>R[k].includes(m)).length,diff=Math.max(sm('L'),sm('R'))?Math.abs(sm('L')-sm('R'))/Math.max(sm('L'),sm('R'))*100:0;
   const ck=[['左右路各至少 2 位核心',core('L')>=2&&core('R')>=2],['中路總戰力最高',sm('M')>sm('L')&&sm('M')>sm('R')],['左右差距 '+f1(diff)+'%（上限 3%）',diff<=3]];
