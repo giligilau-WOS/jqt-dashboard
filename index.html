@@ -631,6 +631,113 @@ function detailHtml(p,d){const a=d.detail||[],cls=p.al==='aQt'?'ta1':'tj1';
 const _vcd0=vCardDetail;
 vCardDetail=function(p,d){let h=_vcd0(p,d);if(p&&d){const k='<div class="card"><h3>戰力走勢</h3>',i=h.indexOf(k);if(i>=0)h=h.slice(0,i)+detailHtml(p,d)+h.slice(i)}return h};
 document.addEventListener('click',e=>{const a=e.target.closest('[data-a="cdm"]');if(a){UI.cdm=a.dataset.v;render()}});
+/* ===== v4.0 王國版：全玩家名冊、五種活動報名（以下新增並覆蓋前面同名函式） ===== */
+(function(){const s=document.createElement('style');s.textContent='.tw{overflow:auto;max-height:72vh;-webkit-overflow-scrolling:touch;border:1px solid var(--bd);border-radius:12px;background:var(--s1)}.pt{border-collapse:separate;border-spacing:0;min-width:100%}.pt th,.pt td{padding:9px 10px;white-space:nowrap;border-bottom:1px solid var(--bd);text-align:left;font-size:14px}.pt th{position:sticky;top:0;background:var(--s2);cursor:pointer;z-index:2}.pt td:first-child,.pt th:first-child{position:sticky;left:0;background:var(--s1);z-index:1;max-width:42vw;overflow:hidden;text-overflow:ellipsis}.pt th:first-child{background:var(--s2);z-index:3}';document.head.appendChild(s)})();
+const EV5=[['foundry','兵工廠','聯盟內活動'],['canyon','峽谷會戰','聯盟內活動'],['sfc','太陽城','聯盟間活動'],['tal','雪域兵器聯賽','王國間活動'],['frost','霜龍霸主','王國間活動']];
+const EVN={};EV5.forEach(e=>{EVN[e[0]]=e[1]});
+const EVCAP={foundry:{n:80,t:'每聯盟最多 2 個軍團，每軍團 30 正選 + 10 候補，熔爐 16 級以上'},canyon:{n:80,t:'每聯盟最多 2 個軍團，每軍團 30 正選 + 10 候補，至少 15 人才能配對'},sfc:{n:0,t:'州內每個聯盟都能參加，沒有名額上限'},tal:{n:100,t:'每軍團 30 正選 + 20 候補，最多 2 個軍團，名單報名後鎖定'},frost:{n:60,t:'最多派 60 人，報名階段後才加入聯盟的人失格'}};
+const LGV=ev=>ev==='foundry'||ev==='canyon';CHN['in']='參加';
+const SG=[['loh','英雄之地'],['cave','魔物洞穴'],['charm','魅力礦場'],['rc','研究中心'],['forge','裝備鍛造'],['gaia','蓋亞之心']];
+function mapDt(a){const st={},g=x=>x===''||x==null?null:Number(x);SG.forEach(([k],i)=>{const b=3+i*3;st[k]={l:String(a[b]||''),n:a[b+1]===''||a[b+1]==null?0:Number(a[b+1])||0,r:g(a[b+2])}});return{vip:Number(a[0])||0,lab:Number(a[1])||0,labR:g(a[2]),st,pr:g(a[21]),kr:g(a[22]),fr:g(a[23]),ts:Number(a[24])||0,tsR:g(a[25]),d:String(a[26]||'')}}
+function regCount(f){return EV5.filter(([k])=>{const g=((UI.rgAll||{})[k]||{})[f];return g&&g.choice!=='out'}).length}
+function evChips(f){return EV5.map(([k,l])=>{const g=((UI.rgAll||{})[k]||{})[f];if(!g||g.choice==='out')return'';return'<span class="'+(g.choice==='1'||g.choice==='2'?'lgb lgc'+g.choice:'bd a')+'" style="margin-right:3px">'+l.slice(0,1)+'</span>'}).join('')||'<span class="sub">—</span>'}
+const rkc=(k,l)=>({k,l,t:'n',asc:1,det:1,v:r=>r.dt?r.dt[k]:null,d:r=>r.dt&&r.dt[k]?'#'+r.dt[k]:'—'});
+const PNAME={k:'name',l:'名稱',t:'s',asc:1,v:r=>r.name};
+const PCOLS=[
+ {k:'al',l:'聯盟',t:'s',asc:1,v:r=>r.al,d:r=>esc(r.al||'—')},
+ {k:'rk',l:'階級',t:'s',asc:1,v:r=>r.rk,d:r=>esc(r.rk||'—')},
+ {k:'power',l:'戰力',t:'n',v:r=>r.power,d:r=>fmt(r.power)},
+ {k:'furn',l:'熔爐',t:'n',v:r=>r.furn,d:r=>r.furn||'—'},
+ {k:'kills',l:'擊殺',t:'n',v:r=>r.kills,d:r=>r.kills?Math.round(r.kills/1e4).toLocaleString()+' 萬':'—'},
+ {k:'d7',l:'7日戰力',t:'n',v:r=>r.d7,d:r=>r.d7==null?'<span class="sub">—</span>':delta(r.d7)},
+ {k:'vip',l:'VIP',t:'n',det:1,v:r=>r.dt?r.dt.vip:null,d:r=>r.dt?r.dt.vip:'—'},
+ {k:'lab',l:'迷宮',t:'n',det:1,v:r=>r.dt?r.dt.lab:null,d:r=>r.dt?r.dt.lab.toLocaleString():'—'}
+].concat(SG.map(([k,l])=>({k,l,t:'n',det:1,v:r=>r.dt?r.dt.st[k].n:null,d:r=>r.dt&&r.dt.st[k].l?r.dt.st[k].l:'—'})),[rkc('pr','戰力排名'),rkc('kr','擊殺排名'),rkc('fr','熔爐排名'),{k:'ts',l:'遷服積分',t:'n',det:1,v:r=>r.dt?r.dt.ts:null,d:r=>r.dt?r.dt.ts.toLocaleString():'—'},{k:'reg',l:'報名',t:'n',v:r=>regCount(r.fid),d:r=>evChips(r.fid)}]);
+const PDEF=['al','power','furn','kills','reg'];
+const colOf=k=>k==='name'?PNAME:PCOLS.find(c=>c.k===k);
+function unitOf(){const m=E().unit||'auto';if(m!=='auto')return m;let mx=0;Object.values(S.players).forEach(p=>{if(p.power>mx)mx=p.power});((UI.onl&&UI.onl.roster)||[]).forEach(p=>{if(p.power>mx)mx=p.power});((UI.st&&UI.st.rows)||[]).forEach(p=>{if(p.power>mx)mx=p.power});return mx>=1e8?'億':mx>=1e4?'萬':'原始'}
+async function loadState(){UI.stBusy=true;UI.stErr='';try{const j=await onlGet({action:'state'});if(j.status!=='ok')throw new Error(j.status==='empty'?'王國名冊還沒有資料，請幹部先在 Apps Script 執行 syncStateRoster':'回傳格式不正確');
+  const n=x=>x===''||x==null?null:Number(x);UI.st={updatedAt:String(j.updatedAt||''),expected:Number(j.expected)||0,rows:(j.rows||[]).map(r=>({fid:String(r[0]),name:String(r[1]==null?'':r[1]),al:String(r[2]||''),rk:String(r[3]||''),power:Number(r[4])||0,furn:Number(r[5])||0,kills:Number(r[6])||0,src:String(r[7]||''),d1:n(r[8]),d7:n(r[9])}))};
+  UI.onl=UI.onl||{roster:[],updatedAt:''};UI.onl.deadlines=j.deadlines||{};if(j.now)UI.srvOff=Number(j.now)-Date.now()}
+ catch(e){UI.stErr=String(e.message||e)}UI.stBusy=false;renderSoon()}
+async function loadStDetail(){if(UI.stDetTried)return;UI.stDetTried=true;try{const j=await onlGet({action:'stdetail'}),d=j.details||{};((UI.st&&UI.st.rows)||[]).forEach(r=>{if(d[r.fid])r.dt=mapDt(d[r.fid])})}catch(e){UI.stDetErr=String(e.message||e)}renderSoon()}
+async function loadRegsAll(){try{const j=await onlGet({action:'regsall'});UI.rgAll=j.regs||{};if(j.deadlines){UI.onl=UI.onl||{roster:[],updatedAt:''};UI.onl.deadlines=j.deadlines}if(j.now)UI.srvOff=Number(j.now)-Date.now()}catch(e){UI.stErr=UI.stErr||('讀取報名資料失敗：'+(e.message||e));UI.rgAll=UI.rgAll||{}}renderSoon()}
+function pActive(){const adm=!!onl_().admin;return(UI.pCols||PDEF).map(colOf).filter(c=>c&&(!c.det||adm))}
+function pRows(){const q=nz(UI.pQ||''),al=UI.pAl||'',rf=UI.pReg||'all',rg=UI.rgAll||{};
+ const a=UI.st.rows.filter(r=>{if(al&&r.al!==al)return false;if(q&&!nz(r.name).includes(q))return false;if(rf!=='all'){const any=regCount(r.fid)>0;if(rf==='any'&&!any)return false;if(rf==='none'&&any)return false;if(EVN[rf]){const g=(rg[rf]||{})[r.fid];if(!(g&&g.choice!=='out'))return false}}return true});
+ const sk=UI.pSort||{k:'power',dir:-1},c=colOf(sk.k)||colOf('power');
+ return a.sort((x,y)=>{const u=c.v(x),w=c.v(y);if(u==null&&w==null)return 0;if(u==null)return 1;if(w==null)return -1;return(c.t==='s'?String(u).localeCompare(String(w)):u-w)*sk.dir})}
+function regPanelHtml(r){const adm=!!onl_().admin,rg=UI.rgAll||{};
+ let h='<div style="padding:6px 2px;min-width:0"><div class="row sp"><b>'+esc(r.name)+'</b><span class="sub">'+esc(r.al||'無聯盟')+' · '+esc(r.rk||'')+' · FID '+esc(r.fid)+'</span></div>'+(r.furn&&r.furn<16?'<div class="sub" style="color:var(--wn)">熔爐未滿 16 級，通常不能參加這些活動</div>':'');
+ EV5.forEach(([k,l,grp])=>{const g=(rg[k]||{})[r.fid],ch=g?g.choice:'',locked=regClosed(k)&&!adm,dis=locked?' disabled':'',base=' data-ev="'+k+'" data-fid="'+esc(r.fid)+'"',own=r.al==='jQt'||r.al==='aQt';
+  h+='<div style="margin-top:10px;padding-top:8px;border-top:1px solid var(--bd)"><div class="row sp"><b>'+l+'</b><span class="sub">'+grp+(locked?' · 已截止':'')+'</span></div><div class="row" style="margin-top:6px">';
+  if(LGV(k))h+=[['1','lgc1'],['2','lgc2']].map(([v,c])=>'<button class="btn sm lgbtn '+c+' '+(ch===v?'on':'')+'"'+dis+' data-a="stReg"'+base+' data-v="'+v+'">'+CHN[v]+'</button>').join('');
+  else h+='<button class="btn sm '+(ch==='in'?'pri':'')+'"'+dis+' data-a="stReg"'+base+' data-v="in">'+(ch==='in'?'已參加':'參加')+'</button>';
+  h+='<button class="btn sm"'+(locked||!g||ch==='out'?' disabled':'')+' data-a="stReg"'+base+' data-v="out">取消報名</button></div>';
+  if(LGV(k)&&own)h+='<div class="row" style="margin-top:6px"><span class="sub">代表：</span>'+['jQt','aQt'].map(a=>'<button class="btn sm plbtn '+(a==='aQt'?'ta1':'tj1')+' '+((((UI.plSel||{})[k+r.fid])||(g&&g.play)||r.al)===a?'on':'')+'"'+dis+' data-a="stPl"'+base+' data-v="'+a+'">'+a+'</button>').join('')+'</div>';
+  if(k==='tal'||k==='frost')h+='<div class="row" style="margin-top:6px"><span class="sub">目標聯盟：</span><input data-i="tg_'+k+'" autocomplete="off" placeholder="'+esc((g&&g.play)||r.al||'聯盟簡稱')+'" style="flex:1;min-width:0" value="'+esc(UI['tg_'+k]||'')+'"></div><div class="sub">跨聯盟報名時，請在報名截止前先加入目標聯盟</div>';
+  h+='</div>'});
+ return h+'<div class="row" style="margin-top:10px"><button class="btn sm" data-cdopen="'+esc(r.fid)+'">看戰力變化與暱稱歷程</button></div></div>'}
+function ptBodyHtml(){const rows=pRows(),n=UI.pN||60,cols=pActive(),cs=cols.length+1;
+ return rows.slice(0,n).map(r=>{const open=UI.pOpen===r.fid;return'<tr data-popen="'+esc(r.fid)+'" style="cursor:pointer;'+(open?'background:var(--s2)':'')+'"><td>'+esc(r.name)+'</td>'+cols.map(c=>'<td>'+c.d(r)+'</td>').join('')+'</tr>'+(open?'<tr><td colspan="'+cs+'" style="white-space:normal;position:static;max-width:none">'+regPanelHtml(r)+'</td></tr>':'')}).join('')
+  +(rows.length>n?'<tr><td colspan="'+cs+'" style="position:static;max-width:none"><button class="btn" data-a="pMore">再顯示 60 筆（還有 '+(rows.length-n)+' 筆）</button></td></tr>':'')||'<tr><td>沒有符合的玩家</td></tr>'}
+function cdPlayerView(){const r=UI.st&&UI.st.rows.find(x=>x.fid===UI.cd.fid),p=r?{rank:'—',al:r.al,fid:r.fid,name:r.name,allianceRank:r.rk,furnace:r.furn,power:r.power,dailyDiff:r.d1||0,weeklyDiff:r.d7||0,kills:r.kills}:null;return vCardDetail(p,UI.cd.data)}
+function vPlayers(IS){if(UI.cd&&UI.cd.fid)return cdPlayerView();
+ if(!UI.stTried&&!UI.stBusy){UI.stTried=true;loadState();loadRegsAll()}
+ if(UI.stBusy||(!UI.st&&!UI.stErr))return'<div class="card">載入全王國名冊中…</div>';
+ if(UI.stErr||!UI.st){const m=SELF&&/還沒有設定/.test(UI.stErr||'')?'這個連結不完整，請向幹部索取最新的盟友連結':(UI.stErr||'尚未載入');return'<div class="card wn"><b>讀不到王國名冊</b><div class="sub">'+esc(m)+'</div><div class="row" style="margin-top:8px"><button class="btn" data-a="stReload">重新載入</button></div></div>'}
+ const adm=!!onl_().admin,cols=pActive();if(adm&&!UI.stDetTried&&cols.some(c=>c.det))loadStDetail();
+ const als={};UI.st.rows.forEach(r=>{als[r.al]=(als[r.al]||0)+1});const alist=Object.keys(als).sort((a,b)=>(b==='jQt')-(a==='jQt')||(b==='aQt')-(a==='aQt')||als[b]-als[a]),filt=pRows(),sk=UI.pSort||{k:'power',dir:-1},arrow=k=>sk.k===k?(sk.dir>0?' ▲':' ▼'):'';
+ return'<div class="card"><h3>2611 王國全玩家</h3><div class="sub">這是寒霜啟示錄 2611 王國的玩家名冊。可以用任一欄位排序、依聯盟篩選。點一位玩家展開，就能替他報名兵工廠、峽谷會戰、太陽城、雪域兵器聯賽、霜龍霸主，報名的人會自動出現在「活動報名」頁對應的活動裡。</div><div class="sub" style="margin-top:6px">已收錄 '+UI.st.rows.length+' 人'+(UI.st.expected?' / 全服 '+UI.st.expected+' 人':'')+'（沒加入聯盟或在很小聯盟的玩家可能抓不到）· 更新：'+esc(UI.st.updatedAt)+'</div></div>'
+  +'<div class="card"><input data-i="pQ" autocomplete="off" placeholder="搜尋名字" style="width:100%" value="'+esc(UI.pQ||'')+'"><div class="row" style="margin-top:8px"><select id="pAlSel" style="flex:1;min-width:0"><option value="">全部聯盟（'+UI.st.rows.length+'）</option>'+alist.map(a=>'<option value="'+esc(a)+'" '+(UI.pAl===a?'selected':'')+'>'+esc(a||'無聯盟')+'（'+als[a]+'）</option>').join('')+'</select><select id="pRegSel" style="flex:1;min-width:0">'+[['all','全部報名狀態'],['any','已報名任一活動'],['none','沒報名任何活動']].concat(EV5.map(([k,l])=>[k,'已報名：'+l])).map(([v,l])=>'<option value="'+v+'" '+((UI.pReg||'all')===v?'selected':'')+'>'+l+'</option>').join('')+'</select></div><div class="row sp" style="margin-top:8px"><span class="sub" id="pCount">'+filt.length+' 人</span><button class="btn sm" data-a="pColsToggle">'+(UI.pColsOpen?'收合欄位選單':'選擇要顯示的欄位')+'</button></div>'
+  +(UI.pColsOpen?'<div class="row" style="margin-top:8px;gap:6px">'+PCOLS.filter(c=>!c.det||adm).map(c=>'<button class="btn sm '+(cols.some(x=>x.k===c.k)?'on':'')+'" data-a="pCol" data-v="'+c.k+'">'+c.l+'</button>').join('')+'</div>'+(adm?'':'<div class="sub" style="margin-top:6px">VIP、迷宮、關卡等細項只有幹部看得到</div>'):'')+'</div>'
+  +'<div class="tw"><table class="pt"><thead><tr><th data-a="pSort" data-v="name">名稱'+arrow('name')+'</th>'+cols.map(c=>'<th data-a="pSort" data-v="'+c.k+'">'+c.l+arrow(c.k)+'</th>').join('')+'</tr></thead><tbody id="ptb">'+ptBodyHtml()+'</tbody></table></div>'}
+async function doReg(fid,ev,choice,play){const adm=!!onl_().admin;if(regClosed(ev)&&!adm)return toast('「'+EVN[ev]+'」報名已截止，盟友無法變更');
+ try{const j=await onlPost({action:'register',event:ev,fid,choice,play:play||'',note:''});if(!j.ok)throw new Error({closed:'報名已截止，盟友無法變更',unknown_fid:'名冊裡找不到這個人',forbidden:'連結的密碼不正確',bad_fields:'資料不完整'}[j.error]||j.error||'失敗');
+  UI.rgAll=UI.rgAll||{};UI.rgAll[ev]=UI.rgAll[ev]||{};UI.rgAll[ev][fid]={choice,play:play||'',note:'',at:new Date().toLocaleString(),by:j.by||'self'};
+  const r=((UI.st&&UI.st.rows)||[]).find(x=>x.fid===fid);toast((choice==='out'?'已取消：':'已送出：')+(r?r.name:'')+' → '+EVN[ev]+(choice==='1'||choice==='2'?'・'+CHN[choice]:''))}catch(e){toast('送出失敗：'+(e.message||e))}render()}
+function sgBody(k,fids,m,byF){const nm=f=>{const r=byF[f];return'<div class="row sp" style="padding:4px 0;border-bottom:1px solid var(--bd)"><span>'+esc(r.name)+(r.furn&&r.furn<16?' <span style="color:var(--wn)">⚠</span>':'')+'</span><span class="sub">'+fmt(r.power)+'</span></div>'};
+ if(!fids.length)return'<div class="sub" style="margin-top:8px">還沒有人報名</div>';
+ if(LGV(k)){const g={};fids.forEach(f=>{const al=m[f].play||byF[f].al||'—',lg=m[f].choice==='2'?'2':'1';if(!g[al])g[al]={'1':[],'2':[]};g[al][lg].push(f)});
+  return Object.keys(g).sort((x,y)=>(y==='jQt')-(x==='jQt')||(y==='aQt')-(x==='aQt')||(g[y]['1'].length+g[y]['2'].length)-(g[x]['1'].length+g[x]['2'].length)).map(al=>'<div style="margin-top:10px"><b>'+esc(al)+'</b><div class="grid g2" style="margin-top:6px">'+['1','2'].map(lg=>{const a=g[al][lg].sort((x,y)=>byF[y].power-byF[x].power),over=a.length>40;return'<div class="card" style="margin:0;padding:8px"><div class="row sp"><span>'+lgb(lg)+'</span><span class="'+(over?'bd d':'sub')+'">'+a.length+' 人'+(over?'・超額 '+(a.length-40):'')+(k==='canyon'&&a.length&&a.length<15?'・未滿 15':'')+'</span></div>'+a.map(nm).join('')+'</div>'}).join('')+'</div></div>').join('')}
+ const a=fids.slice().sort((x,y)=>byF[y].power-byF[x].power);
+ if(k==='sfc'){const g={};a.forEach(f=>{const al=byF[f].al||'—';(g[al]=g[al]||[]).push(f)});return Object.keys(g).sort((x,y)=>g[y].length-g[x].length).map(al=>'<div style="margin-top:10px"><b>'+esc(al)+'</b> <span class="sub">'+g[al].length+' 人</span>'+g[al].map(nm).join('')+'</div>').join('')}
+ return'<div style="margin-top:8px">'+a.map(f=>{const r=byF[f],tg=m[f].play;return'<div class="row sp" style="padding:4px 0;border-bottom:1px solid var(--bd)"><span>'+esc(r.name)+(r.furn&&r.furn<16?' <span style="color:var(--wn)">⚠</span>':'')+' <span class="sub">'+esc(r.al||'無聯盟')+(tg&&tg!==r.al?' → '+esc(tg):'')+'</span></span><span class="sub">'+fmt(r.power)+'</span></div>'}).join('')+(EVCAP[k].n&&a.length>EVCAP[k].n?'<div class="sub" style="color:var(--dg);margin-top:4px">超過 '+EVCAP[k].n+' 人，需要幹部選拔</div>':'')+'</div>'}
+function vSignups(IS){if(!UI.stTried&&!UI.stBusy){UI.stTried=true;loadState();loadRegsAll()}
+ if(UI.stBusy||(!UI.st&&!UI.stErr))return'<div class="card">載入中…</div>';
+ if(UI.stErr||!UI.st)return'<div class="card wn"><b>讀不到報名資料</b><div class="sub">'+esc(UI.stErr||'尚未載入')+'</div><div class="row" style="margin-top:8px"><button class="btn" data-a="stReload">重新載入</button></div></div>';
+ const byF={};UI.st.rows.forEach(r=>{byF[r.fid]=r});const rg=UI.rgAll||{};
+ let h='<div class="card"><h3>王國活動報名列表</h3><div class="sub">在「全玩家」頁勾選的活動，會自動出現在這裡對應的活動裡。點活動標題展開名單。人數規則來自第三方攻略，實際以遊戲內為準。</div></div>';
+ EV5.forEach(([k,l,grp])=>{const m=rg[k]||{},fids=Object.keys(m).filter(f=>m[f].choice!=='out'&&byF[f]),cap=EVCAP[k],closed=regClosed(k),dl=dlOf(k),open=(UI.sgOpen||{})[k],bd=closed?'<span class="bd w">已截止</span>':dl?'<span class="bd a">還剩 '+remain(k)+'</span>':'';
+  h+='<div class="card"><div class="row sp" data-a="sgToggle" data-v="'+k+'" style="cursor:pointer"><div><b style="font-size:16px">'+l+'</b> <span class="sub">'+grp+'</span><div class="sub">'+cap.t+'</div></div><div style="text-align:right"><div style="font-size:20px;font-weight:700">'+fids.length+(cap.n?' <span class="sub">/ '+cap.n+'</span>':'')+'</div>'+bd+'</div></div>'+(open?sgBody(k,fids,m,byF):'')+'</div>'});
+ return h}
+function vAlly(IS){const t=SELF?(['players','signups','result'].includes(UI.ally)?UI.ally:'players'):'players';
+ const tabs=SELF?'<div class="tabsb">'+[['players','全玩家'],['signups','活動報名'],['result','分隊結果']].map(([k,l])=>'<button class="btn sm '+(t===k?'on':'')+'" data-a="ally" data-v="'+k+'">'+l+'</button>').join('')+'</div>':'';
+ return tabs+(t==='result'?vResult():t==='signups'?vSignups(IS):vPlayers(IS))}
+function vLists(IS){const t=UI.lst||'board';return'<div class="tabsb">'+[['board','分隊結果'],['mission','任務分配']].map(([k,l])=>'<button class="btn sm '+(t===k?'on':'')+'" data-a="lst" data-v="'+k+'">'+l+'</button>').join('')+'</div>'+(t==='mission'?vMission(IS):vBoard(IS))}
+function vRegImportCard(){const a=S.rules.api||{};if(a.url&&!UI.stTried&&!UI.stBusy){UI.stTried=true;loadState();loadRegsAll()}
+ const row=(ev,l)=>{const d=dlOf(ev);return'<div style="margin-top:10px"><b>'+l+'</b> <span class="sub">'+(d?(regClosed(ev)?'已截止':'報名中')+'（'+fmtT(Date.parse(d))+'）':'沒有設定截止時間')+'</span><div class="row" style="margin-top:4px"><input type="datetime-local" data-i="dl_'+ev+'" value="'+esc(UI['dl_'+ev]!=null?UI['dl_'+ev]:(d?toLocalIn(d):''))+'" style="flex:1;min-width:0"><button class="btn sm pri" data-a="dlSet" data-v="'+ev+'">設定截止</button></div><div class="row" style="margin-top:4px"><button class="btn sm" data-a="dlNow" data-v="'+ev+'">立即截止</button><button class="btn sm" data-a="dlClear" data-v="'+ev+'">重新開放</button></div></div>'};
+ return'<div class="card"><h3>線上報名管理</h3><div class="sub">盟友在「全玩家」頁報名。截止時間到後，盟友無法再變更，只有輸入幹部密碼的幹部可以修改</div>'
+  +'<div style="margin-top:8px"><b>幹部密碼</b> <span class="sub">'+(a.admin?'已設定':'尚未設定')+'（對應 Apps Script 的 ADMIN_TOKEN，不要給盟友）</span><div class="row" style="margin-top:4px"><input data-i="apiAdm" type="password" autocomplete="off" placeholder="幹部密碼" value="'+esc(UI.apiAdm!=null?UI.apiAdm:(a.admin||''))+'" style="flex:1;min-width:0"><button class="btn sm" data-a="admSave">儲存</button></div></div>'
+  +(a.url?EV5.map(([k,l])=>row(k,l+'報名')).join(''):'<div class="sub" style="margin-top:8px">先在上方填好 Apps Script 網址</div>')
+  +'<div class="row" style="margin-top:12px"><button class="btn pri" data-a="oneClick">一鍵：更新戰力 ＋ 依報名分隊</button><button class="btn" data-a="apiRegs">只匯入報名（不重新分隊）</button></div>'
+  +(a.url?'<div class="sub" style="margin-top:12px">盟友連結（含存取密碼，只給盟友）</div><input readonly value="'+esc(allyLink())+'" style="width:100%;margin-top:4px" onclick="this.select()"><div class="row" style="margin-top:6px"><button class="btn" data-a="copyAlly">複製盟友連結</button></div>'+(a.admin?'<div class="sub" style="margin-top:12px">幹部連結（含幹部密碼，只給幹部）</div><input readonly value="'+esc(allyLink()+'&a='+encodeURIComponent(a.admin))+'" style="width:100%;margin-top:4px" onclick="this.select()">':''):'')+'</div>'}
+document.addEventListener('click',e=>{const po=e.target.closest('[data-popen]');if(po&&!e.target.closest('[data-a],[data-cdopen],input,button,select')){const f=po.dataset.popen;UI.pOpen=UI.pOpen===f?'':f;UI.tg_tal='';UI.tg_frost='';render();return}
+ const a=e.target.closest('[data-a]');if(!a)return;const v=a.dataset.v;
+ switch(a.dataset.a){
+  case'pSort':{const s=UI.pSort||{k:'power',dir:-1},c=colOf(v);UI.pSort=s.k===v?{k:v,dir:-s.dir}:{k:v,dir:(c&&c.asc)?1:-1};UI.pN=60;render()}break;
+  case'pCol':{const cur=UI.pCols||PDEF.slice();UI.pCols=cur.includes(v)?cur.filter(x=>x!==v):cur.concat(v);const c=colOf(v);if(c&&c.det)loadStDetail();render()}break;
+  case'pColsToggle':UI.pColsOpen=!UI.pColsOpen;render();break;
+  case'pMore':UI.pN=(UI.pN||60)+60;render();break;
+  case'stReg':{const f=a.dataset.fid,ev=a.dataset.ev,r=((UI.st&&UI.st.rows)||[]).find(x=>x.fid===f),g=((UI.rgAll||{})[ev]||{})[f];if(!r)break;let play='';
+   if(v!=='out'){if(LGV(ev))play=(UI.plSel&&UI.plSel[ev+f])||(g&&g.play)||r.al;else if(ev==='tal'||ev==='frost')play=(UI['tg_'+ev]&&String(UI['tg_'+ev]).trim())||(g&&g.play)||r.al;else play=r.al}
+   doReg(f,ev,v,play)}break;
+  case'stPl':{const f=a.dataset.fid,ev=a.dataset.ev,g=((UI.rgAll||{})[ev]||{})[f];UI.plSel=UI.plSel||{};UI.plSel[ev+f]=v;if(g&&(g.choice==='1'||g.choice==='2'))doReg(f,ev,g.choice,v);else render()}break;
+  case'sgToggle':UI.sgOpen=UI.sgOpen||{};UI.sgOpen[v]=!UI.sgOpen[v];render();break;
+  case'lst':UI.lst=v;render();break;
+  case'stReload':UI.stTried=false;UI.st=null;UI.stErr='';UI.rgAll=null;UI.stDetTried=false;render();break}});
+document.addEventListener('input',e=>{const i=e.target.dataset&&e.target.dataset.i;if(i==='pQ'){const b=$('#ptb');if(b&&UI.st){UI.pN=60;b.innerHTML=ptBodyHtml();const c=$('#pCount');if(c)c.textContent=pRows().length+' 人'}}});
+document.addEventListener('change',e=>{const id=e.target.id;if(id==='pAlSel'){UI.pAl=e.target.value;UI.pN=60;render()}if(id==='pRegSel'){UI.pReg=e.target.value;UI.pN=60;render()}});
 function mvText(m,V){const p=S.players[m.pid],pl=V.where[m.pid];return esc(p?p.name:'?')+'：'+(pl?tLabel(tById(pl.t)):'—')+' → '+tLabel(tById(m.to))}
 function vFix(IS){const V=view(),pv=UI.prev;
  const box=ids=>{const its=IS.A.filter(x=>ids==='all'||ids===x.id),mv=its.reduce((s,x)=>s.concat(x.moves||[]),[]);return'<div class="card" style="background:var(--s2);margin-top:8px"><b>預覽：將移動 '+mv.length+' 人'+(its.some(x=>x.rule)?'，並調整規則或設定':'')+'</b><div class="sub" style="margin:4px 0">'+(mv.slice(0,12).map(m=>mvText(m,V)).join('<br>')||'沒有人會被移動')+(mv.length>12?'<br>…':'')+'</div><div class="sub">投票與已固定的人都不動。套用前會留還原點，可按右上角「復原」</div><div class="row" style="margin-top:8px"><button class="btn pri" data-a="fixApply" data-v="'+ids+'">確認套用</button><button class="btn" data-a="prevFix" data-v="">取消</button></div></div>'};
@@ -677,7 +784,7 @@ function vBackup(IS){const V=view();let txt='';tOn().forEach(t=>{const ms=V.tm[t
 function vAdmin(IS){return'<div class="tabsb">'+ADM.map(([k,l])=>'<button class="btn sm '+(UI.adm===k?'on':'')+'" data-a="adm" data-v="'+k+'">'+l+(k==='fix'&&IS.A.length?' <span class="bd w">'+IS.A.length+'</span>':'')+'</button>').join('')+'</div>'+({overview:vOverview,import:vImportX,fix:vFix,rules:vRules,backup:vBackup}[UI.adm]||vOverview)(IS)}
 function render(){if(!S)return;UNIT=unitOf();const IS=issues(),T=tOn();if(!T.find(t=>t.id===UI.team))UI.team=T[0]?T[0].id:null;
  const th='<button class="btn sm" data-a="theme" aria-label="切換深淺色">'+THEMES[S.theme||'auto']+'</button>';
- $('#top').innerHTML=SELF?'<b>我們的盟友</b><span class="grow"></span>'+th:'<b>分隊工具</b><div id="nav">'+NAV.map(n=>'<button class="'+(UI.scr===n[0]?'on':'')+'" data-a="nav" data-v="'+n[0]+'">'+n[1]+(n[0]==='admin'&&IS.A.length?' <span class="bd w">'+IS.A.length+'</span>':'')+'</button>').join('')+'</div><span class="sub" id="stat">'+esc(UI.saved)+'</span><button class="btn sm mbtn" data-a="menu" aria-label="選單">⋯</button><div class="tacts'+(UI.menu?' open':'')+'"><button class="btn sm" data-a="undo">復原</button><button class="btn sm" data-a="publish">公開</button><button class="btn sm" data-a="theme" aria-label="切換深淺色">外觀：'+({auto:'自動',light:'淺色',dark:'深色'}[S.theme||'auto'])+'</button><button class="btn sm" data-a="lcheck">版面診斷</button>'+(UI.lc?'<div class="lc">'+(function(){const l=UI.lc;return '視窗寬 '+l.W+'，頁面寬 '+l.sw+(l.items.length?'；超出：'+l.items.map(i=>esc(i.t)+'('+i.w+')'+(i.txt?'「'+esc(i.txt)+'」':'')).join('、'):'；沒有發現超出的元素')})()+'</div>':'')+'</div>';
+ $('#top').innerHTML=SELF?'<b>2611 王國</b><span class="grow"></span>'+th:'<b>分隊工具</b><div id="nav">'+NAV.map(n=>'<button class="'+(UI.scr===n[0]?'on':'')+'" data-a="nav" data-v="'+n[0]+'">'+n[1]+(n[0]==='admin'&&IS.A.length?' <span class="bd w">'+IS.A.length+'</span>':'')+'</button>').join('')+'</div><span class="sub" id="stat">'+esc(UI.saved)+'</span><button class="btn sm mbtn" data-a="menu" aria-label="選單">⋯</button><div class="tacts'+(UI.menu?' open':'')+'"><button class="btn sm" data-a="undo">復原</button><button class="btn sm" data-a="publish">公開</button><button class="btn sm" data-a="theme" aria-label="切換深淺色">外觀：'+({auto:'自動',light:'淺色',dark:'深色'}[S.theme||'auto'])+'</button><button class="btn sm" data-a="lcheck">版面診斷</button>'+(UI.lc?'<div class="lc">'+(function(){const l=UI.lc;return '視窗寬 '+l.W+'，頁面寬 '+l.sw+(l.items.length?'；超出：'+l.items.map(i=>esc(i.t)+'('+i.w+')'+(i.txt?'「'+esc(i.txt)+'」':'')).join('、'):'；沒有發現超出的元素')})()+'</div>':'')+'</div>';
  const fn={board:vLists,mission:vMission,att:vAtt,self:vAlly,admin:vAdmin,players:vPlayers,signups:vSignups}[SELF?'self':UI.scr]||vBoard;
  $('#main').innerHTML=fn(IS)+'<div class="sub" style="text-align:center">版本 '+APP_VERSION+'</div>';$('#plist').innerHTML=Object.values(S.players).map(p=>'<option value="'+esc(p.name)+'">').join('');updSheet();renderBanner();
  const c=$('#car');if(c)c.scrollLeft=UI.chart*c.clientWidth}
