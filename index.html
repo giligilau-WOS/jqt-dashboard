@@ -114,7 +114,7 @@ const esc=s=>String(s==null?'':s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;'
 const SELF=new URLSearchParams(location.search).get('v')==='self';
 let S=null,UNIT='億';
 const UI={scr:'board',adm:'overview',team:null,fold:{},sort:'power',base:'all',cm:'cur',sheet:null,chart:0,zone:{},prev:null,imp:null,att:'all',selfQ:'',selfRes:null,report:false,mt:null,err:'',saved:'',undo:[],mp:null,csv:'',url:'',bk:'',rk:'',cfgAt:0,newVer:'',dismissed:false,lastCheck:0,updErr:''};
-const NAV=[['self','我們的盟友'],['board','分隊結果'],['mission','任務'],['att','點名'],['admin','後台設定']];
+const NAV=[['players','全玩家'],['signups','活動報名'],['board','活動名單'],['att','賽後結算'],['admin','後台設定']];
 const ADM=[['overview','總覽'],['import','匯入'],['fix','修正'],['rules','規則'],['backup','備份']];
 const THEMES={auto:'◐ 自動',light:'☀ 淺色',dark:'☾ 深色'};
 const DEF=()=>({seq:1,theme:'auto',players:{},alias:{},draft:{},autoLinks:[],rules:{together:[],locks:{},alts:[],exc:{}},pend:[],snaps:[],events:[],pub:null,req:[],
@@ -578,6 +578,59 @@ function genDraft(mode){const d={},T=tOn(),elig=Object.values(S.players).filter(
 function norm(){const T=tOn();Object.keys(S.draft).forEach(id=>{if(!S.players[id])delete S.draft[id]});const V=view(),cnt={},sum={};T.forEach(t=>{cnt[t.id]=V.tm[t.id].length;sum[t.id]=V.tm[t.id].reduce((s,p)=>s+p.power,0)});
  Object.values(S.players).forEach(p=>{if(p.wait)return;const it=eff(p);if(it!=='1'&&it!=='2')return;if(place(p))return;let TL=T.filter(t=>String(t.lg)===it);if(!TL.length)return;if(p.pa&&TL.some(t=>t.al===p.pa))TL=TL.filter(t=>t.al===p.pa);const to=[...TL].sort((a,b)=>cnt[a.id]-cnt[b.id]||sum[a.id]-sum[b.id])[0].id;S.draft[p.id]={t:to,why:p.pa?'報名選擇：'+p.pa:'補位'};cnt[to]++;sum[to]+=p.power})}
 document.addEventListener('click',e=>{const a=e.target.closest('[data-a]');if(a&&a.dataset.a==='rgPl'){UI.rg.pl=a.dataset.v;render()}});
+/* ===== v3.12 賽後結算、活動紀錄存檔、清除報名（以下覆蓋前面同名函式） ===== */
+function settleRows(){const e=E(),V=view(),teams=e.final?e.final.teams:null,ids=[];if(teams)Object.keys(teams).forEach(i=>ids.push(i));else Object.values(V.tm).forEach(a=>a.forEach(p=>ids.push(p.id)));
+ return ids.map(id=>{const p=S.players[id],tid=teams?teams[id]:(V.where[id]&&V.where[id].t),t=tid&&tById(tid);return{id,name:(e.final&&e.final.names[id])||(p&&p.name)||'?',team:t?tLabel(t):'',att:e.att[id]||'present'}})}
+function histListHtml(){const a=S.events.slice().reverse().slice(0,10);if(!a.length)return'';return'<div class="card"><h3>歷次活動紀錄</h3>'+a.map(r=>{const ids=Object.keys(r.teams||{}),lv=ids.filter(i=>(r.att||{})[i]==='leave').length,ab=ids.filter(i=>(r.att||{})[i]==='absent').length;return'<div class="row sp" style="padding:6px 0;border-bottom:1px solid var(--bd)"><span><b>'+esc(r.name)+'</b> <span class="sub">'+({foundry:'兵工廠',canyon:'峽谷會戰'}[r.type]||'')+' · '+new Date(r.at).toLocaleDateString()+'</span></span><span class="sub">出席 '+(ids.length-lv-ab)+' · 假 '+lv+' · 缺 '+ab+'</span></div>'}).join('')+'</div>'}
+function vAtt(IS){const e=E();if(e.settled)return vSettled();const rows=settleRows(),lv=rows.filter(r=>r.att==='leave').length,ab=rows.filter(r=>r.att==='absent').length,show=rows.filter(r=>UI.att==='all'||r.att!=='present');
+ return'<div class="row sp"><div><b style="font-size:17px">'+esc(e.name)+' · 賽後結算</b><div class="sub">'+(e.final?'依定版名單':'依目前的分隊結果')+' · '+rows.length+' 人</div></div><span class="bd w">尚未結算</span></div>'
+ +'<div class="grid g4"><div class="mt"><div class="sub">出席</div><div class="v">'+(rows.length-lv-ab)+'</div></div><div class="mt"><div class="sub">請假</div><div class="v">'+lv+'</div></div><div class="mt"><div class="sub">缺席</div><div class="v">'+ab+'</div></div></div>'
+ +'<div class="row"><button class="btn sm '+(UI.att==='all'?'on':'')+'" data-a="attf" data-v="all">全部</button><button class="btn sm '+(UI.att==='abn'?'on':'')+'" data-a="attf" data-v="abn">只看異常</button><span class="sub">預設全員出席，只標請假或缺席</span></div>'
+ +'<div class="card">'+(show.map(r=>'<div class="row sp" style="padding:6px 0;border-bottom:1px solid var(--bd)"><span><b>'+esc(r.name)+'</b> <span class="sub">'+esc(r.team)+'</span></span><span class="row"><button class="btn sm '+(r.att==='leave'?'on':'')+'" data-a="att" data-v="'+r.id+'" data-w="leave">請假</button><button class="btn sm '+(r.att==='absent'?'on':'')+'" data-a="att" data-v="'+r.id+'" data-w="absent">缺席</button></span></div>').join('')||'<div class="sub">目前沒有標記異常，全員預設出席</div>')+'</div>'
+ +'<div class="sub">候補、未報名與不參加的人不在名單裡，也不會被算缺席。按「完成結算」會把這一次的活動紀錄存起來（分隊工具和試算表各一份），並且保留到你開下一場活動為止</div><button class="btn pri" data-a="settle" style="min-height:52px">完成結算並存檔</button>'+histListHtml()}
+function vSettled(){const e=E(),s=e.settled,rec=S.events.find(x=>x.id===s.id);if(!rec)return'<div class="card wn">找不到這次的結算紀錄<div class="row" style="margin-top:8px"><button class="btn" data-a="unsettle">重新結算</button></div></div>';
+ const ids=Object.keys(rec.teams),nm=id=>(rec.names&&rec.names[id])||(S.players[id]&&S.players[id].name)||'?',lv=ids.filter(i=>rec.att[i]==='leave'),ab=ids.filter(i=>rec.att[i]==='absent'),byT={};ids.forEach(i=>{const l=(rec.labels&&rec.labels[i])||'—';byT[l]=(byT[l]||0)+1});
+ const chips=a=>a.length?a.map(i=>'<span style="display:inline-block;font-size:13px;padding:5px 10px;border-radius:8px;background:var(--s2);margin:2px 4px 2px 0">'+esc(nm(i))+'</span>').join(''):'<span class="sub">無</span>';
+ return'<div class="card"><div class="row sp"><div><b style="font-size:17px">'+esc(rec.name)+' · 已結算</b><div class="sub">'+({foundry:'兵工廠',canyon:'峽谷會戰'}[rec.type]||'')+' · 結算時間：'+new Date(s.at).toLocaleString()+'</div></div><span class="bd a">已存檔</span></div><div class="sub" style="margin-top:6px">'+(s.srv==='ok'?'試算表「活動紀錄」已存':s.srv==='fail'?'試算表存檔失敗，目前只存在分隊工具裡':'目前只存在分隊工具裡（沒有連線設定或幹部密碼）')+'。這份紀錄會保留，直到你開下一場活動</div>'+(s.srv!=='ok'?'<div class="row" style="margin-top:6px"><button class="btn sm" data-a="resend">重新上傳到試算表</button></div>':'')+'</div>'
+  +'<div class="grid g4"><div class="mt"><div class="sub">出席</div><div class="v">'+(ids.length-lv.length-ab.length)+'</div></div><div class="mt"><div class="sub">請假</div><div class="v">'+lv.length+'</div></div><div class="mt"><div class="sub">缺席</div><div class="v">'+ab.length+'</div></div></div>'
+  +'<div class="card"><h3>各隊人數</h3>'+Object.keys(byT).map(l=>'<div class="row sp"><span>'+esc(l)+'</span><b>'+byT[l]+' 人</b></div>').join('')+'</div>'
+  +'<div class="card"><h3>請假</h3>'+chips(lv)+'<h3 style="margin-top:10px">缺席</h3>'+chips(ab)+'</div>'
+  +'<div class="card"><div class="row"><button class="btn pri" data-a="newEv" style="min-height:52px">開新場次</button><button class="btn" data-a="newEvClr" style="min-height:52px">開新場次並清除報名</button></div><div class="sub" style="margin-top:6px">開新場次會清空目前的分隊和意願，規則與設定保留。清除報名會先把雲端的報名封存再清掉</div><div class="row" style="margin-top:8px"><button class="btn sm" data-a="unsettle">解除結算（需要修改時）</button></div><div class="sub" style="margin-top:4px">解除後重新結算，試算表會多一筆，舊的那筆要自己刪</div></div>'+histListHtml()}
+async function settleUpload(rec){const o=onl_();if(!o.url||!o.admin){E().settled.srv='none';save();render();return}
+ try{const rows=Object.keys(rec.teams).map(id=>({fid:(rec.regs[id]||{}).fid||'',name:rec.names[id]||'',team:rec.labels[id]||'',att:rec.att[id]||'present',intent:(rec.regs[id]||{}).intent||'',pa:(rec.regs[id]||{}).pa||''}));
+  const j=await onlPost({action:'saveEvent',event:rec.type,name:rec.name,at:rec.at,rows});if(!j.ok)throw new Error({forbidden_admin:'幹部密碼不正確，或 Apps Script 還沒設定 ADMIN_TOKEN'}[j.error]||j.error||'失敗');E().settled.srv='ok';toast('已存到試算表「活動紀錄」')}
+ catch(err){E().settled.srv='fail';toast('試算表存檔失敗：'+(err.message||err))}
+ save();render()}
+async function settle(){if(E().settled)return;let rec=null;
+ mut(()=>{const e=E();if(!e.final)finalize();const f=e.final,labels={},regs={};Object.keys(f.teams).forEach(id=>{const t=tById(f.teams[id]);labels[id]=t?tLabel(t):'';const p=S.players[id];if(p)regs[id]={intent:eff(p),pa:p.pa||'',fid:p.fid||''}});
+  rec={id:'h'+Date.now(),name:e.name,type:e.type,at:Date.now(),teams:Object.assign({},f.teams),names:Object.assign({},f.names),att:Object.assign({},e.att),labels,regs,mode:e.mode};S.events.push(rec);e.attDone=true;e.settled={at:rec.at,id:rec.id,srv:'none'}},'已結算並存檔');
+ await settleUpload(rec)}
+async function doClear(ev){try{const j=await onlPost({action:'clearRegs',event:ev});if(!j.ok)throw new Error({forbidden_admin:'幹部密碼不正確，或 Apps Script 還沒設定 ADMIN_TOKEN'}[j.error]||j.error||'失敗');if(ev==='all')UI.rgRegs={};else(UI.rgRegs=UI.rgRegs||{})[ev]={};UI.rgTry={};toast('已封存並清除 '+j.rows+' 筆報名')}catch(err){toast('清除失敗：'+(err.message||err))}render()}
+async function newEvClear(){const ev=E().type;try{const j=await onlPost({action:'clearRegs',event:ev});if(!j.ok)throw new Error(j.error||'失敗');toast('已封存並清除 '+j.rows+' 筆報名')}catch(err){toast('清除報名失敗：'+(err.message||err)+'。仍會開新場次')}UI.rgRegs={};UI.rgTry={};act('newEv')}
+function vClearCard(){const arm=UI.clrArm,b=(ev,l)=>'<button class="btn '+(arm===ev?'pri':'')+'" data-a="clrRegs" data-v="'+ev+'">'+(arm===ev?'再按一次確認：':'')+l+'</button>';
+ return'<div class="card"><h3>清除報名紀錄</h3><div class="sub">一鍵清除盟友的報名。清掉的紀錄會先封存到試算表的「報名封存」分頁，不會真的消失。通常在開新活動前使用。分隊工具裡目前的分隊不會被動，要重新分隊再按「一鍵分隊」</div><div class="row" style="margin-top:8px">'+b('foundry','清除兵工廠報名')+b('canyon','清除峽谷會戰報名')+b('all','清除全部')+'</div></div>'}
+function vRegMgr(IS){return vConn()+vRegImportCard()+vClearCard()}
+document.addEventListener('click',e=>{const a=e.target.closest('[data-a]');if(!a)return;const v=a.dataset.v;
+ switch(a.dataset.a){case'settle':settle();break;case'unsettle':mut(()=>{const e2=E();S.events=S.events.filter(x=>!e2.settled||x.id!==e2.settled.id);e2.settled=null;e2.attDone=false},'已解除結算，可以修改後重新結算');break;
+  case'resend':{const rec=S.events.find(x=>E().settled&&x.id===E().settled.id);if(rec)settleUpload(rec)}break;case'newEvClr':newEvClear();break;
+  case'clrRegs':if(UI.clrArm!==v){UI.clrArm=v;render();toast('再按一次才會清除');setTimeout(()=>{if(UI.clrArm===v){UI.clrArm='';render()}},5000);break}UI.clrArm='';doClear(v);break}});
+/* ===== v3.13 玩家檔案（迷宮、六個關卡進度、全服排名）：加在戰力卡裡 ===== */
+const DSN=[['loh','英雄之地'],['cave','魔物洞穴'],['charm','魅力礦場'],['rc','研究中心'],['forge','裝備鍛造'],['gaia','蓋亞之心']];
+function detailHtml(p,d){const a=d.detail||[],cls=p.al==='aQt'?'ta1':'tj1';
+ if(!a.length)return'<div class="card"><h3>玩家檔案</h3><div class="sub">還沒有資料。幹部在 Apps Script 執行「同步玩家檔案」之後會出現（迷宮、六個關卡進度、全服排名）</div></div>';
+ const L=a[a.length-1],P=a.length>1?a[a.length-2]:null,m=UI.cdm||'gaia',val=x=>m==='lab'?x.lab.n:((x.st[m]||{}).n||0);
+ const dl=(cur,prev)=>{if(prev==null)return'';const x=cur-prev;return x>0?' <span style="color:var(--ok)">▲'+x+'</span>':x<0?' <span style="color:var(--dg)">▼'+(-x)+'</span>':''};
+ const rk=r=>r==null?'<span class="sub">100+</span>':'<span class="sub">#'+r+'</span>';
+ let h='<div class="card '+cls+'"><h3>玩家檔案 <span class="sub">'+esc(L.d)+' 更新</span></h3><div class="grid g4"><div class="mt"><div class="sub">VIP</div><b>'+L.vip+'</b></div><div class="mt"><div class="sub">迷宮</div><b>'+L.lab.n.toLocaleString()+'</b>'+dl(L.lab.n,P&&P.lab.n)+' '+rk(L.lab.r)+'</div>'
+  +DSN.map(([k,l])=>{const s=L.st[k]||{};return'<div class="mt"><div class="sub">'+l+'</div><b>'+(s.l||'—')+'</b>'+dl(s.n,P&&(P.st[k]||{}).n)+' '+rk(s.r)+'</div>'}).join('')+'</div>'
+  +'<div class="sub" style="margin-top:8px">全服排名：戰力 '+(L.pr?'#'+L.pr:'—')+' · 擊殺 '+(L.kr?'#'+L.kr:'—')+' · 熔爐 '+(L.fr?'#'+L.fr:'—')+' · 遷服積分 '+L.ts.s.toLocaleString()+(L.ts.r?'（#'+L.ts.r+'）':'')+'</div><div class="sub" style="margin-top:4px">關卡後面的 ▲ 是比前一次紀錄多通過的關數；排名 100+ 表示不在全服前 100 名</div>'
+  +'<div class="row" style="margin-top:10px">'+[['lab','迷宮']].concat(DSN).map(([k,l])=>'<button class="btn sm '+(m===k?'on':'')+'" data-a="cdm" data-v="'+k+'">'+l+'</button>').join('')+'</div>';
+ if(a.length>1){const vs=a.map(val);h+='<div style="margin-top:8px">'+lineSvg([{cls,pts:a.map((x,i)=>[i,val(x)])}],{x0:0,x1:a.length-1,y0:Math.min(...vs)*.995,xt:[0,(a.length-1)/2,a.length-1],xf:v=>((a[Math.round(v)]||{}).d||'').slice(5),yf:v=>Math.round(v),dots:a.length<=14})+'<div class="sub">累計通過關數的走勢（'+a.length+' 天的紀錄）</div></div>'}
+ else h+='<div class="sub" style="margin-top:8px">資料累積中，至少要有兩天的紀錄才會出現走勢</div>';
+ return h+'</div>'}
+const _vcd0=vCardDetail;
+vCardDetail=function(p,d){let h=_vcd0(p,d);if(p&&d){const k='<div class="card"><h3>戰力走勢</h3>',i=h.indexOf(k);if(i>=0)h=h.slice(0,i)+detailHtml(p,d)+h.slice(i)}return h};
+document.addEventListener('click',e=>{const a=e.target.closest('[data-a="cdm"]');if(a){UI.cdm=a.dataset.v;render()}});
 function mvText(m,V){const p=S.players[m.pid],pl=V.where[m.pid];return esc(p?p.name:'?')+'：'+(pl?tLabel(tById(pl.t)):'—')+' → '+tLabel(tById(m.to))}
 function vFix(IS){const V=view(),pv=UI.prev;
  const box=ids=>{const its=IS.A.filter(x=>ids==='all'||ids===x.id),mv=its.reduce((s,x)=>s.concat(x.moves||[]),[]);return'<div class="card" style="background:var(--s2);margin-top:8px"><b>預覽：將移動 '+mv.length+' 人'+(its.some(x=>x.rule)?'，並調整規則或設定':'')+'</b><div class="sub" style="margin:4px 0">'+(mv.slice(0,12).map(m=>mvText(m,V)).join('<br>')||'沒有人會被移動')+(mv.length>12?'<br>…':'')+'</div><div class="sub">投票與已固定的人都不動。套用前會留還原點，可按右上角「復原」</div><div class="row" style="margin-top:8px"><button class="btn pri" data-a="fixApply" data-v="'+ids+'">確認套用</button><button class="btn" data-a="prevFix" data-v="">取消</button></div></div>'};
@@ -625,7 +678,7 @@ function vAdmin(IS){return'<div class="tabsb">'+ADM.map(([k,l])=>'<button class=
 function render(){if(!S)return;UNIT=unitOf();const IS=issues(),T=tOn();if(!T.find(t=>t.id===UI.team))UI.team=T[0]?T[0].id:null;
  const th='<button class="btn sm" data-a="theme" aria-label="切換深淺色">'+THEMES[S.theme||'auto']+'</button>';
  $('#top').innerHTML=SELF?'<b>我們的盟友</b><span class="grow"></span>'+th:'<b>分隊工具</b><div id="nav">'+NAV.map(n=>'<button class="'+(UI.scr===n[0]?'on':'')+'" data-a="nav" data-v="'+n[0]+'">'+n[1]+(n[0]==='admin'&&IS.A.length?' <span class="bd w">'+IS.A.length+'</span>':'')+'</button>').join('')+'</div><span class="sub" id="stat">'+esc(UI.saved)+'</span><button class="btn sm mbtn" data-a="menu" aria-label="選單">⋯</button><div class="tacts'+(UI.menu?' open':'')+'"><button class="btn sm" data-a="undo">復原</button><button class="btn sm" data-a="publish">公開</button><button class="btn sm" data-a="theme" aria-label="切換深淺色">外觀：'+({auto:'自動',light:'淺色',dark:'深色'}[S.theme||'auto'])+'</button><button class="btn sm" data-a="lcheck">版面診斷</button>'+(UI.lc?'<div class="lc">'+(function(){const l=UI.lc;return '視窗寬 '+l.W+'，頁面寬 '+l.sw+(l.items.length?'；超出：'+l.items.map(i=>esc(i.t)+'('+i.w+')'+(i.txt?'「'+esc(i.txt)+'」':'')).join('、'):'；沒有發現超出的元素')})()+'</div>':'')+'</div>';
- const fn={board:vBoard,mission:vMission,att:vAtt,self:vAlly,admin:vAdmin}[SELF?'self':UI.scr]||vBoard;
+ const fn={board:vLists,mission:vMission,att:vAtt,self:vAlly,admin:vAdmin,players:vPlayers,signups:vSignups}[SELF?'self':UI.scr]||vBoard;
  $('#main').innerHTML=fn(IS)+'<div class="sub" style="text-align:center">版本 '+APP_VERSION+'</div>';$('#plist').innerHTML=Object.values(S.players).map(p=>'<option value="'+esc(p.name)+'">').join('');updSheet();renderBanner();
  const c=$('#car');if(c)c.scrollLeft=UI.chart*c.clientWidth}
 function guard(){if(E().final){toast('已定版，請先到「後台設定 → 總覽」解除定版');return true}return false}
