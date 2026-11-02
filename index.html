@@ -34,6 +34,7 @@ body{overflow-x:clip;max-width:100vw}
 .btn.mtab{display:flex;flex-direction:column;align-items:center;justify-content:center;min-height:68px;padding:6px 2px;line-height:1.3;border-top:4px solid rgb(var(--tr))}
 .btn.mtab small{display:block;font-size:12px;color:var(--t2)}
 .btn.mtab.on{border-top-color:rgb(var(--tr))}
+@media(max-width:759px){#nav button{white-space:normal;line-height:1.2;font-size:13px}}
 .sumrow .mini,.sumrow .smt{display:none}
 .sug{border:1px solid var(--bd);border-radius:12px;background:var(--s1);margin-top:6px;overflow:hidden}
 .sg{padding:12px 14px;min-height:48px;display:flex;align-items:center;gap:6px;flex-wrap:wrap;border-bottom:1px solid var(--bd);cursor:pointer}
@@ -103,7 +104,7 @@ const esc=s=>String(s==null?'':s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;'
 const SELF=new URLSearchParams(location.search).get('v')==='self';
 let S=null,UNIT='億';
 const UI={scr:'board',adm:'overview',team:null,fold:{},sort:'power',base:'all',cm:'cur',sheet:null,chart:0,zone:{},prev:null,imp:null,att:'all',selfQ:'',selfRes:null,report:false,mt:null,err:'',saved:'',undo:[],mp:null,csv:'',url:'',bk:'',rk:'',cfgAt:0,newVer:'',dismissed:false,lastCheck:0,updErr:''};
-const NAV=[['board','分隊板'],['mission','任務'],['att','點名'],['self','報名'],['admin','後台設定']];
+const NAV=[['self','我們的盟友'],['board','分隊結果'],['mission','任務'],['att','點名'],['admin','後台設定']];
 const ADM=[['overview','總覽'],['import','匯入'],['fix','修正'],['rules','規則'],['backup','備份']];
 const THEMES={auto:'◐ 自動',light:'☀ 淺色',dark:'☾ 深色'};
 const DEF=()=>({seq:1,theme:'auto',players:{},alias:{},draft:{},autoLinks:[],rules:{together:[],locks:{},alts:[],exc:{}},pend:[],snaps:[],events:[],pub:null,req:[],
@@ -493,6 +494,45 @@ document.addEventListener('click',e=>{const ro=e.target.closest('[data-rgopen]')
  const a=e.target.closest('[data-a]');if(!a)return;const v=a.dataset.v;
  switch(a.dataset.a){case'rgFilter':UI.rgF=v;render();break;case'oneClick':oneClick();break;case'dlSet':{const t=UI['dl_'+v];if(!t)return toast('請先選擇日期時間');dlSave(v,new Date(t).toISOString())}break;case'dlNow':dlSave(v,new Date().toISOString());break;case'dlClear':dlSave(v,'');break;case'admSave':S.rules.api=Object.assign({},S.rules.api,{admin:String(UI.apiAdm!=null?UI.apiAdm:((S.rules.api||{}).admin||'')).trim()});save();toast('已儲存幹部密碼');render();break}});
 document.addEventListener('input',e=>{const i=e.target.dataset&&e.target.dataset.i;if(i==='rgS'){const l=$('#rgList');if(l)l.innerHTML=regListHtml()}});
+/* ===== v3.10 盟友版面：我們的盟友、分隊結果；後台設定整理（以下覆蓋前面同名函式） ===== */
+function vAlly(IS){const t=SELF?(UI.ally||'list'):'list';
+ const tabs=SELF?'<div class="tabsb">'+[['list','我們的盟友'],['result','分隊結果']].map(([k,l])=>'<button class="btn sm '+(t===k?'on':'')+'" data-a="ally" data-v="'+k+'">'+l+'</button>').join('')+'</div>':'';
+ if(!UI.onlTried&&!UI.onlBusy){UI.onlTried=true;loadRoster()}
+ if(UI.onlBusy)return tabs+'<div class="card">載入中…</div>';
+ if(UI.onlErr||!UI.onl){const m=SELF&&/還沒有設定/.test(UI.onlErr||'')?'這個連結不完整，請向幹部索取最新的盟友連結':(UI.onlErr||'尚未載入');return tabs+'<div class="card wn"><b>讀不到戰情室資料</b><div class="sub">'+esc(m)+'</div><div class="row" style="margin-top:8px"><button class="btn" data-a="onlReload">重新載入</button></div></div>'}
+ if(t==='result')return tabs+vResult();
+ if(UI.cd&&UI.cd.fid)return vCardDetail(UI.onl.roster.find(p=>p.fid===UI.cd.fid),UI.cd.data);
+ return tabs+'<div class="card"><h3>我們的盟友</h3><div class="sub">這裡是全盟的戰力表。大家可以在這裡報名參加活動（兵工廠、峽谷會戰）：點一位盟友的卡片展開，選擇意願後按「確認送出」。也可以看每個人的戰力變化和暱稱歷程。</div></div>'+vRegPage()}
+function tcls(l){return't'+(/^aQt/.test(l)?'a':'j')+(/軍團二/.test(l)?'2':'1')}
+const hit_=(m,q)=>{const k=nz(m.name);return !!q&&(k===q||(q.length>=2&&k.includes(q)))};
+async function loadResult(){UI.resBusy=true;UI.resErr='';try{const j=await onlGet({action:'result'});if(j.status!=='ok')throw new Error('回傳格式不正確');UI.res=j.teams&&j.teams.length?{meta:j.meta||{},teams:j.teams.map(t=>({label:String(t.label||''),time:String(t.time||''),members:(t.members||[]).map(m=>({name:String(m.name==null?'':m.name),al:String(m.al||''),power:Number(m.power)||0,grp:String(m.grp||'')}))}))}:null}catch(e){UI.resErr=String(e.message||e)}UI.resBusy=false;renderSoon()}
+function resMineHtml(){const r=UI.res,q=nz(UI.resQ||'');if(!q||!r)return'';const hit=[];r.teams.forEach(t=>t.members.forEach(m=>{if(hit_(m,q))hit.push({t,m})}));
+ return hit.length?hit.slice(0,6).map(x=>'<div class="card '+tcls(x.t.label)+'" style="margin-top:8px;border-left:6px solid rgb(var(--tr))"><b>'+esc(x.m.name)+'</b> 在 <b>'+esc(x.t.label)+'</b>'+(x.t.time?'（'+esc(x.t.time)+'）':'')+(x.m.grp?'，小組：'+esc(x.m.grp):'')+'</div>').join(''):'<div class="sub" style="margin-top:8px">沒有找到這個名字。可能是不克參加、未報名，或結果還沒公布</div>'}
+function resTeamsHtml(){const r=UI.res,q=nz(UI.resQ||'');return'<div class="grid g2">'+r.teams.map(t=>'<div class="card '+tcls(t.label)+'" style="border-top:5px solid rgb(var(--tr))"><div class="row sp"><b>'+esc(t.label)+'</b><span class="bd">'+(t.time?esc(t.time)+' · ':'')+t.members.length+' 人</span></div><div style="margin-top:6px">'+t.members.map(m=>'<div class="row sp" style="padding:5px 6px;border-radius:8px;'+(hit_(m,q)?'background:rgba(var(--tr),.25);font-weight:700':'')+'"><span>'+esc(m.name)+'</span><span class="sub">'+(m.grp?esc(m.grp)+' · ':'')+fmt(m.power)+'</span></div>').join('')+'</div></div>').join('')+'</div>'}
+function vResult(){if(!UI.resTried&&!UI.resBusy){UI.resTried=true;loadResult()}
+ if(UI.resBusy)return'<div class="card">載入分隊結果中…</div>';
+ if(UI.resErr)return'<div class="card wn"><b>讀不到分隊結果</b><div class="sub">'+esc(UI.resErr)+'</div><div class="row" style="margin-top:8px"><button class="btn" data-a="resReload">重新載入</button></div></div>';
+ const r=UI.res;if(!r)return'<div class="card"><b>幹部還沒有公布分隊結果</b><div class="sub">公布後會顯示在這裡</div><div class="row" style="margin-top:8px"><button class="btn" data-a="resReload">重新整理</button></div></div>';
+ return'<div class="card"><div class="row sp"><div><b style="font-size:17px">'+esc(r.meta.name||'分隊結果')+'</b><div class="sub">'+({foundry:'兵工廠',canyon:'峽谷會戰'}[r.meta.type]||'')+' · 公布時間：'+esc(r.meta.at||'')+'</div></div><button class="btn sm" data-a="resReload">重新整理</button></div><input data-i="resQ" autocomplete="off" placeholder="輸入名字，找出你在哪一隊" style="width:100%;margin-top:8px" value="'+esc(UI.resQ||'')+'"><div id="resMine">'+resMineHtml()+'</div></div><div id="resTeams">'+resTeamsHtml()+'</div>'}
+async function publish(){const V=view(),map={};Object.keys(V.tm).forEach(tid=>{const t=tById(tid);V.tm[tid].forEach(p=>{const g=curGroup(p.id,tid);map[p.id]={st:'in',t:tLabel(t),time:tTime(t),g:g<0?'':(E().type==='foundry'?GN[g][0]+'（'+GN[g][1]+'）':RN[g]),gt:E().type==='foundry'&&g>=0?GN[g][2]:''}})});
+ V.wait.forEach(p=>map[p.id]={st:'wait'});V.out.forEach(p=>map[p.id]={st:'out'});V.none.concat(V.nt).forEach(p=>map[p.id]={st:'none'});S.pub={at:Date.now(),ev:E().name,map};save();
+ const o=onl_();if(!o.url||!o.admin){toast('已公開，但只存在這台裝置。要讓盟友看到，請先在「後台設定 → 報名管理」填好連線設定和幹部密碼');render();return}
+ const teams=tOn().map(t=>({label:tLabel(t),time:tTime(t),members:V.tm[t.id].map(p=>{const g=curGroup(p.id,t.id);return{fid:p.fid||'',name:p.name,al:p.al||'',power:p.power,grp:g<0?'':(E().type==='foundry'?GN[g][0]:RN[g])}})}));
+ if(V.wait.length)teams.push({label:'候補',time:'',members:V.wait.map(p=>({fid:p.fid||'',name:p.name,al:p.al||'',power:p.power,grp:''}))});
+ toast('上傳中…');try{const j=await onlPost({action:'publish',event:E().type,meta:{name:E().name,type:E().type},teams});if(!j.ok)throw new Error({forbidden_admin:'幹部密碼不正確，或 Apps Script 還沒設定 ADMIN_TOKEN',forbidden:'連線密碼不正確'}[j.error]||j.error||'失敗');toast('已公開，盟友在「分隊結果」可以看到')}catch(e){toast('上傳失敗：'+(e.message||e))}render()}
+function vConn(){const a=S.rules.api||{};return'<div class="card"><h3>戰情室連線</h3><div class="sub">貼上 Apps Script 網址（結尾是 /exec）和存取密碼。盟友連結會自動帶入這些，盟友不需要填任何東西</div><input data-i="apiUrl" autocomplete="off" placeholder="Apps Script 網址" value="'+esc(UI.apiUrl!=null?UI.apiUrl:(a.url||''))+'" style="width:100%;margin-top:8px"><input data-i="apiTok" type="password" autocomplete="off" placeholder="存取密碼（盟友連結會用到）" value="'+esc(UI.apiTok!=null?UI.apiTok:(a.token||''))+'" style="width:100%;margin-top:8px"><div class="row" style="margin-top:8px"><button class="btn pri" data-a="connSave">儲存連線設定</button></div></div>'}
+function vRegMgr(IS){return vConn()+vRegImportCard()}
+function vImportX(IS){let h=vImport(IS);if(UI.imp&&UI.imp.api)h=h.replace(/<div class="card"><h3>欄位對應<\/h3>[\s\S]*?<\/div><\/div>/,'');return vApiCard()+h}
+function vAdv(IS){const ok=UI.advOk||!Object.keys(S.players).length;
+ return'<div class="card wn"><b>進階設定</b><div class="sub">備份、還原與資料匯入。這裡的操作會改變名單資料，平常用不到，請小心操作</div></div>'+vBackup(IS)
+  +(ok?vImportX(IS):'<div class="card"><h3>資料匯入</h3><div class="sub">匯入名單、從 API 更新戰力、載入舊資料。誤按可能改動名單，需要時再打開</div><div class="row" style="margin-top:8px"><button class="btn" data-a="advOk">我知道了，顯示匯入功能</button></div></div>')}
+const ADM2=[['overview','總覽'],['regmgr','報名管理'],['fix','修正'],['rules','規則'],['adv','進階']];
+function vAdmin(IS){let k=UI.adm;if(k==='import'||k==='backup')k='adv';if(!ADM2.some(x=>x[0]===k))k='overview';
+ return'<div class="tabsb">'+ADM2.map(([id,l])=>'<button class="btn sm '+(k===id?'on':'')+'" data-a="adm" data-v="'+id+'">'+l+(id==='fix'&&IS.A.length?' <span class="bd w">'+IS.A.length+'</span>':'')+'</button>').join('')+'</div>'+({overview:vOverview,regmgr:vRegMgr,fix:vFix,rules:vRules,adv:vAdv}[k])(IS)}
+document.addEventListener('click',e=>{const a=e.target.closest('[data-a]');if(!a)return;const v=a.dataset.v;
+ switch(a.dataset.a){case'resReload':UI.resTried=false;UI.res=null;UI.resErr='';render();break;case'advOk':UI.advOk=true;render();break;
+  case'connSave':{const o=S.rules.api||{};S.rules.api=Object.assign({},o,{url:String(UI.apiUrl!=null?UI.apiUrl:(o.url||'')).trim(),token:String(UI.apiTok!=null?UI.apiTok:(o.token||''))});save();UI.onlTried=false;UI.onl=null;UI.onlErr='';toast('已儲存連線設定');render()}break}});
+document.addEventListener('input',e=>{const i=e.target.dataset&&e.target.dataset.i;if(i==='resQ'){const m=$('#resMine'),t=$('#resTeams');if(m)m.innerHTML=resMineHtml();if(t)t.innerHTML=resTeamsHtml()}});
 function mvText(m,V){const p=S.players[m.pid],pl=V.where[m.pid];return esc(p?p.name:'?')+'：'+(pl?tLabel(tById(pl.t)):'—')+' → '+tLabel(tById(m.to))}
 function vFix(IS){const V=view(),pv=UI.prev;
  const box=ids=>{const its=IS.A.filter(x=>ids==='all'||ids===x.id),mv=its.reduce((s,x)=>s.concat(x.moves||[]),[]);return'<div class="card" style="background:var(--s2);margin-top:8px"><b>預覽：將移動 '+mv.length+' 人'+(its.some(x=>x.rule)?'，並調整規則或設定':'')+'</b><div class="sub" style="margin:4px 0">'+(mv.slice(0,12).map(m=>mvText(m,V)).join('<br>')||'沒有人會被移動')+(mv.length>12?'<br>…':'')+'</div><div class="sub">投票與已固定的人都不動。套用前會留還原點，可按右上角「復原」</div><div class="row" style="margin-top:8px"><button class="btn pri" data-a="fixApply" data-v="'+ids+'">確認套用</button><button class="btn" data-a="prevFix" data-v="">取消</button></div></div>'};
@@ -539,7 +579,7 @@ function vBackup(IS){const V=view();let txt='';tOn().forEach(t=>{const ms=V.tm[t
 function vAdmin(IS){return'<div class="tabsb">'+ADM.map(([k,l])=>'<button class="btn sm '+(UI.adm===k?'on':'')+'" data-a="adm" data-v="'+k+'">'+l+(k==='fix'&&IS.A.length?' <span class="bd w">'+IS.A.length+'</span>':'')+'</button>').join('')+'</div>'+({overview:vOverview,import:vImportX,fix:vFix,rules:vRules,backup:vBackup}[UI.adm]||vOverview)(IS)}
 function render(){if(!S)return;UNIT=unitOf();const IS=issues(),T=tOn();if(!T.find(t=>t.id===UI.team))UI.team=T[0]?T[0].id:null;
  const th='<button class="btn sm" data-a="theme" aria-label="切換深淺色">'+THEMES[S.theme||'auto']+'</button>';
- $('#top').innerHTML=SELF?'<b>盟友報名</b><span class="grow"></span>'+th:'<b>分隊工具</b><div id="nav">'+NAV.map(n=>'<button class="'+(UI.scr===n[0]?'on':'')+'" data-a="nav" data-v="'+n[0]+'">'+n[1]+(n[0]==='admin'&&IS.A.length?' <span class="bd w">'+IS.A.length+'</span>':'')+'</button>').join('')+'</div><span class="sub" id="stat">'+esc(UI.saved)+'</span><button class="btn sm mbtn" data-a="menu" aria-label="選單">⋯</button><div class="tacts'+(UI.menu?' open':'')+'"><button class="btn sm" data-a="undo">復原</button><button class="btn sm" data-a="publish">公開</button><button class="btn sm" data-a="theme" aria-label="切換深淺色">外觀：'+({auto:'自動',light:'淺色',dark:'深色'}[S.theme||'auto'])+'</button><button class="btn sm" data-a="lcheck">版面診斷</button>'+(UI.lc?'<div class="lc">'+(function(){const l=UI.lc;return '視窗寬 '+l.W+'，頁面寬 '+l.sw+(l.items.length?'；超出：'+l.items.map(i=>esc(i.t)+'('+i.w+')'+(i.txt?'「'+esc(i.txt)+'」':'')).join('、'):'；沒有發現超出的元素')})()+'</div>':'')+'</div>';
+ $('#top').innerHTML=SELF?'<b>我們的盟友</b><span class="grow"></span>'+th:'<b>分隊工具</b><div id="nav">'+NAV.map(n=>'<button class="'+(UI.scr===n[0]?'on':'')+'" data-a="nav" data-v="'+n[0]+'">'+n[1]+(n[0]==='admin'&&IS.A.length?' <span class="bd w">'+IS.A.length+'</span>':'')+'</button>').join('')+'</div><span class="sub" id="stat">'+esc(UI.saved)+'</span><button class="btn sm mbtn" data-a="menu" aria-label="選單">⋯</button><div class="tacts'+(UI.menu?' open':'')+'"><button class="btn sm" data-a="undo">復原</button><button class="btn sm" data-a="publish">公開</button><button class="btn sm" data-a="theme" aria-label="切換深淺色">外觀：'+({auto:'自動',light:'淺色',dark:'深色'}[S.theme||'auto'])+'</button><button class="btn sm" data-a="lcheck">版面診斷</button>'+(UI.lc?'<div class="lc">'+(function(){const l=UI.lc;return '視窗寬 '+l.W+'，頁面寬 '+l.sw+(l.items.length?'；超出：'+l.items.map(i=>esc(i.t)+'('+i.w+')'+(i.txt?'「'+esc(i.txt)+'」':'')).join('、'):'；沒有發現超出的元素')})()+'</div>':'')+'</div>';
  const fn={board:vBoard,mission:vMission,att:vAtt,self:vAlly,admin:vAdmin}[SELF?'self':UI.scr]||vBoard;
  $('#main').innerHTML=fn(IS)+'<div class="sub" style="text-align:center">版本 '+APP_VERSION+'</div>';$('#plist').innerHTML=Object.values(S.players).map(p=>'<option value="'+esc(p.name)+'">').join('');updSheet();renderBanner();
  const c=$('#car');if(c)c.scrollLeft=UI.chart*c.clientWidth}
