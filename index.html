@@ -72,7 +72,7 @@ textarea{width:100%;min-height:120px}
 <script src="config.js"></script>
 <script>
 'use strict';
-const APP_VERSION='4.6.1';
+const APP_VERSION='4.9.0';
 const $=s=>document.querySelector(s);
 const esc=s=>String(s==null?'':s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 const nz=s=>String(s==null?'':s).normalize('NFKC').toLowerCase().replace(/[\s\p{P}\p{S}]+/gu,'');
@@ -517,7 +517,7 @@ function playerSheet(fid){const r=D.byF[fid];if(!r)return'';const tab=U.sh.tab||
 const seBtns=(k,f,m)=>{if(!isStaff())return'';const b=(v,l,on)=>`<button class="btn sm ${on?'on':''}" style="min-height:28px;padding:2px 8px" data-a="se_set" data-ev="${k}" data-fid="${f}" data-v="${v}">${l}</button>`;
  if(INNER.includes(k))return`<span class="row" style="gap:4px;flex-wrap:nowrap">${b('1','一',m[f].choice==='1')}${b('2','二',m[f].choice==='2')}${b('out','✕',false)}</span>`;
  return`<span class="row" style="gap:4px;flex-wrap:nowrap">${b('正選','正',m[f].note==='正選')}${b('候補','候',m[f].note==='候補')}${b('out','✕',false)}</span>`};
-function sgBody(k,fids,m){const cap=CAP[k],nm=(f,tag)=>{const r=D.byF[f],tg=m[f].play;return`<div class="row sp" style="padding:4px 0;border-bottom:1px solid var(--bd)"><span>${tag||''}${esc(r.name)}${r.furn&&r.furn<16?' <span style="color:var(--wn)">⚠</span>':''}${!INNER.includes(k)&&tg&&tg!==r.al?` <span class="sub">→ ${esc(tg)}</span>`:''}</span><span class="row" style="gap:6px;flex-wrap:nowrap"><span class="sub">${fmtP(r.power)}</span>${seBtns(k,f,m)}</span></div>`};
+function sgBody(k,fids,m){const cap=CAP[k],nm=(f,tag)=>{const r=D.byF[f],tg=m[f].play;return`<div class="ln"><span class="fit">${tag||''}${esc(r.name)}${r.furn&&r.furn<16?' <span style="color:var(--wn)">⚠</span>':''}${!INNER.includes(k)&&tg&&tg!==r.al?` <span class="sub">→ ${esc(tg)}</span>`:''}</span><span class="row rt" style="gap:6px;flex-wrap:nowrap"><span class="sub">${fmtP(r.power)}</span>${seBtns(k,f,m)}</span></div>`};
  if(!fids.length)return'<div class="sub" style="margin-top:8px">還沒有人報名</div>';
  const hint=isStaff()?`<div class="sub" style="margin-top:8px">${INNER.includes(k)?'右邊的「一／二／✕」可以改軍團或取消報名。':'右邊的「正／候／✕」可以改成正選、候補（再按一次取消標記），或取消報名。'}取消後會標成不參加，一鍵報名不會再把他加回來。</div>`:'';
  if(INNER.includes(k)){const g={};fids.forEach(f=>{const al=D.byF[f].al||'—',lg=m[f].choice==='2'?'2':'1';if(!g[al])g[al]={'1':[],'2':[]};g[al][lg].push(f)});
@@ -551,11 +551,56 @@ document.addEventListener('click',e=>{const a=e.target.closest('[data-a]');if(!a
 /* ===== v4.6 玩家視窗改顯示迷宮關卡 ===== */
 function caveOf(r,c){const a=(c&&c!=='load'&&c!=='err'&&c.detail)||[];if(a.length){const l=a[a.length-1].lab;return{n:l.n,r:l.r}}return r.dt?{n:r.dt.lab,r:r.dt.labR}:null}
 
+/* ===== v4.7 名單一行顯示、名字過長時文字自動縮小 ===== */
+(function(){const s=document.createElement('style');s.textContent='.ln{display:flex;align-items:center;gap:8px;flex-wrap:nowrap;padding:4px 0;border-bottom:1px solid var(--bd)}.ln .fit{flex:1 1 auto;min-width:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}.ln .rt{flex:none}';document.head.appendChild(s)})();
+function fitNames(){document.querySelectorAll('.fit').forEach(el=>{el.style.fontSize='';let fs=parseFloat(getComputedStyle(el).fontSize)||15;while(el.scrollWidth>el.clientWidth+1&&fs>10){fs-=0.5;el.style.fontSize=fs+'px'}})}
+const _rd7=render;render=function(){_rd7();fitNames()};
+const _rs7=renderSheet;renderSheet=function(){_rs7();fitNames()};
+window.addEventListener('resize',fitNames);
+
+/* ===== v4.8 佈景主題選單（所有人可用，目前有「靛紫」；之後新增主題只要在 PALS 加一列並補 CSS） ===== */
+const PALS=[['indigo','靛紫','目前的預設',['#5b4de0','#4f46e5','#e6e4ff','#f4f5fb']]];
+const PALN={};PALS.forEach(p=>{PALN[p[0]]=p[1]});
+U.pal=Store.get('pal','indigo');if(!PALN[U.pal])U.pal='indigo';
+(function(){const s=document.createElement('style');s.textContent='#top{background:var(--hd,linear-gradient(135deg,#4f46e5,#7c3aed))}';document.head.appendChild(s)})();
+function applyTheme(){const t=U.theme,dark=t==='dark'||(t==='auto'&&matchMedia('(prefers-color-scheme: dark)').matches),el=document.documentElement;el.setAttribute('data-theme',dark?'dark':'light');el.setAttribute('data-palette',U.pal)}
+function themeSheet(){const mode=(k,l)=>`<button class="btn ${U.theme===k?'on':''}" data-a="th_mode" data-v="${k}">${l}</button>`;
+ return`<div class="row sp"><b style="font-size:17px">外觀</b><button class="btn sm" data-close>✕</button></div><div class="card"><b>佈景主題</b><div style="margin-top:8px">${PALS.map(([k,n,d,sw])=>`<div class="row sp" data-a="th_pal" data-v="${k}" style="padding:10px;border:${U.pal===k?'2px solid var(--ac)':'1px solid var(--bd)'};border-radius:12px;cursor:pointer;margin-bottom:8px"><span><b>${n}</b> <span class="sub">${d}</span>${U.pal===k?' <span class="bd a">使用中</span>':''}</span><span class="row" style="gap:4px;flex-wrap:nowrap">${sw.map(c=>`<span style="display:inline-block;width:20px;height:20px;border-radius:6px;background:${c};border:1px solid var(--bd)"></span>`).join('')}</span></div>`).join('')}</div><div class="sub">之後會有更多主題。你選的只會存在這台裝置，不會影響別人。</div></div><div class="card"><b>明暗模式</b><div class="row" style="margin-top:8px">${mode('auto','自動（跟著手機）')}${mode('light','淺色')}${mode('dark','深色')}</div></div>`}
+const _ps4=playerSheet;playerSheet=function(fid){if(U.sh&&U.sh.kind==='theme')return themeSheet();return _ps4(fid)};
+document.addEventListener('click',e=>{const a=e.target.closest('[data-a]');if(!a)return;const k=a.dataset.a;
+ if(k==='th_mode'){U.theme=a.dataset.v;Store.set('theme',U.theme);render();renderSheet()}
+ else if(k==='th_pal'){U.pal=a.dataset.v;Store.set('pal',U.pal);render();renderSheet()}});
+
+/* ===== v4.9 馬卡龍佈景主題（每組都有淺色與深色） ===== */
+const PD={
+ berry:{n:'草莓牛奶',d:'粉嫩的草莓色',sw:['#f9a8c9','#d6457f','#ffdbe8','#fff3f6'],
+  l:{bg:'#fff3f6',s1:'#ffffff',s2:'#ffe6ee',bd:'#f6cfdb',t1:'#4a2133',t2:'#9a6176',ac:'#d6457f',acb:'#ffdbe8',btxt:'#ffffff',hd:'linear-gradient(135deg,#f9a8c9,#fcc9a8)',hdt:'#5a2340'},
+  d:{bg:'#231620',s1:'#2f1d2a',s2:'#3b2535',bd:'#55354a',t1:'#ffe8f0',t2:'#d9a3b8',ac:'#ff8fb7',acb:'#4f2a40',btxt:'#2a0f1c',hd:'linear-gradient(135deg,#8a3a62,#a8556b)',hdt:'#ffffff'}},
+ mint:{n:'薄荷奶綠',d:'清爽的薄荷綠',sw:['#9be3c8','#1f9d72','#d2f3e4','#effbf6'],
+  l:{bg:'#effbf6',s1:'#ffffff',s2:'#dff5ea',bd:'#c4e8d6',t1:'#17382c',t2:'#5a8a76',ac:'#1f9d72',acb:'#d2f3e4',btxt:'#ffffff',hd:'linear-gradient(135deg,#9be3c8,#b9e8f0)',hdt:'#0f3d2e'},
+  d:{bg:'#10211c',s1:'#172c25',s2:'#1e382f',bd:'#2c4b40',t1:'#e2fbf0',t2:'#8fc2ad',ac:'#6ee7b7',acb:'#214a3b',btxt:'#0a2018',hd:'linear-gradient(135deg,#1d6b52,#237a7a)',hdt:'#ffffff'}},
+ lav:{n:'薰衣草',d:'柔和的紫丁香',sw:['#c9b8f5','#7c5cd6','#e4dbff','#f6f2ff'],
+  l:{bg:'#f6f2ff',s1:'#ffffff',s2:'#ebe4fb',bd:'#d9ccf3',t1:'#2e2350',t2:'#7566a3',ac:'#7c5cd6',acb:'#e4dbff',btxt:'#ffffff',hd:'linear-gradient(135deg,#c9b8f5,#f3c4e6)',hdt:'#3a2a6b'},
+  d:{bg:'#18142a',s1:'#211b38',s2:'#2b2347',bd:'#403563',t1:'#eee9ff',t2:'#b3a6dd',ac:'#b79cff',acb:'#3a2f66',btxt:'#160f2d',hd:'linear-gradient(135deg,#5a3fa8,#8a45a0)',hdt:'#ffffff'}},
+ lemon:{n:'檸檬奶油',d:'溫暖的奶油黃',sw:['#ffe28a','#b86e00','#ffecb0','#fffbe8'],
+  l:{bg:'#fffbe8',s1:'#ffffff',s2:'#fff2bf',bd:'#f2e3a2',t1:'#4a3b0f',t2:'#96803a',ac:'#b86e00',acb:'#ffecb0',btxt:'#ffffff',hd:'linear-gradient(135deg,#ffe28a,#ffc9a0)',hdt:'#5a3f00'},
+  d:{bg:'#231d0b',s1:'#2e2610',s2:'#3a3016',bd:'#574a24',t1:'#fff4cf',t2:'#d3bf7d',ac:'#ffd25e',acb:'#4d3f12',btxt:'#2a1f00',hd:'linear-gradient(135deg,#8a6a12,#9a5a2a)',hdt:'#ffffff'}},
+ sky:{n:'天空藍莓',d:'輕盈的粉藍',sw:['#a7d3ff','#3b82d6','#d6e8ff','#eef6ff'],
+  l:{bg:'#eef6ff',s1:'#ffffff',s2:'#dcebff',bd:'#c3dcf8',t1:'#15305a',t2:'#5f81b5',ac:'#3b82d6',acb:'#d6e8ff',btxt:'#ffffff',hd:'linear-gradient(135deg,#a7d3ff,#d2c8ff)',hdt:'#15305a'},
+  d:{bg:'#0f1b2e',s1:'#162539',s2:'#1d3049',bd:'#2e4668',t1:'#e6f1ff',t2:'#93b4df',ac:'#7fb8ff',acb:'#25416a',btxt:'#08203d',hd:'linear-gradient(135deg,#2d5ea8,#5a4fb0)',hdt:'#ffffff'}},
+ rainbow:{n:'彩虹馬卡龍',d:'六種顏色全部放進來',sw:['#ffb3c7','#d6336c','#fdffb6','#bdb2ff'],
+  l:{bg:'#fffaf5',s1:'#ffffff',s2:'#fdeee0',bd:'#f3dcc9',t1:'#40304a',t2:'#8d7596',ac:'#d6336c',acb:'#ffe0ea',btxt:'#ffffff',hd:'linear-gradient(90deg,#ffb3c7,#ffd6a5,#fdffb6,#caffbf,#9bf6ff,#bdb2ff)',hdt:'#4a3a5a'},
+  d:{bg:'#1b1626',s1:'#241d33',s2:'#2e2540',bd:'#443659',t1:'#f6eeff',t2:'#bba9d4',ac:'#ff8fb7',acb:'#4a2a45',btxt:'#26101c',hd:'linear-gradient(90deg,#8a3a62,#8a6a30,#7a8a30,#2f8a5a,#2a7a8a,#5a4aa8)',hdt:'#ffffff'}}};
+Object.keys(PD).forEach(k=>{PALS.push([k,PD[k].n,PD[k].d,PD[k].sw]);PALN[k]=PD[k].n});
+U.pal=Store.get('pal','indigo');if(!PALN[U.pal])U.pal='indigo';
+(function(){const css=v=>Object.keys(v).map(n=>'--'+n+':'+v[n]).join(';'),s=document.createElement('style');
+ s.textContent=Object.keys(PD).map(k=>`html[data-palette=${k}]{${css(PD[k].l)}}html[data-palette=${k}][data-theme=dark]{${css(PD[k].d)}}`).join('')+'#top{color:var(--hdt,#fff)}#top .bd{color:var(--hdt,#fff)!important;background:rgba(255,255,255,.3)!important}';document.head.appendChild(s)})();
+
 /* ===== 畫面 ===== */
 function applyTheme(){const t=U.theme,dark=t==='dark'||(t==='auto'&&matchMedia('(prefers-color-scheme: dark)').matches);document.documentElement.setAttribute('data-theme',dark?'dark':'light')}
 const TABS=[['players','全玩家'],['signups','活動報名'],['lists','活動名單'],['admin','後台設定']];
 function render(){applyTheme();
- $('#top').innerHTML=`<b>2611王國</b><span class="grow"></span>${AU?`<span class="bd" style="background:rgba(255,255,255,.22);color:#fff">${isAdmin()?'管理員':'幹部 '+esc(AU.al)}</span>`:''}<button class="btn sm" data-a="theme">外觀：${{auto:'自動',light:'淺色',dark:'深色'}[U.theme]}</button>`;
+ $('#top').innerHTML=`<b>2611王國</b><span class="grow"></span>${AU?`<span class="bd" style="background:rgba(255,255,255,.22);color:#fff">${isAdmin()?'管理員':'幹部 '+esc(AU.al)}</span>`:''}<button class="btn sm" data-a="theme">外觀・${PALN[U.pal]||'靛紫'}</button>`;
  $('#nav').innerHTML=TABS.map(([k,l])=>`<button class="${U.tab===k?'on':''}" data-a="nav" data-v="${k}">${l}</button>`).join('');
  const pg={players:pgPlayers,signups:pgSignups,lists:pgLists,admin:pgAdmin}[U.tab]||pgPlayers;$('#main').innerHTML=pg();
  const box=$('#tw');if(box){box.onscroll=()=>{if(!P.raf)P.raf=requestAnimationFrame(()=>{P.raf=0;drawRows()})};drawRows()}}
@@ -573,7 +618,7 @@ async function dlSave(group,iso){const g=DLG.find(x=>x[0]===group);try{const j=a
 async function act(a,el){const v=el.dataset.v;
  switch(a){
  case'nav':U.tab=v;U.colsOpen=U.colsOpen;render();window.scrollTo(0,0);break;
- case'theme':U.theme=U.theme==='auto'?'light':U.theme==='light'?'dark':'auto';Store.set('theme',U.theme);render();break;
+ case'theme':openSheet({kind:'theme'});break;
  case'reload':D.stLoaded=false;D.card={};render();Promise.all([loadState(),loadRegs(),loadAcc()]);break;
  case'colsT':U.colsOpen=!U.colsOpen;render();break;
  case'colTog':P.cols=P.cols.includes(v)?P.cols.filter(x=>x!==v):P.cols.concat(v);Store.set('cols',P.cols);render();break;
