@@ -72,7 +72,7 @@ textarea{width:100%;min-height:120px}
 <script src="config.js"></script>
 <script>
 'use strict';
-const APP_VERSION='4.3.0';
+const APP_VERSION='4.5.0';
 const $=s=>document.querySelector(s);
 const esc=s=>String(s==null?'':s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 const nz=s=>String(s==null?'':s).normalize('NFKC').toLowerCase().replace(/[\s\p{P}\p{S}]+/gu,'');
@@ -186,7 +186,7 @@ function sgBody(k,fids,m){const nm=f=>{const r=D.byF[f];return`<div class="row s
 function pgSignups(){if(!D.stLoaded)return loadingCard();if(D.stErr)return errCard();
  let h=`<div class="card"><h3>王國活動報名列表</h3><div class="sub">在「全玩家」勾選的活動，會自動出現在這裡。點活動標題展開名單。人數規則來自第三方攻略，實際以遊戲內為準。</div></div>`;
  EV.forEach(([k,l,grp])=>{const m=D.regs[k]||{},fids=Object.keys(m).filter(f=>m[f].choice!=='out'&&D.byF[f]),cap=CAP[k],cl=closed(k),open=U.sg[k];
-  h+=`<div class="card"><div class="row sp" data-a="sgT" data-v="${k}" style="cursor:pointer"><div><b style="font-size:16px">${l}</b> <span class="sub">${grp}</span><div class="sub">${cap.t}</div></div><div style="text-align:right"><div style="font-size:20px;font-weight:700">${fids.length}${cap.n?` <span class="sub">/ ${cap.n}</span>`:''}</div>${cl?'<span class="bd w">已截止</span>':D.dls[k]?`<span class="bd a">還剩 ${remain(k)}</span>`:''}</div></div>${open?`<div class="row" style="margin-top:8px"><button class="btn sm" data-a="copyEv" data-v="${k}">複製名單（貼到 LINE）</button></div>${sgBody(k,fids,m)}`:''}</div>`});
+  h+=`<div class="card"><div class="row sp" data-a="sgT" data-v="${k}" style="cursor:pointer"><div><b style="font-size:16px">${l}</b> <span class="sub">${grp}</span><div class="sub">${cap.t}</div></div><div style="text-align:right"><div style="font-size:20px;font-weight:700">${fids.length}${cap.n?` <span class="sub">/ ${cap.n}</span>`:''}</div>${cl?'<span class="bd w">已截止</span>':D.dls[k]?`<span class="bd a">還剩 ${remain(k)}</span>`:''}</div></div>${open?`<div class="row" style="margin-top:8px"><button class="btn sm" data-a="copyEv" data-v="${k}">複製名單（貼到 LINE）</button>${INNER.includes(k)?'':`<button class="btn sm pri" data-a="ntc" data-v="${k}">產生通知（LINE／頻道）</button>`}</div>${sgBody(k,fids,m)}`:''}</div>`});
  return h}
 function evText(k){const m=D.regs[k]||{},fids=Object.keys(m).filter(f=>m[f].choice!=='out'&&D.byF[f]);let t=`【${EVN[k]}報名名單】共 ${fids.length} 人\n`;
  if(INNER.includes(k)){const g={};fids.forEach(f=>{const r=D.byF[f],al=r.al||'—';if(!g[al])g[al]={'1':[],'2':[]};g[al][m[f].choice==='2'?'2':'1'].push(r)});Object.keys(g).forEach(al=>{t+=`\n${al}\n`;['1','2'].forEach(lg=>{const a=g[al][lg].sort((x,y)=>y.power-x.power);t+=`${CHN[lg]}（${a.length} 人）：${a.map(r=>r.name).join('、')||'無'}\n`})})}
@@ -223,7 +223,7 @@ function pgAdmin(){if(!AU)return loginHtml2()+connHtml()+verHtml();
 function regPanel(r){let h='';EV.forEach(([k,l,grp])=>{const g=regOf(k,r.fid),ch=g?g.choice:'',ok=canReg(k,r),dis=ok?'':' disabled',cl=closed(k);
  h+=`<div class="card"><div class="row sp"><b>${l}</b><span class="sub">${grp}${cl?(ok?' · 已截止（你有權限修改）':' · 已截止'):D.dls[k]?' · 還剩 '+remain(k):''}</span></div><div class="row" style="margin-top:8px">`;
  if(INNER.includes(k))h+=['1','2'].map(v=>`<button class="btn lgbtn l${v} ${ch===v?'on':''}"${dis} data-a="reg" data-ev="${k}" data-v="${v}">${CHN[v]}</button>`).join('');
- else h+=`<button class="btn ${ch==='in'?'pri':''}"${dis} data-a="reg" data-ev="${k}" data-v="in">${ch==='in'?'已參加':'參加'}</button>`;
+ else h+=`<button class="btn ${ch==='in'?'pri':''}"${dis} data-a="reg" data-ev="${k}" data-v="in">${ch==='in'?'已參加'+(g&&g.note?'・'+g.note:''):'參加'}</button>`;
  h+=`<button class="btn"${(!g||ch==='out'||!ok)?' disabled':''} data-a="reg" data-ev="${k}" data-v="out">取消報名</button></div>`;
  if(k==='tal'||k==='frost')h+=`<div class="row" style="margin-top:8px"><span class="sub">目標聯盟：</span><input data-tg="${k}" autocomplete="off" placeholder="${esc((g&&g.play)||r.al||'聯盟簡稱')}" value="${esc(U.tg[k]||'')}" style="flex:1"></div><div class="sub">跨聯盟報名時，請在報名截止前先加入目標聯盟</div>`;
  if(r.furn&&r.furn<16&&k!=='sfc')h+=`<div class="sub" style="color:var(--wn);margin-top:6px">熔爐未滿 16 級，通常不能參加</div>`;
@@ -487,6 +487,66 @@ function evText(k){const m=D.regs[k]||{},fids=Object.keys(m).filter(f=>m[f].choi
  else{const a=fids.slice().sort((x,y)=>roleOf(m,x)-roleOf(m,y)||D.byF[y].power-D.byF[x].power),mm=a.filter(f=>roleOf(m,f)===0),ss=a.filter(f=>roleOf(m,f)===1),uu=a.filter(f=>roleOf(m,f)===2);
   t+=`正選（${mm.length}）：${mm.map(nmx).join('、')||'無'}\n`;if(ss.length)t+=`候補（${ss.length}）：${ss.map(nmx).join('、')}\n`;if(uu.length)t+=`未排定（${uu.length}）：${uu.map(nmx).join('、')}\n`}
  return t.trim()}
+
+/* ===== v4.4 一鍵報名錯誤處理與連動、玩家資料只留戰力與洞穴 ===== */
+Object.assign(ERR,{unknown_action:'Apps Script 還沒更新到最新版（Plans 檔案內容，或重新部署還沒做）'});
+const regTok2=f=>{const t=[];EV.forEach(e=>{const g=regOf(e[0],f);if(g&&g.choice!=='out'){t.push(e[1]);if(g.note==='正選'||g.note==='候補')t.push(e[1]+'・'+g.note)}});return t.length?t:['未報名']};
+const chips2=f=>EV.map(([k,l])=>{const g=regOf(k,f);if(!g||g.choice==='out')return'';const r=g.note==='正選'?'正':g.note==='候補'?'候':'';return`<span class="${g.choice==='1'||g.choice==='2'?'lgb l'+g.choice:'bd a'}" style="margin-right:3px">${l.slice(0,1)}${r}</span>`}).join('')||'<span class="sub">—</span>';
+(()=>{const c=COLS.find(x=>x.k==='reg');c.v=r=>regTok2(r.fid);c.d=r=>chips2(r.fid)})();
+async function brSeq(todo){let ok=0,fail=0,last='';for(let i=0;i<todo.length;i++){const x=todo[i];try{const j=await apiPost({action:'register',event:BR.ev,fid:x.r.fid,choice:'in',play:(BR.target.trim()||x.r.al||''),note:x.role});if(j.ok)ok++;else{fail++;last=ERR[j.error]||j.error}}catch(e){fail++;last=e.message}if(i%5===4)toast('報名中 '+(i+1)+'／'+todo.length)}return{ok,fail,last}}
+async function brGo(){const p=BR.prev;if(!p)return;const todo=p.list.filter(x=>x.st!=='不變');if(!todo.length)return;if(closed(BR.ev)&&!isAdmin())return toast('這個活動已截止，只有管理員可以報名');BR.busy=true;BR.err='';render();
+ try{const roles={};todo.forEach(x=>{roles[x.r.fid]=x.role});let j;try{j=await apiPost({action:'regMany',event:BR.ev,choice:'in',fids:todo.map(x=>x.r.fid),roles,play:BR.target.trim()})}catch(e){j={ok:false,net:e.message}}
+  if(j.ok){await loadRegs();toast('完成：新增或更新 '+j.n+' 人'+(j.skip&&j.skip.scope?'（有 '+j.skip.scope+' 人不在你的聯盟，已跳過）':''));BR.prev=null}
+  else if(j.error==='unknown_action'){toast('Apps Script 還沒更新，改用慢速方式逐一報名，請稍等（約 '+Math.max(1,Math.ceil(todo.length*1.5/60))+' 分鐘）');const r=await brSeq(todo);await loadRegs();if(r.fail)BR.err='成功 '+r.ok+' 人，失敗 '+r.fail+' 人（'+(r.last||'未知原因')+'）。';else BR.prev=null;toast('完成：成功 '+r.ok+' 人'+(r.fail?'，失敗 '+r.fail+' 人':''))}
+  else throw new Error(j.net||ERR[j.error]||j.error||'失敗')}catch(e){BR.err=e.message;toast('一鍵報名失敗，原因寫在畫面上')}BR.busy=false;render()}
+const _brh=brHtml;brHtml=function(){const h=_brh();return h&&BR.err?h+`<div class="card" style="border-color:var(--dg)"><b>一鍵報名失敗</b><div class="sub" style="margin-top:6px">${esc(BR.err)}</div><div class="row" style="margin-top:8px"><button class="btn sm" data-a="br_errx">關閉</button></div></div>`:h};
+document.addEventListener('click',e=>{const a=e.target.closest('[data-a]');if(a&&a.dataset.a==='br_errx'){BR.err='';render()}});
+function caveOf(r,c){const a=(c&&c!=='load'&&c!=='err'&&c.detail)||[];return a.length?a[a.length-1].st.cave:(r.dt?r.dt.st.cave:null)}
+function histHtml(r){const c=D.card[r.fid];if(!c||c==='load')return'<div class="card">載入歷史紀錄中…</div>';if(c==='err')return`<div class="card" style="border-color:var(--dg)">讀不到歷史紀錄<div class="row" style="margin-top:8px"><button class="btn" data-a="cardRetry">重試</button></div></div>`;
+ const s=c.series||[],dt=c.detail||[];let h=chart('戰力走勢',s.map(x=>({l:x.d.slice(5),v:x.power})),fmtP);
+ h+=dt.length?chart('魔物洞穴（累計通過關數）',dt.map(x=>({l:x.d.slice(5),v:(x.st.cave||{}).n||0})),v=>Math.round(v)):'<div class="card"><h3>魔物洞穴</h3><div class="sub">還沒有洞穴資料（第一次同步完成後才會出現）</div></div>';
+ const nm=c.names||[];h+=`<div class="card"><h3>暱稱歷程</h3>${nm.length?nm.map((x,i)=>`<div class="row sp" style="padding:6px 0;border-bottom:1px solid var(--bd)"><span><b>${esc(x.name)}</b>${i===nm.length-1?' <span class="bd a">目前</span>':''}</span><span class="sub">${esc(x.first)}${x.last!==x.first?' ～ '+esc(x.last):''}</span></div>`).join('')+(nm.length===1?'<div class="sub" style="margin-top:6px">目前沒有改名紀錄（紀錄從系統開始同步那天算起）</div>':''):'<div class="sub">尚無紀錄</div>'}</div>`;
+ const mv=c.moves||[];h+=`<div class="card"><h3>聯盟異動</h3>${mv.length?mv.map(x=>`<div class="row sp" style="padding:6px 0;border-bottom:1px solid var(--bd)"><span>${esc(x.from||'無聯盟')} → <b>${esc(x.to||'無聯盟')}</b></span><span class="sub">${esc(x.d)}</span></div>`).join(''):'<div class="sub">沒有異動紀錄（從系統開始同步那天算起）</div>'}</div>`;
+ const rg=(c.regs||[]).slice().reverse();h+=`<div class="card"><h3>報名紀錄</h3>${rg.length?rg.map(x=>`<div class="row sp" style="padding:6px 0;border-bottom:1px solid var(--bd)"><span>${esc(EVN[x.event]||x.event)} · <b>${esc(CHN[x.choice]||x.choice)}</b>${x.note==='正選'||x.note==='候補'?' <span class="bd a">'+x.note+'</span>':''}${x.play?' <span class="sub">'+esc(x.play)+'</span>':''}${x.by&&x.by!=='self'?' <span class="bd">'+(x.by==='admin'?'管理員修改':'幹部修改')+'</span>':''}</span><span class="sub">${esc(String(x.at).slice(0,16))}</span></div>`).join(''):'<div class="sub">尚無報名紀錄</div>'}</div>`;
+ if(isStaff())h+='<div class="card"><h3>出席紀錄</h3><div class="sub">之後的版本開放：賽後總結完成後，這裡會顯示出席率與缺席次數，只有幹部看得到。</div></div>';
+ return h}
+function playerSheet(fid){const r=D.byF[fid];if(!r)return'';const tab=U.sh.tab||'reg';if(!D.card[fid])loadCard(fid);const cv=caveOf(r,D.card[fid]);
+ return`<div class="row sp"><div><b style="font-size:18px">${esc(r.name)}</b><div class="sub">${esc(r.al||'無聯盟')} · ${esc(r.rk||'')} · FID ${esc(r.fid)}</div></div><button class="btn sm" data-close>✕</button></div><div class="grid g4"><div class="mt"><div class="sub">戰力</div><div class="v">${fmtP(r.power)}</div></div><div class="mt"><div class="sub">7日增</div><div class="v" style="font-size:15px">${dlt(r.d7)}</div></div><div class="mt"><div class="sub">魔物洞穴</div><div class="v" style="font-size:17px">${cv&&cv.l?esc(cv.l):'—'}</div>${cv&&cv.l?`<div class="sub">${cv.r!=null?'#'+cv.r:'100+'}</div>`:''}</div></div>${accHtml(r)}<div class="row"><button class="btn ${tab==='reg'?'on':''}" data-a="shTab" data-v="reg">報名</button><button class="btn ${tab==='hist'?'on':''}" data-a="shTab" data-v="hist">歷史紀錄</button></div>${tab==='hist'?histHtml(r):regPanel(r)}`}
+
+/* ===== v4.5 名單直接編輯（正選／候補／取消）、一鍵產生通知 ===== */
+const seBtns=(k,f,m)=>{if(!isStaff())return'';const b=(v,l,on)=>`<button class="btn sm ${on?'on':''}" style="min-height:28px;padding:2px 8px" data-a="se_set" data-ev="${k}" data-fid="${f}" data-v="${v}">${l}</button>`;
+ if(INNER.includes(k))return`<span class="row" style="gap:4px;flex-wrap:nowrap">${b('1','一',m[f].choice==='1')}${b('2','二',m[f].choice==='2')}${b('out','✕',false)}</span>`;
+ return`<span class="row" style="gap:4px;flex-wrap:nowrap">${b('正選','正',m[f].note==='正選')}${b('候補','候',m[f].note==='候補')}${b('out','✕',false)}</span>`};
+function sgBody(k,fids,m){const cap=CAP[k],nm=(f,tag)=>{const r=D.byF[f],tg=m[f].play;return`<div class="row sp" style="padding:4px 0;border-bottom:1px solid var(--bd)"><span>${tag||''}${esc(r.name)}${r.furn&&r.furn<16?' <span style="color:var(--wn)">⚠</span>':''}${!INNER.includes(k)&&tg&&tg!==r.al?` <span class="sub">→ ${esc(tg)}</span>`:''}</span><span class="row" style="gap:6px;flex-wrap:nowrap"><span class="sub">${fmtP(r.power)}</span>${seBtns(k,f,m)}</span></div>`};
+ if(!fids.length)return'<div class="sub" style="margin-top:8px">還沒有人報名</div>';
+ const hint=isStaff()?`<div class="sub" style="margin-top:8px">${INNER.includes(k)?'右邊的「一／二／✕」可以改軍團或取消報名。':'右邊的「正／候／✕」可以改成正選、候補（再按一次取消標記），或取消報名。'}取消後會標成不參加，一鍵報名不會再把他加回來。</div>`:'';
+ if(INNER.includes(k)){const g={};fids.forEach(f=>{const al=D.byF[f].al||'—',lg=m[f].choice==='2'?'2':'1';if(!g[al])g[al]={'1':[],'2':[]};g[al][lg].push(f)});
+  return hint+Object.keys(g).sort((x,y)=>(y==='jQt')-(x==='jQt')||(y==='aQt')-(x==='aQt')||(g[y]['1'].length+g[y]['2'].length)-(g[x]['1'].length+g[x]['2'].length)).map(al=>`<div style="margin-top:10px"><b>${esc(al)}</b><div class="grid g2" style="margin-top:6px">${['1','2'].map(lg=>{const a=g[al][lg].sort((x,y)=>D.byF[y].power-D.byF[x].power),tot=cap.m+cap.s,over=a.length>tot;return`<div class="card" style="padding:8px"><div class="row sp"><span class="lgb l${lg}">${CHN[lg]}</span><span class="${over?'bd d':'sub'}">正選 ${Math.min(a.length,cap.m)}／${cap.m}・候補 ${Math.max(0,Math.min(a.length-cap.m,cap.s))}／${cap.s}${over?'・超額 '+(a.length-tot):''}${k==='canyon'&&a.length&&a.length<15?'・未滿 15':''}</span></div>${a.map((f,i)=>nm(f,i<cap.m?'':i<tot?'<span class="bd">候補</span> ':'<span class="bd d">超額</span> ')).join('')}</div>`}).join('')}</div></div>`).join('')}
+ const a=fids.slice().sort((x,y)=>roleOf(m,x)-roleOf(m,y)||D.byF[y].power-D.byF[x].power),c0=a.filter(f=>roleOf(m,f)===0).length,c1=a.filter(f=>roleOf(m,f)===1).length,c2=a.length-c0-c1;
+ const sum=`<div class="sub" style="margin-top:8px">正選 ${c0}${cap.m?'／'+cap.m*cap.legs:''}・候補 ${c1}${cap.s?'／'+cap.s*cap.legs:''}・未排定 ${c2}${cap.n&&a.length>cap.n?'<span style="color:var(--dg)">（超過 '+cap.n+' 人，需要幹部選拔）</span>':''}</div>`;
+ if(k==='sfc'){const g={};a.forEach(f=>{const al=D.byF[f].al||'—';(g[al]=g[al]||[]).push(f)});return hint+sum+Object.keys(g).sort((x,y)=>g[y].length-g[x].length).map(al=>`<div style="margin-top:10px"><b>${esc(al)}</b> <span class="sub">${g[al].length} 人</span>${g[al].map(f=>nm(f,roleTag(m,f))).join('')}</div>`).join('')}
+ return hint+sum+`<div style="margin-top:8px">${a.map(f=>nm(f,roleTag(m,f))).join('')}</div>`}
+async function seSet(ev,fid,v){const r=D.byF[fid],g=regOf(ev,fid)||{};if(!r)return;if(!canReg(ev,r))return toast('已截止，只有管理員（或自己聯盟的幹部）可以修改');
+ let choice,note='';if(v==='out')choice='out';else if(INNER.includes(ev))choice=v;else{choice='in';note=g.note===v?'':v}
+ const play=(choice==='out'||INNER.includes(ev))?'':(g.play||r.al||'');
+ try{const j=await apiPost({action:'register',event:ev,fid,choice,play,note});if(!j.ok)throw new Error(ERR[j.error]||j.error||'失敗');(D.regs[ev]=D.regs[ev]||{})[fid]={choice,play,note,at:new Date().toLocaleString(),by:j.by||'cadre'};toast(r.name+'：'+(v==='out'?'已取消報名':INNER.includes(ev)?CHN[v]:(note||'未排定')))}catch(e){toast('修改失敗：'+e.message)}
+ render();if(U.sh)renderSheet()}
+function noticeText(k,note){const m=D.regs[k]||{},fids=Object.keys(m).filter(f=>m[f].choice!=='out'&&D.byF[f]),dl=D.dls[k],role=f=>m[f].note==='正選'?'正選':m[f].note==='候補'?'候補':'未排定',tg=f=>m[f].play||D.byF[f].al||'無聯盟',g={};
+ fids.forEach(f=>{(g[tg(f)]=g[tg(f)]||[]).push(f)});const cnt=r=>fids.filter(f=>role(f)===r).length;
+ let t=`【${EVN[k]}】報名名單通知\n`;if(dl)t+=`報名截止：${fmtT(Date.parse(dl))}${closed(k)?'（已截止）':''}\n`;if(note&&note.trim())t+=note.trim()+'\n';
+ t+=`共 ${fids.length} 人（正選 ${cnt('正選')}・候補 ${cnt('候補')}${cnt('未排定')?'・未排定 '+cnt('未排定'):''}）\n`;
+ Object.keys(g).sort((a,b)=>g[b].length-g[a].length).forEach(al=>{const a=g[al].slice().sort((x,y)=>D.byF[y].power-D.byF[x].power);t+=`\n■ ${al}（${a.length} 人）\n`;['正選','候補','未排定'].forEach(r=>{const l=a.filter(f=>role(f)===r);if(l.length)t+=`${r}：${l.map(f=>D.byF[f].name).join('、')}\n`})});
+ const mv=fids.filter(f=>tg(f)!==(D.byF[f].al||''));if(mv.length)t+=`\n需要先轉聯盟：${mv.map(f=>D.byF[f].name+'（'+(D.byF[f].al||'無聯盟')+'→'+tg(f)+'）').join('、')}\n`;
+ t+=k==='frost'?'\n提醒：報名階段結束後才加入聯盟的人會失格，請在截止前先轉進目標聯盟。':k==='tal'?'\n提醒：名單在報名結束後鎖定，之後才加入聯盟的人不會進名單，請在截止前先轉進目標聯盟。':'';
+ return t.trim()}
+function ntcSheet(){const s=U.sh;return`<div class="row sp"><b style="font-size:17px">${esc(EVN[s.ev])}・通知內容</b><button class="btn sm" data-close>✕</button></div><div class="sub">可以直接修改文字再複製。名單有變動時，按「依最新名單重新產生」。</div><input id="ntcN" autocomplete="off" placeholder="加一段說明（例如活動時間、集合地點，會放在名單前面）" value="${esc(s.note||'')}" style="width:100%"><textarea id="ntcT" style="min-height:320px;font-size:14px">${esc(s.text)}</textarea><div class="row"><button class="btn pri" data-a="ntc_copy">複製</button><button class="btn" data-a="ntc_share">分享</button><button class="btn" data-a="ntc_regen">依最新名單重新產生</button></div>`}
+const _ps3=playerSheet;playerSheet=function(fid){if(U.sh&&U.sh.kind==='ntc')return ntcSheet();return _ps3(fid)};
+document.addEventListener('click',e=>{const a=e.target.closest('[data-a]');if(!a)return;const k=a.dataset.a;
+ if(k==='se_set')seSet(a.dataset.ev,a.dataset.fid,a.dataset.v);
+ else if(k==='ntc')openSheet({kind:'ntc',ev:a.dataset.v,note:'',text:noticeText(a.dataset.v,'')});
+ else if(k==='ntc_regen'){U.sh.note=($('#ntcN')||{}).value||'';U.sh.text=noticeText(U.sh.ev,U.sh.note);renderSheet()}
+ else if(k==='ntc_copy')copyText(($('#ntcT')||{}).value||U.sh.text);
+ else if(k==='ntc_share'){const t=($('#ntcT')||{}).value||U.sh.text;if(navigator.share)navigator.share({text:t}).catch(()=>{});else copyText(t)}});
 
 /* ===== 畫面 ===== */
 function applyTheme(){const t=U.theme,dark=t==='dark'||(t==='auto'&&matchMedia('(prefers-color-scheme: dark)').matches);document.documentElement.setAttribute('data-theme',dark?'dark':'light')}
