@@ -1,1 +1,1 @@
-window.K2611_CFG={url:'貼上你的 Apps Script 網址',token:''};
+window.K2611_CFG={url:'https://script.google.com/macros/s/AKfycbzs32xwBLuGyuuZ43SUo-m4pET-qR3SIxBmTwhezPogxbukTxplhJjs0UhGoA1do3DK/exec',token:''};
