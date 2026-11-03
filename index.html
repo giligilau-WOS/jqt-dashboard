@@ -71,7 +71,7 @@ textarea{width:100%;min-height:120px}
 <div id="toast"></div>
 <script>
 'use strict';
-const APP_VERSION='4.0.0';
+const APP_VERSION='4.0.2';
 const $=s=>document.querySelector(s);
 const esc=s=>String(s==null?'':s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 const nz=s=>String(s==null?'':s).normalize('NFKC').toLowerCase().replace(/[\s\p{P}\p{S}]+/gu,'');
@@ -198,6 +198,11 @@ function pgLists(){const cnt=k=>Object.keys(D.regs[k]||{}).filter(f=>D.regs[k][f
 const elig=r=>r.rkN>=4||/^(R[45]\b|leader|盟主)/i.test(r.rk||'');
 function lgSelect(){const m={};D.rows.filter(elig).forEach(r=>{const k=r.al||'（無聯盟）';(m[k]=m[k]||[]).push(r)});return Object.keys(m).sort((a,b)=>(b==='jQt')-(a==='jQt')||(b==='aQt')-(a==='aQt')||m[b].length-m[a].length).map(al=>`<optgroup label="${esc(al)}（${m[al].length}）">${m[al].sort((x,y)=>y.power-x.power).map(r=>`<option value="${r.fid}" ${U.lg&&U.lg.fid===r.fid?'selected':''}>${esc(r.name)}（${esc(r.rk||'')}）</option>`).join('')}</optgroup>`).join('')}
 function lgInfo(){if(!D.rows.length)return'<div class="sub" style="color:var(--dg);margin-top:6px">名冊還沒載入，所以選不到名字。請先到下方「戰情室連線」確認網址與密碼，再到「全玩家」按「重新整理」。</div>';const n=D.rows.filter(elig).length;return n?`<div class="sub" style="margin-top:6px">名冊裡有 ${n} 位 R4／R5 可以選。輸入名字的一部分，下面會列出相近的人。</div>`:'<div class="sub" style="color:var(--dg);margin-top:6px">名冊裡找不到任何 R4／R5。可能是 Apps Script 還沒重新部署成最新版本，或階級資料還沒更新。</div>'}
+function loginHtml2(){const mode=U.lgMode||'cadre',sel=U.lg&&D.byF[U.lg.fid];
+ const tabs=`<div class="row"><button class="btn ${mode==='cadre'?'on':''}" data-a="lgMode" data-v="cadre">我是聯盟幹部（R4／R5）</button><button class="btn ${mode==='admin'?'on':''}" data-a="lgMode" data-v="admin">我是管理員</button></div>`;
+ const body=mode==='admin'?`<div class="sub" style="margin-top:12px"><b>管理員不用輸入名字，只要輸入 PIN。</b></div><input id="lgp" type="password" autocomplete="off" placeholder="管理員 PIN" style="width:100%;margin-top:8px"><div class="row" style="margin-top:8px"><button class="btn pri" data-a="loginAdmin">登入</button></div>`
+ :`<div class="sub" style="margin-top:12px"><b>步驟 1：找到你的名字。</b>輸入名字的一部分，下面會列出相近的 R4／R5，點一下就選好；也可以直接用下拉選單選。</div>${lgInfo()}<input id="lgq" autocomplete="off" placeholder="輸入名字的幾個字" style="width:100%;margin-top:8px"><div id="lgsug"><div class="sub" style="margin-top:6px">打幾個字，這裡就會列出相近的人</div></div><div class="row" style="margin-top:8px"><span class="sub">或</span><select id="lgsel" style="flex:1"><option value="">從 R4／R5 名單選擇…</option>${lgSelect()}</select></div>${sel?`<div class="card" style="margin-top:10px;background:var(--acb)">已選：<b>${esc(sel.name)}</b>（${esc(sel.al)} ${esc(sel.rk)}）</div>`:'<div class="sub" style="color:var(--wn);margin-top:10px">還沒選名字</div>'}<div class="sub" style="margin-top:12px"><b>步驟 2：輸入幹部密碼。</b></div><input id="lgc" type="password" autocomplete="off" placeholder="幹部密碼" style="width:100%;margin-top:8px"><div class="row" style="margin-top:8px"><button class="btn pri" data-a="login">登入</button></div>`;
+ return`<div class="card"><h3>後台登入</h3>${tabs}${body}<div class="sub" style="margin-top:14px">網頁版本 ${APP_VERSION}</div></div>`}
 function loginHtml(){const sel=U.lg&&D.byF[U.lg.fid];return`<div class="card"><h3>幹部登入</h3><div class="sub">只有遊戲內階級是 R4 或 R5 的人可以登入。輸入你的名字，點選後再輸入幹部密碼。</div>${lgInfo()}<input id="lgq" autocomplete="off" placeholder="輸入你的名字（打幾個字就會出現選單）" style="width:100%;margin-top:8px"><div id="lgsug"></div><div class="row" style="margin-top:8px"><span class="sub">或</span><select id="lgsel" style="flex:1"><option value="">從 R4／R5 名單選擇…</option>${lgSelect()}</select></div>${sel?`<div class="sub" style="margin-top:8px">已選：<b>${esc(sel.name)}</b>（${esc(sel.al)} ${esc(sel.rk)}）</div>`:''}<input id="lgc" type="password" autocomplete="off" placeholder="幹部密碼" style="width:100%;margin-top:8px"><div class="row" style="margin-top:8px"><button class="btn pri" data-a="login">登入</button></div></div><div class="card"><h3>管理員登入</h3><input id="lgp" type="password" autocomplete="off" placeholder="管理員 PIN" style="width:100%"><div class="row" style="margin-top:8px"><button class="btn pri" data-a="loginAdmin">登入</button></div></div>`}
 function statusHtml(){const m=D.meta||{};return`<div class="card"><h3>資料狀態</h3><div class="sub">收錄 ${D.rows.length} 人 · 聯盟 ${m.ok||0} / ${m.alliances||0} 個成功 · 更新 ${esc(D.updatedAt)}</div>${(m.failed||[]).length?`<div class="sub" style="margin-top:6px">統計站讀不到的聯盟：${esc(m.failed.join('、'))}</div>`:''}</div>`}
 function dlHtml(){return`<div class="card"><h3>報名截止時間</h3><div class="sub">到時間後，一般玩家無法再變更；聯盟幹部只能改自己聯盟的聯盟內活動，管理員可以改全部。</div>${DLG.map(([k,l,evs])=>{const d=D.dls[evs[0]];return`<div style="margin-top:12px"><b>${l}</b> <span class="sub">${d?(closed(evs[0])?'已截止':'報名中')+'（'+fmtT(Date.parse(d))+'）':'沒有設定'}</span><div class="row" style="margin-top:6px"><input type="datetime-local" id="dl_${k}" value="${d?toLocalIn(d):''}" style="flex:1"><button class="btn sm pri" data-a="dlSet" data-v="${k}">設定截止</button></div><div class="row" style="margin-top:6px"><button class="btn sm" data-a="dlNow" data-v="${k}">立即截止</button><button class="btn sm" data-a="dlClear" data-v="${k}">重新開放</button></div></div>`}).join('')}</div>`}
@@ -210,7 +215,7 @@ function accMgrHtml(){return`<div class="card"><h3>大小號綁定</h3><div clas
 function shareLink(){return location.origin+location.pathname+'?api='+encodeURIComponent(CFG.url||'')+'&t='+encodeURIComponent(CFG.token||'')}
 function connHtml(){return`<div class="card"><h3>戰情室連線</h3><div class="sub">Apps Script 網址（結尾是 /exec）和存取密碼。用幹部給的連結打開時，這裡會自動填好。</div><input id="cfu" autocomplete="off" placeholder="Apps Script 網址" value="${esc(CFG.url||'')}" style="width:100%;margin-top:8px"><input id="cft" type="password" autocomplete="off" placeholder="存取密碼" value="${esc(CFG.token||'')}" style="width:100%;margin-top:8px"><div class="row" style="margin-top:8px"><button class="btn pri" data-a="cfgSave">儲存連線設定</button></div>${isStaff()&&CFG.url?`<div class="sub" style="margin-top:12px">分享給玩家的連結（含存取密碼，只分享給遊戲內的人）</div><input readonly id="shl" value="${esc(shareLink())}" style="width:100%;margin-top:4px"><div class="row" style="margin-top:6px"><button class="btn" data-a="copyLink">複製連結</button></div>`:''}</div>`}
 function verHtml(){return`<div class="card"><h3>版本</h3><div class="sub">目前版本 ${APP_VERSION}</div><div class="row" style="margin-top:8px"><button class="btn" data-a="verCheck">檢查有沒有新版本</button></div>${U.ver?`<div class="sub" style="margin-top:6px">${esc(U.ver)}</div>`:''}</div>`}
-function pgAdmin(){if(!AU)return loginHtml()+connHtml()+verHtml();
+function pgAdmin(){if(!AU)return loginHtml2()+connHtml()+verHtml();
  return`<div class="card"><div class="row sp"><div><b>${isAdmin()?'管理員':'聯盟幹部'}</b><div class="sub">${esc(AU.name||'')}${AU.al&&AU.al!=='*'?' · '+esc(AU.al):''}</div></div><button class="btn" data-a="logout">登出</button></div></div>`+statusHtml()+(isAdmin()?dlHtml():'')+clrHtml()+accMgrHtml()+connHtml()+verHtml()}
 
 /* ===== 玩家視窗：報名、帳號、歷史紀錄 ===== */
@@ -324,7 +329,7 @@ document.addEventListener('click',e=>{const t=e.target;
  if(t.closest('[data-close]')){closeSheet();return}
  const a=t.closest('[data-a]');
  if(a){const k=a.dataset.a;if(k==='jump'||k==='openPl'||k==='bindPick'||k==='lgPick'){}
-  if(k==='lgPick'){U.lg={fid:a.dataset.v};render();return}
+  if(k==='lgMode'){U.lgMode=a.dataset.v;render();return}if(k==='lgPick'){U.lg={fid:a.dataset.v};render();return}
   act(k,a);return}
  const tr=t.closest('tr[data-fid]');if(tr)openSheet({kind:'player',fid:tr.dataset.fid,tab:'reg'})});
 document.addEventListener('input',e=>{const t=e.target,id=t.id;
