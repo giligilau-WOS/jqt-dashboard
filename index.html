@@ -72,7 +72,7 @@ textarea{width:100%;min-height:120px}
 <script src="config.js"></script>
 <script>
 'use strict';
-const APP_VERSION='4.9.0';
+const APP_VERSION='4.9.1';
 const $=s=>document.querySelector(s);
 const esc=s=>String(s==null?'':s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 const nz=s=>String(s==null?'':s).normalize('NFKC').toLowerCase().replace(/[\s\p{P}\p{S}]+/gu,'');
@@ -595,6 +595,10 @@ Object.keys(PD).forEach(k=>{PALS.push([k,PD[k].n,PD[k].d,PD[k].sw]);PALN[k]=PD[k
 U.pal=Store.get('pal','indigo');if(!PALN[U.pal])U.pal='indigo';
 (function(){const css=v=>Object.keys(v).map(n=>'--'+n+':'+v[n]).join(';'),s=document.createElement('style');
  s.textContent=Object.keys(PD).map(k=>`html[data-palette=${k}]{${css(PD[k].l)}}html[data-palette=${k}][data-theme=dark]{${css(PD[k].d)}}`).join('')+'#top{color:var(--hdt,#fff)}#top .bd{color:var(--hdt,#fff)!important;background:rgba(255,255,255,.3)!important}';document.head.appendChild(s)})();
+
+/* ===== v4.9.1 修正：佈景主題沒有套用（原本的 applyTheme 排在後面，蓋掉了新版） ===== */
+applyTheme=function(){const t=U.theme,dark=t==='dark'||(t==='auto'&&matchMedia('(prefers-color-scheme: dark)').matches),el=document.documentElement;el.setAttribute('data-theme',dark?'dark':'light');el.setAttribute('data-palette',U.pal||'indigo')};
+applyTheme();
 
 /* ===== 畫面 ===== */
 function applyTheme(){const t=U.theme,dark=t==='dark'||(t==='auto'&&matchMedia('(prefers-color-scheme: dark)').matches);document.documentElement.setAttribute('data-theme',dark?'dark':'light')}
