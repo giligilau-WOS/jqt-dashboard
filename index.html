@@ -72,7 +72,7 @@ textarea{width:100%;min-height:120px}
 <script src="config.js"></script>
 <script>
 'use strict';
-const APP_VERSION='4.1.0';
+const APP_VERSION='4.2.0';
 const $=s=>document.querySelector(s);
 const esc=s=>String(s==null?'':s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 const nz=s=>String(s==null?'':s).normalize('NFKC').toLowerCase().replace(/[\s\p{P}\p{S}]+/gu,'');
@@ -398,6 +398,42 @@ document.addEventListener('change',e=>{const t=e.target;
 document.addEventListener('input',e=>{const t=e.target;
  if(t.id==='evq'){const q=nz(t.value);$('#evsug').innerHTML=q?evSug(q):''}
  else if(t.id==='gpq'){const q=nz(t.value);$('#gpsug').innerHTML=q?sugHtml(suggest(t.value,r=>EL.plan&&evPool(EL.plan).some(p=>p.r.fid===r.fid)),'ev_gpAdd'):''}});
+
+/* ===== v4.2 活動報名：一鍵報名（依排名自動依名額幫玩家報名） ===== */
+const BRM=[['power','戰力'],['kills','擊殺數'],['furn','熔爐等級'],['lab','迷宮'],['cave','魔物洞穴'],['loh','英雄之地'],['charm','魅力礦場'],['rc','研究中心'],['forge','裝備鍛造'],['gaia','蓋亞之心'],['ts','遷服積分'],['pr','全服戰力排名（名次小的優先）'],['kr','全服擊殺排名（名次小的優先）']];
+const BRN={tal:100,frost:60,sfc:50};
+const BR={ev:'tal',metric:'cave',n:100,als:[],minFurn:16,target:'',prev:null,arm:false,busy:false};
+function brCalc(){const c=colOf(BR.metric),asc=!!c.asc,m=D.regs[BR.ev]||{};let declined=0,nodata=0,low=0;const cand=[],total=Object.keys(m).filter(f=>m[f].choice==='in'&&D.byF[f]).length;
+ D.rows.forEach(r=>{if(r.src==='舊資料')return;if(BR.als.length&&!BR.als.includes(r.al))return;const g=m[r.fid];if(g&&g.choice==='in')return;if(g&&g.choice==='out'){declined++;return}
+  if(BR.minFurn&&r.furn<BR.minFurn){low++;return}const v=c.v(r);if(v==null||(!asc&&v<=0)){nodata++;return}cand.push({r,v})});
+ cand.sort((a,b)=>asc?a.v-b.v:b.v-a.v);const slots=Math.max(0,BR.n-total);return{total,declined,nodata,low,slots,list:cand.slice(0,slots),pool:cand.length}}
+function brPrevHtml(){const p=BR.prev,c=colOf(BR.metric);return`<div class="card"><h3>預覽：將報名 ${p.list.length} 人</h3><div class="sub">依「${esc(c.l)}」${c.asc?'名次由小到大':'由高到低'}排序，取前面的人。目前已有 ${p.total} 人報名；跳過：自己選「不參加」${p.declined} 人、熔爐不足 ${p.low} 人、沒有這項資料 ${p.nodata} 人。</div>${p.list.length?`<div style="margin-top:8px">${p.list.map((x,i)=>`<div class="row sp" style="padding:5px 0;border-bottom:1px solid var(--bd)"><span><span class="sub">${i+1}.</span> ${esc(x.r.name)} <span class="sub">${esc(x.r.al||'無聯盟')}</span></span><span class="sub">${c.d(x.r)}</span></div>`).join('')}</div><div class="row" style="margin-top:10px"><button class="btn ${BR.arm?'pri':''}" data-a="br_go" style="min-height:48px" ${BR.busy?'disabled':''}>${BR.busy?'報名中…':BR.arm?'再按一次確認報名':'確認，幫他們報名'}</button></div>`:'<div class="sub" style="margin-top:8px">沒有符合的人。可能名額已滿，或選的範圍、排名依據沒有資料。</div>'}</div>`}
+function brHtml(){if(!isStaff())return'';const cad=isCadre()&&!isAdmin();if(cad)BR.als=[AU.al];const ev=BR.ev,cal=brCalc();
+ return`<div class="card"><h3>一鍵報名（幹部）</h3><div class="sub">依排名自動抓前面的玩家，一次幫他們報名。已經自己報名的不會重複，自己選「不參加」的人會跳過。${cad?'你只能幫自己聯盟（'+esc(AU.al)+'）的人報名。':''}</div>
+ <div style="margin-top:10px"><b>活動</b></div><div class="row" style="margin-top:6px">${['sfc','tal','frost'].map(k=>`<button class="btn sm ${ev===k?'on':''}" data-a="br_ev" data-v="${k}">${EVN[k]}</button>`).join('')}</div>
+ <div style="margin-top:10px"><b>排名依據</b></div><select id="brm" style="width:100%;margin-top:6px">${BRM.map(([k,l])=>`<option value="${k}" ${BR.metric===k?'selected':''}>${l}</option>`).join('')}</select>
+ <div class="row" style="margin-top:10px"><label class="row" style="gap:6px"><span class="sub">報名名額</span><input type="number" id="brn" value="${BR.n}" min="1" max="300" style="width:90px"></label><label class="row" style="gap:6px"><span class="sub">最低熔爐</span><input type="number" id="brf" value="${BR.minFurn}" min="0" max="80" style="width:80px"></label></div>
+ ${cad?'':`<div style="margin-top:10px"><b>範圍</b> <span class="sub">（空白＝全王國）</span></div><div class="row" style="margin-top:6px">${BR.als.length?BR.als.map(a=>`<span class="bd a" style="padding:4px 10px;font-size:13px">${esc(a)} <a data-a="br_delAl" data-v="${esc(a)}" style="cursor:pointer">✕</a></span>`).join(''):'<span class="bd">全王國</span>'}</div><div class="row" style="margin-top:6px"><select id="brsel" style="flex:1"><option value="">加入聯盟…</option>${alList().map(([a,n])=>`<option value="${esc(a)}">${esc(a)}（${n} 人）</option>`).join('')}</select><button class="btn sm" data-a="br_sp">jQt・aQt</button><button class="btn sm" data-a="br_all">全王國</button></div>`}
+ ${ev==='tal'||ev==='frost'?`<div class="row" style="margin-top:10px"><span class="sub">目標聯盟（空白＝各自目前的聯盟）</span><input id="brt" value="${esc(BR.target)}" placeholder="聯盟簡稱" style="flex:1"></div>`:''}
+ <div class="sub" style="margin-top:10px">目前已有 ${cal.total} 人報名，名額 ${BR.n}，還缺 ${cal.slots} 人。${Object.keys(D.rows[0]&&D.rows[0].dt?{}:{}).length?'':''}${D.rows.some(r=>r.dt)?'':'（細項資料還沒載入完，迷宮、關卡、遷服積分、排名可能暫時沒有資料）'}</div>
+ <div class="row" style="margin-top:8px"><button class="btn pri" data-a="br_prev">預覽</button></div></div>${BR.prev?brPrevHtml():''}`}
+const _pgS=pgSignups;pgSignups=function(){const h=_pgS();return D.stLoaded&&!D.stErr?brHtml()+h:h};
+async function brGo(){const p=BR.prev;if(!p||!p.list.length)return;if(closed(BR.ev)&&!isAdmin())return toast('這個活動已截止，只有管理員可以報名');BR.busy=true;render();
+ try{const j=await apiPost({action:'regMany',event:BR.ev,choice:'in',fids:p.list.map(x=>x.r.fid),play:BR.target.trim()});if(!j.ok)throw new Error(ERR[j.error]||j.error||'失敗');await loadRegs();toast('已報名 '+j.n+' 人（跳過：已報名 '+(j.skip&&j.skip.already||0)+'、不參加 '+(j.skip&&j.skip.declined||0)+'）');BR.prev=null}catch(e){toast('一鍵報名失敗：'+e.message)}BR.busy=false;render()}
+document.addEventListener('click',e=>{const a=e.target.closest('[data-a]');if(!a)return;const k=a.dataset.a;if(k.slice(0,3)!=='br_')return;const v=a.dataset.v;
+ switch(k){
+ case'br_ev':BR.ev=v;BR.n=BRN[v]||BR.n;BR.prev=null;render();break;
+ case'br_prev':BR.prev=brCalc();BR.arm=false;render();break;
+ case'br_go':{if(!BR.arm){BR.arm=true;render();toast('再按一次才會一次幫這些人報名');setTimeout(()=>{if(BR.arm){BR.arm=false;render()}},6000);break}BR.arm=false;brGo()}break;
+ case'br_delAl':BR.als=BR.als.filter(x=>x!==v);BR.prev=null;render();break;
+ case'br_sp':BR.als=['jQt','aQt'];BR.prev=null;render();break;
+ case'br_all':BR.als=[];BR.prev=null;render();break}});
+document.addEventListener('change',e=>{const t=e.target;
+ if(t.id==='brm'){BR.metric=t.value;BR.prev=null;render()}
+ else if(t.id==='brn'){const n=+t.value;if(n>0){BR.n=n;BR.prev=null;render()}}
+ else if(t.id==='brf'){BR.minFurn=Math.max(0,+t.value||0);BR.prev=null;render()}
+ else if(t.id==='brt'){BR.target=t.value.trim();BR.prev=null}
+ else if(t.id==='brsel'&&t.value){if(!BR.als.includes(t.value))BR.als.push(t.value);BR.prev=null;render()}});
 
 /* ===== 畫面 ===== */
 function applyTheme(){const t=U.theme,dark=t==='dark'||(t==='auto'&&matchMedia('(prefers-color-scheme: dark)').matches);document.documentElement.setAttribute('data-theme',dark?'dark':'light')}
