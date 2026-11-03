@@ -72,7 +72,7 @@ textarea{width:100%;min-height:120px}
 <script src="config.js"></script>
 <script>
 'use strict';
-const APP_VERSION='4.2.0';
+const APP_VERSION='4.3.0';
 const $=s=>document.querySelector(s);
 const esc=s=>String(s==null?'':s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 const nz=s=>String(s==null?'':s).normalize('NFKC').toLowerCase().replace(/[\s\p{P}\p{S}]+/gu,'');
@@ -434,6 +434,59 @@ document.addEventListener('change',e=>{const t=e.target;
  else if(t.id==='brf'){BR.minFurn=Math.max(0,+t.value||0);BR.prev=null;render()}
  else if(t.id==='brt'){BR.target=t.value.trim();BR.prev=null}
  else if(t.id==='brsel'&&t.value){if(!BR.als.includes(t.value))BR.als.push(t.value);BR.prev=null;render()}});
+
+/* ===== v4.3 正選／候補名額預設 ===== */
+Object.assign(CAP.foundry,{legs:2,m:30,s:10,t:'每聯盟最多 2 個軍團，每軍團正選 30 + 候補 10，熔爐 16 級以上'});
+Object.assign(CAP.canyon,{legs:2,m:30,s:10,t:'每聯盟最多 2 個軍團，每軍團正選 30 + 候補 10，至少 15 人才能配對'});
+Object.assign(CAP.sfc,{legs:1,m:0,s:0,t:'州內每個聯盟都能參加，沒有名額上限'});
+Object.assign(CAP.tal,{legs:2,m:30,s:20,n:100,t:'最多 2 個軍團，每軍團正選 30 + 候補 20，名單報名後鎖定'});
+Object.assign(CAP.frost,{legs:1,m:60,s:0,n:60,t:'最多派 60 人（找到的資料沒有寫候補名額，預設 0，可自己改），報名階段後才加入聯盟的人失格'});
+const BRD={sfc:{legs:1,m:50,s:0},tal:{legs:2,m:30,s:20},frost:{legs:1,m:60,s:0}};
+Object.assign(BR,{legs:2,m:30,s:20});
+const mainTot=()=>BR.legs*BR.m,subTot=()=>BR.legs*BR.s;
+function brCalc(){const c=colOf(BR.metric),asc=!!c.asc,m=D.regs[BR.ev]||{},mt=mainTot(),N=mt+subTot();let declined=0,nodata=0,low=0;const pool=[];
+ D.rows.forEach(r=>{if(r.src==='舊資料')return;if(BR.als.length&&!BR.als.includes(r.al))return;const g=m[r.fid];if(g&&g.choice==='out'){declined++;return}
+  if(BR.minFurn&&r.furn<BR.minFurn){low++;return}const v=c.v(r);if(v==null||(!asc&&v<=0)){nodata++;return}pool.push({r,v,g})});
+ pool.sort((a,b)=>asc?a.v-b.v:b.v-a.v);
+ const list=pool.slice(0,N).map((x,i)=>{const role=i<mt?'正選':'候補',cur=x.g&&x.g.choice==='in'?(x.g.note||''):null;return Object.assign(x,{role,st:cur===null?'新報名':(cur===role?'不變':'更新名額')})});
+ const total=Object.keys(m).filter(f=>m[f].choice==='in'&&D.byF[f]).length;
+ return{total,declined,nodata,low,N,mt,list,pool:pool.length,add:list.filter(x=>x.st==='新報名').length,upd:list.filter(x=>x.st==='更新名額').length,same:list.filter(x=>x.st==='不變').length}}
+function brPrevHtml(){const p=BR.prev,c=colOf(BR.metric),todo=p.add+p.upd;
+ const row=(x,i)=>`<div class="row sp" style="padding:5px 0;border-bottom:1px solid var(--bd)"><span><span class="sub">${i+1}.</span> ${esc(x.r.name)} <span class="sub">${esc(x.r.al||'無聯盟')}</span> <span class="bd ${x.role==='正選'?'a':''}">${x.role}</span>${x.st!=='新報名'?` <span class="sub">（${x.st}）</span>`:''}</span><span class="sub">${c.d(x.r)}</span></div>`;
+ return`<div class="card"><h3>預覽：正選 ${Math.min(p.mt,p.list.length)} 人・候補 ${Math.max(0,p.list.length-p.mt)} 人</h3><div class="sub">依「${esc(c.l)}」${c.asc?'名次由小到大':'由高到低'}排序，前 ${p.mt} 名當正選，接下來 ${p.N-p.mt} 名當候補。新報名 ${p.add} 人、更新名額 ${p.upd} 人、不用變更 ${p.same} 人；跳過：自己選「不參加」${p.declined} 人、熔爐不足 ${p.low} 人、沒有這項資料 ${p.nodata} 人。</div>${p.list.length?`<div style="margin-top:8px">${p.list.map(row).join('')}</div><div class="row" style="margin-top:10px"><button class="btn ${BR.arm?'pri':''}" data-a="br_go" style="min-height:48px" ${BR.busy||!todo?'disabled':''}>${BR.busy?'報名中…':!todo?'沒有需要變更的人':BR.arm?'再按一次確認報名':'確認，幫他們報名（'+todo+' 人）'}</button></div>`:'<div class="sub" style="margin-top:8px">沒有符合的人。可能選的範圍、排名依據沒有資料。</div>'}</div>`}
+function brHtml(){if(!isStaff())return'';const cad=isCadre()&&!isAdmin();if(cad)BR.als=[AU.al];const ev=BR.ev,m=D.regs[ev]||{},tot=Object.keys(m).filter(f=>m[f].choice==='in'&&D.byF[f]).length;
+ return`<div class="card"><h3>一鍵報名（幹部）</h3><div class="sub">依排名自動抓前面的玩家，前面的當正選，接著的當候補，一次幫他們報名。已經自己報名的人會一起排名並標上正選／候補，自己選「不參加」的人會跳過。${cad?'你只能幫自己聯盟（'+esc(AU.al)+'）的人報名。':''}</div>
+ <div style="margin-top:10px"><b>活動</b></div><div class="row" style="margin-top:6px">${['sfc','tal','frost'].map(k=>`<button class="btn sm ${ev===k?'on':''}" data-a="br_ev" data-v="${k}">${EVN[k]}</button>`).join('')}</div>
+ <div style="margin-top:10px"><b>排名依據</b></div><select id="brm" style="width:100%;margin-top:6px">${BRM.map(([k,l])=>`<option value="${k}" ${BR.metric===k?'selected':''}>${l}</option>`).join('')}</select>
+ <div style="margin-top:10px"><b>名額</b></div><div class="sub">${esc(CAP[ev].t)}</div>
+ <div class="row" style="margin-top:6px">${ev==='tal'?`<label class="row" style="gap:6px"><span class="sub">軍團數</span><input type="number" id="brl" value="${BR.legs}" min="1" max="2" style="width:70px"></label>`:''}<label class="row" style="gap:6px"><span class="sub">${ev==='tal'?'每軍團':''}正選</span><input type="number" id="brm1" value="${BR.m}" min="0" max="300" style="width:80px"></label><label class="row" style="gap:6px"><span class="sub">${ev==='tal'?'每軍團':''}候補</span><input type="number" id="brs1" value="${BR.s}" min="0" max="300" style="width:80px"></label><label class="row" style="gap:6px"><span class="sub">最低熔爐</span><input type="number" id="brf" value="${BR.minFurn}" min="0" max="80" style="width:80px"></label></div>
+ <div class="sub" style="margin-top:6px">合計：正選 ${mainTot()} 人 ＋ 候補 ${subTot()} 人。目前已有 ${tot} 人報名。${ev==='sfc'?'太陽城沒有名額上限，這裡的數字只是方便你一次報幾個，可以自己改。':''}</div>
+ ${cad?'':`<div style="margin-top:10px"><b>範圍</b> <span class="sub">（空白＝全王國）</span></div><div class="row" style="margin-top:6px">${BR.als.length?BR.als.map(a=>`<span class="bd a" style="padding:4px 10px;font-size:13px">${esc(a)} <a data-a="br_delAl" data-v="${esc(a)}" style="cursor:pointer">✕</a></span>`).join(''):'<span class="bd">全王國</span>'}</div><div class="row" style="margin-top:6px"><select id="brsel" style="flex:1"><option value="">加入聯盟…</option>${alList().map(([a,n])=>`<option value="${esc(a)}">${esc(a)}（${n} 人）</option>`).join('')}</select><button class="btn sm" data-a="br_sp">jQt・aQt</button><button class="btn sm" data-a="br_all">全王國</button></div>`}
+ ${ev==='tal'||ev==='frost'?`<div class="row" style="margin-top:10px"><span class="sub">目標聯盟（空白＝各自目前的聯盟）</span><input id="brt" value="${esc(BR.target)}" placeholder="聯盟簡稱" style="flex:1"></div>`:''}
+ <div class="row" style="margin-top:10px"><button class="btn pri" data-a="br_prev">預覽</button></div></div>${BR.prev?brPrevHtml():''}`}
+async function brGo(){const p=BR.prev;if(!p)return;const todo=p.list.filter(x=>x.st!=='不變');if(!todo.length)return;if(closed(BR.ev)&&!isAdmin())return toast('這個活動已截止，只有管理員可以報名');BR.busy=true;render();
+ try{const roles={};todo.forEach(x=>{roles[x.r.fid]=x.role});const j=await apiPost({action:'regMany',event:BR.ev,choice:'in',fids:todo.map(x=>x.r.fid),roles,play:BR.target.trim()});if(!j.ok)throw new Error(ERR[j.error]||j.error||'失敗');await loadRegs();toast('完成：新增或更新 '+j.n+' 人'+(j.skip&&j.skip.scope?'（有 '+j.skip.scope+' 人不在你的聯盟，已跳過）':''));BR.prev=null}catch(e){toast('一鍵報名失敗：'+e.message)}BR.busy=false;render()}
+document.addEventListener('click',e=>{const a=e.target.closest('[data-a]');if(!a||a.dataset.a!=='br_ev')return;const d=BRD[a.dataset.v];if(d)Object.assign(BR,d);BR.prev=null;render()});
+document.addEventListener('change',e=>{const t=e.target,v=Math.max(0,Math.floor(+t.value||0));
+ if(t.id==='brl'){BR.legs=Math.min(2,Math.max(1,v||1));BR.prev=null;render()}
+ else if(t.id==='brm1'){BR.m=v;BR.prev=null;render()}
+ else if(t.id==='brs1'){BR.s=v;BR.prev=null;render()}});
+const roleOf=(m,f)=>m[f].note==='正選'?0:m[f].note==='候補'?1:2;
+const roleTag=(m,f)=>m[f].note==='正選'?'<span class="bd a">正選</span> ':m[f].note==='候補'?'<span class="bd">候補</span> ':'';
+function sgBody(k,fids,m){const cap=CAP[k],nm=(f,tag)=>{const r=D.byF[f],tg=m[f].play;return`<div class="row sp" style="padding:4px 0;border-bottom:1px solid var(--bd)"><span>${tag||''}${esc(r.name)}${r.furn&&r.furn<16?' <span style="color:var(--wn)">⚠</span>':''}${!INNER.includes(k)&&tg&&tg!==r.al?` <span class="sub">→ ${esc(tg)}</span>`:''}</span><span class="sub">${fmtP(r.power)}</span></div>`};
+ if(!fids.length)return'<div class="sub" style="margin-top:8px">還沒有人報名</div>';
+ if(INNER.includes(k)){const g={};fids.forEach(f=>{const al=D.byF[f].al||'—',lg=m[f].choice==='2'?'2':'1';if(!g[al])g[al]={'1':[],'2':[]};g[al][lg].push(f)});
+  return Object.keys(g).sort((x,y)=>(y==='jQt')-(x==='jQt')||(y==='aQt')-(x==='aQt')||(g[y]['1'].length+g[y]['2'].length)-(g[x]['1'].length+g[x]['2'].length)).map(al=>`<div style="margin-top:10px"><b>${esc(al)}</b><div class="grid g2" style="margin-top:6px">${['1','2'].map(lg=>{const a=g[al][lg].sort((x,y)=>D.byF[y].power-D.byF[x].power),tot=cap.m+cap.s,over=a.length>tot;return`<div class="card" style="padding:8px"><div class="row sp"><span class="lgb l${lg}">${CHN[lg]}</span><span class="${over?'bd d':'sub'}">正選 ${Math.min(a.length,cap.m)}／${cap.m}・候補 ${Math.max(0,Math.min(a.length-cap.m,cap.s))}／${cap.s}${over?'・超額 '+(a.length-tot):''}${k==='canyon'&&a.length&&a.length<15?'・未滿 15':''}</span></div>${a.map((f,i)=>nm(f,i<cap.m?'':i<tot?'<span class="bd">候補</span> ':'<span class="bd d">超額</span> ')).join('')}</div>`}).join('')}</div></div>`).join('')}
+ const a=fids.slice().sort((x,y)=>roleOf(m,x)-roleOf(m,y)||D.byF[y].power-D.byF[x].power),c0=a.filter(f=>roleOf(m,f)===0).length,c1=a.filter(f=>roleOf(m,f)===1).length,c2=a.length-c0-c1;
+ const sum=`<div class="sub" style="margin-top:8px">正選 ${c0}${cap.m?'／'+cap.m*cap.legs:''}・候補 ${c1}${cap.s?'／'+cap.s*cap.legs:''}・未排定 ${c2}${cap.n&&a.length>cap.n?'<span style="color:var(--dg)">（超過 '+cap.n+' 人，需要幹部選拔）</span>':''}</div>`;
+ if(k==='sfc'){const g={};a.forEach(f=>{const al=D.byF[f].al||'—';(g[al]=g[al]||[]).push(f)});return sum+Object.keys(g).sort((x,y)=>g[y].length-g[x].length).map(al=>`<div style="margin-top:10px"><b>${esc(al)}</b> <span class="sub">${g[al].length} 人</span>${g[al].map(f=>nm(f,roleTag(m,f))).join('')}</div>`).join('')}
+ return sum+`<div style="margin-top:8px">${a.map(f=>nm(f,roleTag(m,f))).join('')}</div>`}
+function evText(k){const m=D.regs[k]||{},fids=Object.keys(m).filter(f=>m[f].choice!=='out'&&D.byF[f]),cap=CAP[k],nmx=f=>{const r=D.byF[f],tg=m[f].play;return r.name+(!INNER.includes(k)&&tg&&tg!==r.al?'（→'+tg+'）':'')};let t=`【${EVN[k]}報名名單】共 ${fids.length} 人\n`;
+ if(INNER.includes(k)){const g={};fids.forEach(f=>{const al=D.byF[f].al||'—';if(!g[al])g[al]={'1':[],'2':[]};g[al][m[f].choice==='2'?'2':'1'].push(f)});
+  Object.keys(g).forEach(al=>{t+=`\n${al}\n`;['1','2'].forEach(lg=>{const a=g[al][lg].sort((x,y)=>D.byF[y].power-D.byF[x].power),mm=a.slice(0,cap.m),ss=a.slice(cap.m,cap.m+cap.s),oo=a.slice(cap.m+cap.s);t+=`${CHN[lg]}（正選 ${mm.length}・候補 ${ss.length}${oo.length?'・超額 '+oo.length:''}）\n正選：${mm.map(nmx).join('、')||'無'}\n`;if(ss.length)t+=`候補：${ss.map(nmx).join('、')}\n`;if(oo.length)t+=`超額：${oo.map(nmx).join('、')}\n`})})}
+ else{const a=fids.slice().sort((x,y)=>roleOf(m,x)-roleOf(m,y)||D.byF[y].power-D.byF[x].power),mm=a.filter(f=>roleOf(m,f)===0),ss=a.filter(f=>roleOf(m,f)===1),uu=a.filter(f=>roleOf(m,f)===2);
+  t+=`正選（${mm.length}）：${mm.map(nmx).join('、')||'無'}\n`;if(ss.length)t+=`候補（${ss.length}）：${ss.map(nmx).join('、')}\n`;if(uu.length)t+=`未排定（${uu.length}）：${uu.map(nmx).join('、')}\n`}
+ return t.trim()}
 
 /* ===== 畫面 ===== */
 function applyTheme(){const t=U.theme,dark=t==='dark'||(t==='auto'&&matchMedia('(prefers-color-scheme: dark)').matches);document.documentElement.setAttribute('data-theme',dark?'dark':'light')}
