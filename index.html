@@ -69,9 +69,10 @@ textarea{width:100%;min-height:120px}
 <nav id="nav"></nav>
 <div id="sheet"></div>
 <div id="toast"></div>
+<script src="config.js"></script>
 <script>
 'use strict';
-const APP_VERSION='4.0.2';
+const APP_VERSION='4.0.3';
 const $=s=>document.querySelector(s);
 const esc=s=>String(s==null?'':s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 const nz=s=>String(s==null?'':s).normalize('NFKC').toLowerCase().replace(/[\s\p{P}\p{S}]+/gu,'');
@@ -96,7 +97,7 @@ const DEF_ACC='主：主流兔 / 小：盟浪兔、兔仔子\n主：冬來冬往
 /* ===== 儲存、連線、登入 ===== */
 const Store={get(k,d){try{const v=localStorage.getItem('k2611-'+k);return v==null?d:JSON.parse(v)}catch(e){return d}},set(k,v){try{localStorage.setItem('k2611-'+k,JSON.stringify(v))}catch(e){}},del(k){try{localStorage.removeItem('k2611-'+k)}catch(e){}}};
 const QP=new URLSearchParams(location.search);
-let CFG=Store.get('cfg',{url:'',token:''});
+let CFG=Store.get('cfg',{url:'',token:''});const DEFC=window.K2611_CFG||{};if(DEFC.url)CFG={url:DEFC.url,token:DEFC.token||''};
 if(QP.get('api')){CFG={url:QP.get('api'),token:QP.get('t')||''};Store.set('cfg',CFG)}
 let AU=Store.get('auth',null);
 const isAdmin=()=>!!AU&&AU.role==='admin',isCadre=()=>!!AU&&AU.role==='cadre',isStaff=()=>!!AU;
