@@ -72,7 +72,7 @@ textarea{width:100%;min-height:120px}
 <script src="config.js"></script>
 <script>
 'use strict';
-const APP_VERSION='4.0.4';
+const APP_VERSION='4.1.0';
 const $=s=>document.querySelector(s);
 const esc=s=>String(s==null?'':s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 const nz=s=>String(s==null?'':s).normalize('NFKC').toLowerCase().replace(/[\s\p{P}\p{S}]+/gu,'');
@@ -192,7 +192,7 @@ function evText(k){const m=D.regs[k]||{},fids=Object.keys(m).filter(f=>m[f].choi
  if(INNER.includes(k)){const g={};fids.forEach(f=>{const r=D.byF[f],al=r.al||'—';if(!g[al])g[al]={'1':[],'2':[]};g[al][m[f].choice==='2'?'2':'1'].push(r)});Object.keys(g).forEach(al=>{t+=`\n${al}\n`;['1','2'].forEach(lg=>{const a=g[al][lg].sort((x,y)=>y.power-x.power);t+=`${CHN[lg]}（${a.length} 人）：${a.map(r=>r.name).join('、')||'無'}\n`})})}
  else{const a=fids.map(f=>D.byF[f]).sort((x,y)=>y.power-x.power);t+=a.map(r=>r.name+(m[r.fid].play&&m[r.fid].play!==r.al?'（→'+m[r.fid].play+'）':'')).join('、')}
  return t}
-function pgLists(){const cnt=k=>Object.keys(D.regs[k]||{}).filter(f=>D.regs[k][f].choice!=='out').length;
+function pgListsOld(){const cnt=k=>Object.keys(D.regs[k]||{}).filter(f=>D.regs[k][f].choice!=='out').length;
  return`<div class="card"><h3>活動名單（聯盟內活動分隊）</h3><div class="sub">這一頁是給各聯盟幹部，用「全玩家」裡報名的人分隊：選聯盟（可多選，jQt・aQt 有特區）→ 選兵工廠或峽谷 → 設定各隊出戰時間與分隊邏輯 → 預覽 → 一鍵產出報告（可貼到 LINE）→ 鎖定。<br>這一部分在下一個版本開放，目前只能先看報名人數。</div></div><div class="card"><b>目前報名人數</b><div class="grid g4" style="margin-top:8px">${INNER.map(k=>`<div class="mt"><div class="sub">${EVN[k]}</div><div class="v">${cnt(k)}</div></div>`).join('')}</div></div>`}
 
 /* ===== 後台設定 ===== */
@@ -258,6 +258,146 @@ function playerSheet(fid){const r=D.byF[fid];if(!r)return'';const tab=U.sh.tab||
 function renderSheet(){const el=$('#sheet');if(!U.sh){el.classList.remove('on');return}const old=el.querySelector('.pn'),st=old?old.scrollTop:0;el.classList.add('on');el.innerHTML=`<div class="bk" data-close></div><div class="pn">${U.sh.kind==='menu'?menuHtml(U.sh.k):playerSheet(U.sh.fid)}</div>`;const pn=el.querySelector('.pn');if(pn)pn.scrollTop=st}
 function openSheet(s){U.sh=s;renderSheet()}
 function closeSheet(){U.sh=null;$('#sheet').classList.remove('on')}
+
+/* ===== v4.1 活動名單：聯盟內活動分隊（兵工廠、峽谷會戰） ===== */
+Object.assign(ERR,{forbidden_scope:'你的聯盟不在這份名單的範圍裡',locked:'這份名單已鎖定，請先解除鎖定'});
+const EL={als:[],ev:'foundry',plan:null,key:'',status:'',busy:false,saved:'',msg:'',pub:null,pubBusy:false,open:{},arm:false};
+const GRP={foundry:['10點鐘','5點鐘','2點鐘','7點鐘'],canyon:['左路','中路','右路']};
+const planKey=(ev,als)=>ev+'|'+als.slice().sort().join('+');
+const tl=t=>t.al+' 軍團'+(t.lg===1?'一':'二');
+const todayStr=()=>{const d=new Date(),p=n=>String(n).padStart(2,'0');return d.getFullYear()+'-'+p(d.getMonth()+1)+'-'+p(d.getDate())};
+const scopeOf=pl=>pl.als.slice().sort().join('+');
+function alList(){const m={};D.rows.forEach(r=>{if(r.al)m[r.al]=(m[r.al]||0)+1});return Object.keys(m).sort((a,b)=>(b==='jQt')-(a==='jQt')||(b==='aQt')-(a==='aQt')||m[b]-m[a]).map(a=>[a,m[a]])}
+function newPlan(ev,als){const teams=[];als.forEach(a=>[1,2].forEach(lg=>teams.push({id:a+'|'+lg,al:a,lg,time:lg===1?'22:00':'20:00',on:true})));return{ver:1,ev,als:als.slice(),date:todayStr(),teams,opt:{src:'vote',cross:'prefer',bal:'m',head:5,min:15,main:30,dur:60,grp:true},rules:{locks:{},only:{},groups:[]},manual:{},lock:null}}
+async function loadPlan(){const als=EL.als.slice();if(!als.length)return toast('請先選聯盟');EL.busy=true;EL.msg='';render();const key=planKey(EL.ev,als);
+ try{await loadRegs();const j=await apiGet({action:'plan',key});EL.key=key;let p=null;if(j.plan&&j.plan.json){try{p=JSON.parse(j.plan.json)}catch(e){}}
+  if(!(p&&p.ver===1&&p.ev===EL.ev))p=newPlan(EL.ev,als);EL.status=j.plan?j.plan.status:'new';if(EL.status!=='locked')p.lock=null;
+  p.rules=p.rules||{locks:{},only:{},groups:[]};p.manual=p.manual||{};als.forEach(a=>[1,2].forEach(lg=>{if(!p.teams.some(t=>t.id===a+'|'+lg))p.teams.push({id:a+'|'+lg,al:a,lg,time:lg===1?'22:00':'20:00',on:false})}));
+  EL.plan=p;EL.saved=j.plan?('最後儲存：'+j.plan.at+(j.plan.by?'（'+j.plan.by+'）':'')):'尚未儲存'}catch(e){EL.msg='載入失敗：'+e.message}
+ EL.busy=false;render()}
+let _sv=0;
+function planChanged(){clearTimeout(_sv);EL.saved='尚未儲存…';_sv=setTimeout(savePlan,1500)}
+async function savePlan(){const pl=EL.plan;if(!pl||pl.lock)return;try{const j=await apiPost({action:'planSave',key:EL.key,scope:scopeOf(pl),event:pl.ev,json:JSON.stringify(pl)});if(!j.ok)throw new Error(ERR[j.error]||j.error||'失敗');EL.saved='已儲存 '+new Date().toLocaleTimeString()}catch(e){EL.saved='儲存失敗：'+e.message}const el=$('#evsaved');if(el)el.textContent=EL.saved}
+async function loadPub(){EL.pubBusy=true;try{const j=await apiGet({action:'plans'});EL.pub=j.plans||[]}catch(e){EL.pub=[]}EL.pubBusy=false;if(U.tab==='lists')render()}
+function evPool(pl){const m=D.regs[pl.ev]||{};return Object.keys(m).filter(f=>{const g=m[f],r=D.byF[f];return r&&(g.choice==='1'||g.choice==='2')&&pl.als.includes(r.al)}).map(f=>({r:D.byF[f],vote:m[f].choice}))}
+function tmin(t){const m=String(t||'').match(/^(\d{1,2}):(\d{2})$/);return m?(+m[1])*60+(+m[2]):null}
+function overlap(a,b,dur){const x=tmin(a.time),y=tmin(b.time);if(x==null||y==null)return a.lg===b.lg;const d=Math.abs(x-y);return Math.min(d,1440-d)<dur}
+function assignGroups(x,ev){const G=GRP[ev],n=x.list.length;if(!G||!n)return;if(ev==='foundry'){x.list.forEach((p,i)=>{const r=Math.floor(i/G.length),pos=i%G.length;p.grp=G[r%2===0?pos:G.length-1-pos]})}else{const core=Math.ceil(n*.38);x.list.forEach((p,i)=>{p.grp=i<core?'中路':((i-core)%2===0?'左路':'右路')})}}
+function compute(pl){
+ const T=pl.teams.filter(t=>t.on),P=evPool(pl),o=pl.opt,R=pl.rules,man=pl.manual||{},A={},why={},byT={};
+ T.forEach(t=>{byT[t.id]={t,list:[],tot:0}});
+ const put=(p,tid,w)=>{A[p.r.fid]=tid;why[p.r.fid]=w;if(byT[tid]){byT[tid].list.push(p);byT[tid].tot+=p.r.power}};
+ P.forEach(p=>{const m=man[p.r.fid];if(m==='wait'){A[p.r.fid]='wait';why[p.r.fid]='手動'}else if(m&&byT[m])put(p,m,'手動')});
+ P.forEach(p=>{if(A[p.r.fid])return;const l=R.locks[p.r.fid];if(l&&byT[l])put(p,l,'固定')});
+ const cand=p=>{let c=T.filter(t=>o.src==='power'||String(t.lg)===p.vote);const on=R.only[p.r.fid];if(on){const x=c.filter(t=>t.al===on);if(x.length)c=x}else if(o.cross==='strict'){const x=c.filter(t=>t.al===p.r.al);if(x.length)c=x}return c};
+ const score=(t,p)=>{const b=byT[t.id];return b.list.length*1e12+b.tot-((o.cross==='prefer'&&t.al===p.r.al)?5e11:0)};
+ const best=(c,p,f)=>{let bt=null,bs=Infinity;c.forEach(t=>{const s=f?f(t):score(t,p);if(s<bs){bs=s;bt=t}});return bt};
+ (R.groups||[]).forEach(g=>{P.filter(p=>!A[p.r.fid]&&g.includes(p.r.fid)).sort((a,b)=>b.r.power-a.r.power).forEach(p=>{const c=cand(p);if(!c.length)return;const gc=t=>byT[t.id].list.filter(q=>g.includes(q.r.fid)).length;put(p,best(c,p,t=>gc(t)*1e15+score(t,p)).id,'互斥群組')})});
+ const rest=P.filter(p=>!A[p.r.fid]),pools=o.src==='power'?[rest]:[rest.filter(p=>p.vote==='1'),rest.filter(p=>p.vote==='2')];
+ pools.forEach((pool,pi)=>{pool.sort((a,b)=>b.r.power-a.r.power);const TL=o.src==='power'?T:T.filter(t=>t.lg===pi+1);
+  if(!TL.length){pool.forEach(p=>{A[p.r.fid]='none';why[p.r.fid]='沒有開對應的隊伍'});return}
+  let i=0;const cc=p=>cand(p).filter(t=>TL.includes(t));
+  if(o.bal==='m'){const K=Math.min(o.head*TL.length,Math.floor(pool.length/3)),hc=t=>byT[t.id].list.filter(q=>q.head).length;for(;i<K;i++){const p=pool[i],c=cc(p);if(!c.length){A[p.r.fid]='none';continue}const t=best(c,p,t2=>hc(t2)*1e15+score(t2,p));p.head=1;put(p,t.id,'頭部均分')}}
+  else if(o.bal==='step'){const per=Math.ceil((pool.length+TL.reduce((s,t)=>s+byT[t.id].list.length,0))/TL.length);for(;i<pool.length;i++){const p=pool[i],c=cc(p);if(!c.length){A[p.r.fid]='none';continue}const room=c.filter(t=>byT[t.id].list.length<per);put(p,(room[0]||best(c,p)).id,'階梯')}}
+  else if(o.bal==='s'){let k=0;for(;i<pool.length;i++){const p=pool[i],c=cc(p);if(!c.length){A[p.r.fid]='none';continue}if(c.length===TL.length){const r=Math.floor(k/TL.length),pos=k%TL.length;put(p,TL[r%2===0?pos:TL.length-1-pos].id,'蛇形')}else put(p,best(c,p).id,'蛇形');k++}}
+  for(;i<pool.length;i++){const p=pool[i],c=cc(p);if(!c.length){A[p.r.fid]='none';why[p.r.fid]='沒有可放的隊伍';continue}put(p,best(c,p).id,'均分')}});
+ const teams=T.map(t=>{const b=byT[t.id];return{t,list:b.list.slice().sort((x,y)=>y.r.power-x.r.power),tot:b.tot}});
+ teams.forEach(x=>{const n=x.list.length;x.list.forEach((p,i)=>{p.main=i<o.main});x.avg=n?x.tot/n:0;const k=Math.min(o.head,Math.max(1,Math.floor(n/3)));x.headAvg=n?x.list.slice(0,k).reduce((s,p)=>s+p.r.power,0)/Math.min(k,n):0;x.ratio=x.avg?x.headAvg/x.avg:0;if(o.grp)assignGroups(x,pl.ev)});
+ const wait=P.filter(p=>A[p.r.fid]==='wait'),none=P.filter(p=>A[p.r.fid]==='none'),conf=[],cross=[];
+ D.acc.forEach(g=>{const ms=g.members.map(m=>m.fid).filter(f=>A[f]&&byT[A[f]]);for(let a=0;a<ms.length;a++)for(let b=a+1;b<ms.length;b++){const ta=byT[A[ms[a]]].t,tb=byT[A[ms[b]]].t;if(overlap(ta,tb,o.dur)){const pa=D.byF[ms[a]],pb=D.byF[ms[b]],lo=pa.power<=pb.power?pa:pb,other=lo===pa?pb:pa;conf.push({a:pa,b:pb,move:lo,keep:other,ta,tb})}}});
+ P.forEach(p=>{const t=byT[A[p.r.fid]];if(t&&t.t.al!==p.r.al)cross.push({r:p.r,to:t.t.al})});
+ return{A,why,teams,wait,none,conf,cross,P}}
+function altFor(pl,res,fid,partnerTeam){const cnt={};res.teams.forEach(x=>{cnt[x.t.id]=x.list.length});return pl.teams.filter(t=>t.on&&t.id!==res.A[fid]&&!overlap(t,partnerTeam,pl.opt.dur)).sort((a,b)=>(cnt[a.id]||0)-(cnt[b.id]||0))[0]||null}
+function reportText(pl,res){const o=pl.opt,d=new Date((pl.date||todayStr())+'T00:00:00'),lab=(d.getMonth()+1)+'/'+d.getDate()+'（'+'日一二三四五六'[d.getDay()]+'）';
+ let t=`【${pl.als.join('・')} ${EVN[pl.ev]}分隊】${lab}\n共 ${res.P.length} 人報名，開 ${res.teams.length} 隊\n`;
+ res.teams.forEach(x=>{const main=x.list.filter(p=>p.main),sub=x.list.filter(p=>!p.main);t+=`\n■ ${tl(x.t)}（${x.t.time||'時間未定'}）正選 ${main.length}${sub.length?'・候補 '+sub.length:''}｜總戰力 ${fmtP(x.tot)}\n`;
+  if(o.grp)GRP[pl.ev].forEach(g=>{const m=main.filter(p=>p.grp===g);if(m.length)t+=`${g}：${m.map(p=>p.r.name).join('、')}\n`});else t+=main.map(p=>p.r.name).join('、')+'\n';
+  if(sub.length)t+=`候補：${sub.map(p=>p.r.name).join('、')}\n`});
+ if(res.wait.length)t+=`\n■ 候補：${res.wait.map(p=>p.r.name).join('、')}\n`;
+ if(res.cross.length)t+=`\n需要先轉聯盟：${res.cross.map(c=>c.r.name+'（'+c.r.al+'→'+c.to+'）').join('、')}\n`;
+ return t.trim()}
+function evSug(q){const l=alList().filter(([a])=>nz(a).includes(q)).slice(0,8);return l.length?`<div class="sug">${l.map(([a,n])=>`<div class="sg" data-a="ev_addAl" data-v="${esc(a)}"><b>${esc(a)}</b><span class="sub">${n} 人</span></div>`).join('')}</div>`:'<div class="sub" style="padding:8px 2px">找不到這個聯盟</div>'}
+function pubHtml(){const a=EL.pub||[];if(!a.length)return EL.pubBusy?'':'<div class="card"><h3>已公布的名單</h3><div class="sub">目前還沒有幹部公布名單。</div></div>';
+ return`<div class="card"><h3>已公布的名單</h3>${a.map(p=>`<div style="padding:8px 0;border-top:1px solid var(--bd)"><div class="row sp" data-a="ev_pubT" data-v="${esc(p.key)}" style="cursor:pointer"><span><b>${esc(EVN[p.event]||p.event)}</b> <span class="sub">${esc(p.scope.split('+').join('・'))}・${esc(p.label)}</span></span><span class="sub">${EL.open[p.key]?'收合':'展開'}</span></div>${EL.open[p.key]?`<pre style="white-space:pre-wrap;font:inherit;margin:8px 0">${esc(p.report)}</pre><button class="btn sm" data-a="ev_pubCopy" data-v="${esc(p.key)}">複製</button>`:''}</div>`).join('')}</div>`}
+function setupHtml(){const cad=isCadre()&&!isAdmin(),al=alList();
+ return`<div class="card"><h3>活動名單（聯盟內活動分隊）</h3><div class="sub">步驟：選聯盟 → 選活動 → 載入 → 設定隊伍與邏輯 → 預覽調整 → 產出報告並鎖定。名單來源是「全玩家」裡報名的人。</div>
+ <div style="margin-top:10px"><b>1. 選聯盟</b> <span class="sub">${cad?'（你的聯盟 '+esc(AU.al)+' 一定要在裡面）':'可以選多個，兩個聯盟的人會合在一起分'}</span></div>
+ <div class="row" style="margin-top:6px">${EL.als.length?EL.als.map(a=>`<span class="bd a" style="padding:4px 10px;font-size:13px">${esc(a)} <a data-a="ev_delAl" data-v="${esc(a)}" style="cursor:pointer">✕</a></span>`).join(''):'<span class="sub">還沒選聯盟</span>'}</div>
+ <input id="evq" autocomplete="off" placeholder="輸入聯盟簡稱的幾個字" style="width:100%;margin-top:8px"><div id="evsug"></div>
+ <div class="row" style="margin-top:8px"><select id="evsel" style="flex:1"><option value="">從聯盟名單選擇…</option>${al.map(([a,n])=>`<option value="${esc(a)}">${esc(a)}（${n} 人）</option>`).join('')}</select><button class="btn" data-a="ev_special">jQt・aQt 特區</button></div>
+ <div style="margin-top:12px"><b>2. 選活動</b></div><div class="row" style="margin-top:6px">${INNER.map(k=>`<button class="btn ${EL.ev===k?'on':''}" data-a="ev_ev" data-v="${k}">${EVN[k]}</button>`).join('')}</div>
+ <div class="row" style="margin-top:12px"><button class="btn pri" data-a="ev_load" style="min-height:48px">3. 載入／開始分隊</button></div></div>`}
+function teamsHtml(pl,res){const cnt={};res.teams.forEach(x=>{cnt[x.t.id]=x.list.length});
+ return`<div class="card"><h3>隊伍與出戰時間</h3><div class="sub">打開要用的隊伍並設定出戰時間。開幾隊由你們決定，人數不足只會警告。每隊最少 ${pl.opt.min} 人。</div>${pl.teams.map(t=>`<div class="row sp" style="padding:8px 0;border-top:1px solid var(--bd)"><span><b>${esc(tl(t))}</b> <span class="sub">${t.on?(cnt[t.id]||0)+' 人':'未開'}</span></span><span class="row" style="flex-wrap:nowrap"><input type="time" data-evtime="${esc(t.id)}" value="${esc(t.time||'')}" style="width:120px"><button class="btn sm ${t.on?'on':''}" data-a="ev_tog" data-v="${esc(t.id)}">${t.on?'已開':'開啟'}</button></span></div>`).join('')}</div>`}
+function optHtml(pl){const o=pl.opt,b=(k,v,l)=>`<button class="btn sm ${o[k]===v?'on':''}" data-a="ev_opt" data-k="${k}" data-v="${v}">${l}</button>`,n=(k,l,mn,mx)=>`<label class="row" style="gap:6px"><span class="sub">${l}</span><input type="number" data-evopt="${k}" value="${o[k]}" min="${mn}" max="${mx}" style="width:78px"></label>`;
+ return`<div class="card"><h3>分隊邏輯</h3><div class="sub">軍團依據</div><div class="row" style="margin:4px 0 8px">${b('src','vote','依報名的軍團')}${b('src','power','依戰力重新分')}</div>${pl.als.length>1?`<div class="sub">聯盟分配</div><div class="row" style="margin:4px 0 8px">${b('cross','prefer','原聯盟優先')}${b('cross','strict','嚴格鎖定原聯盟')}${b('cross','free','完全平衡')}</div>`:''}<div class="sub">戰力平衡方式</div><div class="row" style="margin:4px 0 8px">${b('bal','m','強帶弱均分（M型）')}${b('bal','s','蛇形')}${b('bal','step','階梯（一隊最強）')}</div><div class="row">${n('head','頭部人數',1,15)}${n('min','每隊最少',1,60)}${n('main','每隊正選',1,60)}${n('dur','衝突判斷（分鐘）',10,240)}</div><div class="row" style="margin-top:8px"><button class="btn sm ${o.grp?'on':''}" data-a="ev_opt" data-k="grp" data-v="${o.grp?'0':'1'}">${pl.ev==='foundry'?'分四個小組':'分左中右三路'}：${o.grp?'開':'關'}</button></div></div>`}
+function rulesHtml(pl){const R=pl.rules,nm=f=>esc((D.byF[f]||{}).name||f),tn=id=>{const t=pl.teams.find(x=>x.id===id);return t?tl(t):id},lk=Object.keys(R.locks),on=Object.keys(R.only),mn=Object.keys(pl.manual||{});
+ return`<div class="card"><h3>特殊規則</h3><div class="sub">點預覽裡的玩家，可以移到別隊、固定在某隊、限定聯盟或放候補。互斥群組是讓幾個人分散在不同隊伍。</div>${lk.length?`<div style="margin-top:8px"><b>固定隊伍</b>${lk.map(f=>`<div class="row sp" style="padding:4px 0"><span>${nm(f)} → ${esc(tn(R.locks[f]))}</span><button class="btn sm" data-a="ev_rmLock" data-v="${f}">移除</button></div>`).join('')}</div>`:''}${on.length?`<div style="margin-top:8px"><b>限定聯盟</b>${on.map(f=>`<div class="row sp" style="padding:4px 0"><span>${nm(f)} → 只能進 ${esc(R.only[f])}</span><button class="btn sm" data-a="ev_rmOnly" data-v="${f}">移除</button></div>`).join('')}</div>`:''}${(R.groups||[]).length?`<div style="margin-top:8px"><b>互斥群組</b>${R.groups.map((g,i)=>`<div class="row sp" style="padding:4px 0"><span>${g.map(nm).join('、')}</span><button class="btn sm" data-a="ev_rmGrp" data-v="${i}">移除</button></div>`).join('')}</div>`:''}<div class="row" style="margin-top:10px"><button class="btn sm" data-a="ev_grpNew">新增互斥群組</button>${mn.length?`<button class="btn sm" data-a="ev_clrMan">清除全部手動調整（${mn.length}）</button>`:''}</div></div>`}
+function memberRows(pl,x){const t=x.t,row=p=>{const w=x.why&&0;const tag=(EL.res&&EL.res.why[p.r.fid])||'';return`<div class="row sp" data-a="ev_mv" data-v="${p.r.fid}" style="padding:6px 0;border-bottom:1px solid var(--bd);cursor:pointer"><span>${p.main?'':'<span class="bd">候補</span> '}${esc(p.r.name)}${p.r.furn&&p.r.furn<16?' <span style="color:var(--wn)">⚠</span>':''}${t.al!==p.r.al?` <span class="bd a">${esc(p.r.al)}→${esc(t.al)}</span>`:''}${tag==='手動'||tag==='固定'||tag==='互斥群組'?` <span class="bd">${tag}</span>`:''}</span><span class="sub">${fmtP(p.r.power)}</span></div>`};
+ if(!pl.opt.grp)return x.list.map(row).join('')||'<div class="sub">沒有人</div>';
+ return GRP[pl.ev].map(g=>{const m=x.list.filter(p=>p.grp===g);return m.length?`<div class="sub" style="margin-top:8px"><b>${g}</b>（${m.length}）</div>${m.map(row).join('')}`:''}).join('')||'<div class="sub">沒有人</div>'}
+function previewHtml(pl,res){const o=pl.opt;EL.res=res;let h=`<div class="card"><h3>預覽</h3><div class="sub">共 ${res.P.length} 人報名（${esc(pl.als.join('、'))}）。點一位玩家可以移動、固定或放候補。</div><div class="sub" id="evsaved" style="margin-top:4px">${esc(EL.saved)}</div></div>`;
+ res.teams.forEach(x=>{const n=x.list.length,w=[];if(n<o.min)w.push(`<span class="bd w">未滿 ${o.min} 人</span>`);if(n>40)w.push('<span class="bd d">超過 40 人</span>');
+  h+=`<div class="card"><div class="row sp"><div><b>${esc(tl(x.t))}</b> <span class="sub">${esc(x.t.time||'未設時間')}</span></div><div class="row">${w.join(' ')}<span class="bd">${n} 人</span></div></div><div class="sub" style="margin-top:4px">總戰力 ${fmtP(x.tot)}・平均 ${fmtP(x.avg)}・頭部÷平均 ${x.ratio?x.ratio.toFixed(2):'—'}</div><div style="margin-top:8px">${memberRows(pl,x)}</div></div>`});
+ const lc=(t,a)=>a.length?`<div class="card"><h3>${t}（${a.length}）</h3>${a.map(p=>`<div class="row sp" data-a="ev_mv" data-v="${p.r.fid}" style="padding:6px 0;border-bottom:1px solid var(--bd);cursor:pointer"><span>${esc(p.r.name)} <span class="sub">${esc(p.r.al)}</span></span><span class="sub">${fmtP(p.r.power)}</span></div>`).join('')}</div>`:'';
+ return h+lc('候補（手動）',res.wait)+lc('沒有隊伍可放',res.none)}
+function checkHtml(pl,res){const o=pl.opt,it=(ok,t,d)=>`<div class="row" style="padding:4px 0"><span style="color:var(${ok?'--ok':'--dg'});font-weight:700">${ok?'✓':'✗'}</span><span>${t}</span>${d?`<span class="sub">${d}</span>`:''}</div>`;
+ const small=res.teams.filter(x=>x.list.length<o.min),over=res.teams.filter(x=>x.list.length>40),fur=res.P.filter(p=>p.r.furn&&p.r.furn<16).length;
+ let h=`<div class="card"><h3>檢查</h3>${it(!res.none.length,'所有報名的人都有分到隊伍',res.none.length?res.none.length+' 人沒有隊伍可放':'')}${it(!small.length,'每隊至少 '+o.min+' 人',small.map(x=>tl(x.t)+' '+x.list.length+' 人').join('、'))}${it(!over.length,'沒有超過 40 人的隊伍',over.map(x=>tl(x.t)+' '+x.list.length+' 人').join('、'))}${it(!res.conf.length,'大小號沒有撞到時間',res.conf.length?res.conf.length+' 組衝突（見下方）':'')}${it(!fur,'熔爐都滿 16 級',fur?fur+' 人未滿':'')}${it(!res.cross.length,'沒有需要轉聯盟的人',res.cross.length?res.cross.length+' 人被分到其他聯盟的隊伍':'')}</div>`;
+ if(res.conf.length)h+=`<div class="card"><h3>大小號衝突</h3><div class="sub">這幾組帳號被排進時間重疊的隊伍。建議把戰力較低的那個移開，按一下才會套用（要注意他報的軍團可能不同）。</div>${res.conf.map(c=>{const alt=altFor(pl,res,c.move.fid,c.keep===c.a?c.ta:c.tb);return`<div style="padding:8px 0;border-top:1px solid var(--bd)"><div><b>${esc(c.a.name)}</b>（${esc(tl(c.ta))}）與 <b>${esc(c.b.name)}</b>（${esc(tl(c.tb))}）</div><div class="row" style="margin-top:6px"><button class="btn sm" data-a="ev_fix" data-v="${c.move.fid}" data-k="wait">把 ${esc(c.move.name)} 放候補</button>${alt?`<button class="btn sm" data-a="ev_fix" data-v="${c.move.fid}" data-k="${esc(alt.id)}">把 ${esc(c.move.name)} 移到 ${esc(tl(alt))}</button>`:''}</div></div>`}).join('')}</div>`;
+ return h}
+function reportHtml(pl,res){const text=reportText(pl,res);return`<div class="card"><h3>分隊報告</h3><div class="row" style="margin-bottom:8px"><span class="sub">日期</span><input type="date" id="evdate" value="${esc(pl.date||todayStr())}"></div><textarea readonly style="min-height:260px;font-size:14px">${esc(text)}</textarea><div class="row" style="margin-top:8px"><button class="btn" data-a="ev_copyRep">複製報告</button><button class="btn" data-a="ev_share">分享</button></div><div class="sub" style="margin-top:12px">鎖定後這份名單會公布在「活動名單」最上方，並保留到這個聯盟賽後總結完成，或報名被清除為止。</div><div class="row" style="margin-top:8px"><button class="btn ${EL.arm?'pri':''}" data-a="ev_lockPlan" style="min-height:48px">${EL.arm?'再按一次確認鎖定並公布':'鎖定並公布'}</button></div></div>`}
+function lockHtml(pl){const lk=pl.lock;return`<div class="card" style="border-color:var(--ok)"><div class="row sp"><div><b>已鎖定：${esc(pl.als.join('・'))} ${esc(EVN[pl.ev])}</b><div class="sub">${esc(lk.label)}・${esc(lk.by||'')}・${esc(new Date(lk.at).toLocaleString())}</div></div><span class="bd a">已公布</span></div><div class="sub" style="margin-top:6px">這份名單會保留到這個聯盟的賽後總結完成，或報名被清除為止。要修改請先解除鎖定。</div><textarea readonly style="margin-top:8px;min-height:260px;font-size:14px">${esc(lk.report)}</textarea><div class="row" style="margin-top:8px"><button class="btn" data-a="ev_copyRep">複製報告</button><button class="btn" data-a="ev_share">分享</button><button class="btn" data-a="ev_unlock">解除鎖定</button></div></div>`}
+function planHtml(){const pl=EL.plan;if(pl.lock)return lockHtml(pl);const res=compute(pl);return teamsHtml(pl,res)+optHtml(pl)+rulesHtml(pl)+previewHtml(pl,res)+checkHtml(pl,res)+reportHtml(pl,res)}
+function pgLists(){if(!D.stLoaded)return loadingCard();if(D.stErr)return errCard();if(!EL.pub&&!EL.pubBusy)loadPub();
+ let h=pubHtml();if(!isStaff())return h+'<div class="card"><h3>活動名單（聯盟內活動分隊）</h3><div class="sub">分隊由各聯盟的 R4／R5 幹部操作。幹部請先到「後台設定」登入。</div></div>';
+ h+=setupHtml();if(EL.busy)h+=loadingCard('載入分隊中…');else if(EL.msg)h+=`<div class="card" style="border-color:var(--dg)">${esc(EL.msg)}</div>`;if(EL.plan&&!EL.busy)h+=planHtml();return h}
+function moveSheet(fid){const pl=EL.plan,r=D.byF[fid],res=compute(pl),cur=res.A[fid],m=pl.manual[fid],R=pl.rules,on=pl.teams.filter(t=>t.on);
+ return`<div class="row sp"><div><b style="font-size:17px">${esc(r.name)}</b><div class="sub">${esc(r.al)}・${fmtP(r.power)}</div></div><button class="btn sm" data-close>✕</button></div><div class="card"><b>移到哪一隊</b><div class="row" style="margin-top:8px">${on.map(t=>`<button class="btn ${cur===t.id?'on':''}" data-a="ev_move" data-v="${fid}" data-k="${esc(t.id)}">${esc(tl(t))}</button>`).join('')}<button class="btn ${cur==='wait'?'on':''}" data-a="ev_move" data-v="${fid}" data-k="wait">放候補</button>${m?`<button class="btn" data-a="ev_move" data-v="${fid}" data-k="auto">取消手動（回到自動）</button>`:''}</div></div><div class="card"><b>固定這個人</b><div class="sub">固定後，重新分隊也不會被動到。</div><div class="row" style="margin-top:8px">${on.map(t=>`<button class="btn sm ${R.locks[fid]===t.id?'on':''}" data-a="ev_lock" data-v="${fid}" data-k="${esc(t.id)}">固定在 ${esc(tl(t))}</button>`).join('')}${R.locks[fid]?`<button class="btn sm" data-a="ev_rmLock" data-v="${fid}">取消固定</button>`:''}</div></div><div class="card"><b>限定聯盟</b><div class="row" style="margin-top:8px">${pl.als.map(a=>`<button class="btn sm ${R.only[fid]===a?'on':''}" data-a="ev_only" data-v="${fid}" data-k="${esc(a)}">只能進 ${esc(a)}</button>`).join('')}${R.only[fid]?`<button class="btn sm" data-a="ev_rmOnly" data-v="${fid}">取消限定</button>`:''}</div></div>`}
+function grpSheet(){const fs=U.sh.fids||[];return`<div class="row sp"><b style="font-size:17px">新增互斥群組</b><button class="btn sm" data-close>✕</button></div><div class="sub">讓這幾個人分散到不同隊伍。只能選有報名的人。</div><input id="gpq" autocomplete="off" placeholder="輸入名字" style="width:100%"><div id="gpsug"></div><div class="card"><b>已加入（${fs.length}）</b><div class="row" style="margin-top:6px">${fs.map(f=>`<span class="bd a" style="padding:4px 10px">${esc((D.byF[f]||{}).name||f)} <a data-a="ev_gpDel" data-v="${f}" style="cursor:pointer">✕</a></span>`).join('')||'<span class="sub">還沒有人</span>'}</div></div><div class="row"><button class="btn pri" data-a="ev_gpMake">建立群組</button></div>`}
+const _ps=playerSheet;playerSheet=function(fid){const k=U.sh&&U.sh.kind;if(k==='move')return moveSheet(U.sh.fid);if(k==='grp')return grpSheet();return _ps(fid)};
+async function evAct(k,a){const v=a.dataset.v,kk=a.dataset.k,pl=EL.plan,chg=()=>{planChanged();render()};
+ switch(k){
+ case'ev_addAl':if(!EL.als.includes(v))EL.als.push(v);render();break;
+ case'ev_delAl':EL.als=EL.als.filter(x=>x!==v);render();break;
+ case'ev_special':EL.als=['jQt','aQt'];render();break;
+ case'ev_ev':EL.ev=v;render();break;
+ case'ev_load':if(isCadre()&&!isAdmin()&&!EL.als.includes(AU.al))return toast('你的聯盟 '+AU.al+' 一定要在名單裡');loadPlan();break;
+ case'ev_tog':{const t=pl.teams.find(x=>x.id===v);t.on=!t.on;chg()}break;
+ case'ev_opt':pl.opt[kk]=kk==='grp'?v==='1':v;chg();break;
+ case'ev_mv':if(pl&&!pl.lock)openSheet({kind:'move',fid:v});break;
+ case'ev_move':if(kk==='auto')delete pl.manual[v];else pl.manual[v]=kk;closeSheet();chg();break;
+ case'ev_fix':pl.manual[v]=kk;chg();break;
+ case'ev_lock':pl.rules.locks[v]=kk;delete pl.manual[v];closeSheet();chg();break;
+ case'ev_rmLock':delete pl.rules.locks[v];closeSheet();chg();break;
+ case'ev_only':pl.rules.only[v]=kk;closeSheet();chg();break;
+ case'ev_rmOnly':delete pl.rules.only[v];closeSheet();chg();break;
+ case'ev_rmGrp':pl.rules.groups.splice(+v,1);chg();break;
+ case'ev_clrMan':pl.manual={};chg();break;
+ case'ev_grpNew':openSheet({kind:'grp',fids:[]});break;
+ case'ev_gpAdd':if(!U.sh.fids.includes(v))U.sh.fids.push(v);renderSheet();break;
+ case'ev_gpDel':U.sh.fids=U.sh.fids.filter(x=>x!==v);renderSheet();break;
+ case'ev_gpMake':if(U.sh.fids.length<2)return toast('至少要兩個人');pl.rules.groups.push(U.sh.fids.slice());closeSheet();chg();break;
+ case'ev_copyRep':copyText(pl.lock?pl.lock.report:reportText(pl,compute(pl)));break;
+ case'ev_share':{const t=pl.lock?pl.lock.report:reportText(pl,compute(pl));if(navigator.share)navigator.share({text:t}).catch(()=>{});else copyText(t)}break;
+ case'ev_lockPlan':{if(!EL.arm){EL.arm=true;render();toast('再按一次才會鎖定並公布');setTimeout(()=>{if(EL.arm){EL.arm=false;render()}},5000);break}EL.arm=false;lockPlan()}break;
+ case'ev_unlock':unlockPlan();break;
+ case'ev_pubT':EL.open[v]=!EL.open[v];render();break;
+ case'ev_pubCopy':{const p=(EL.pub||[]).find(x=>x.key===v);if(p)copyText(p.report)}break;
+ }}
+async function lockPlan(){const pl=EL.plan,res=compute(pl),text=reportText(pl,res),d=new Date((pl.date||todayStr())+'T00:00:00');
+ pl.lock={at:Date.now(),by:AU.name||'',label:(d.getMonth()+1)+'/'+d.getDate()+' 名單',report:text,teams:res.teams.map(x=>({id:x.t.id,label:tl(x.t),time:x.t.time,members:x.list.map(p=>[p.r.fid,p.r.name,p.r.al,p.r.power,p.grp||'',p.main?1:0])}))};
+ try{const j=await apiPost({action:'planLock',key:EL.key,scope:scopeOf(pl),event:pl.ev,label:pl.lock.label,json:JSON.stringify(pl),report:text});if(!j.ok)throw new Error(ERR[j.error]||j.error||'失敗');EL.status='locked';toast('已鎖定並公布');loadPub()}catch(e){pl.lock=null;toast('鎖定失敗：'+e.message)}render()}
+async function unlockPlan(){const pl=EL.plan;try{const j=await apiPost({action:'planUnlock',key:EL.key,scope:scopeOf(pl),event:pl.ev});if(!j.ok)throw new Error(ERR[j.error]||j.error||'失敗');pl.lock=null;EL.status='draft';toast('已解除鎖定');loadPub()}catch(e){toast('解除失敗：'+e.message)}render()}
+document.addEventListener('click',e=>{const a=e.target.closest('[data-a]');if(!a)return;const k=a.dataset.a;if(k.slice(0,3)==='ev_')evAct(k,a)});
+document.addEventListener('change',e=>{const t=e.target;
+ if(t.id==='evsel'&&t.value){if(!EL.als.includes(t.value))EL.als.push(t.value);render();return}
+ if(t.dataset.evtime!==undefined&&EL.plan){const tm=EL.plan.teams.find(x=>x.id===t.dataset.evtime);if(tm){tm.time=t.value;planChanged();render()}return}
+ if(t.dataset.evopt&&EL.plan){const n=+t.value;if(n>0){EL.plan.opt[t.dataset.evopt]=n;planChanged();render()}return}
+ if(t.id==='evdate'&&EL.plan){EL.plan.date=t.value;planChanged();render()}});
+document.addEventListener('input',e=>{const t=e.target;
+ if(t.id==='evq'){const q=nz(t.value);$('#evsug').innerHTML=q?evSug(q):''}
+ else if(t.id==='gpq'){const q=nz(t.value);$('#gpsug').innerHTML=q?sugHtml(suggest(t.value,r=>EL.plan&&evPool(EL.plan).some(p=>p.r.fid===r.fid)),'ev_gpAdd'):''}});
 
 /* ===== 畫面 ===== */
 function applyTheme(){const t=U.theme,dark=t==='dark'||(t==='auto'&&matchMedia('(prefers-color-scheme: dark)').matches);document.documentElement.setAttribute('data-theme',dark?'dark':'light')}
