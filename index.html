@@ -72,7 +72,7 @@ textarea{width:100%;min-height:120px}
 <script src="config.js"></script>
 <script>
 'use strict';
-const APP_VERSION='4.0.3';
+const APP_VERSION='4.0.4';
 const $=s=>document.querySelector(s);
 const esc=s=>String(s==null?'':s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 const nz=s=>String(s==null?'':s).normalize('NFKC').toLowerCase().replace(/[\s\p{P}\p{S}]+/gu,'');
@@ -97,7 +97,7 @@ const DEF_ACC='主：主流兔 / 小：盟浪兔、兔仔子\n主：冬來冬往
 /* ===== 儲存、連線、登入 ===== */
 const Store={get(k,d){try{const v=localStorage.getItem('k2611-'+k);return v==null?d:JSON.parse(v)}catch(e){return d}},set(k,v){try{localStorage.setItem('k2611-'+k,JSON.stringify(v))}catch(e){}},del(k){try{localStorage.removeItem('k2611-'+k)}catch(e){}}};
 const QP=new URLSearchParams(location.search);
-let CFG=Store.get('cfg',{url:'',token:''});const DEFC=window.K2611_CFG||{};if(DEFC.url)CFG={url:DEFC.url,token:DEFC.token||''};
+let CFG=Store.get('cfg',{url:'',token:''});const BUILTIN={url:'',token:''}; /* 想把連線直接寫進網頁：把 Apps Script 網址貼在 url 的引號裡 */ const DEFC=window.K2611_CFG||BUILTIN;if(DEFC.url)CFG={url:DEFC.url,token:DEFC.token||''};
 if(QP.get('api')){CFG={url:QP.get('api'),token:QP.get('t')||''};Store.set('cfg',CFG)}
 let AU=Store.get('auth',null);
 const isAdmin=()=>!!AU&&AU.role==='admin',isCadre=()=>!!AU&&AU.role==='cadre',isStaff=()=>!!AU;
@@ -168,7 +168,7 @@ function jump(fid){const r=D.byF[fid];if(!r)return;let i=P.view.indexOf(r);if(i<
 
 /* ===== 頁面 ===== */
 function loadingCard(t){return`<div class="card">${t||'載入中…'}</div>`}
-function errCard(){const m=D.stErr==='NOURL'?'這個網址還沒有設定戰情室連線。請使用幹部給你的連結，或到「後台設定」填寫連線設定。':esc(D.stErr);return`<div class="card" style="border-color:var(--dg)"><b>讀不到王國名冊</b><div class="sub" style="margin-top:6px">${m}</div><div class="row" style="margin-top:8px"><button class="btn" data-a="reload">重新載入</button></div></div>`}
+function errCard(){const m=D.stErr==='NOURL'?'這個網址還沒有設定戰情室連線。請使用幹部給你的連結，或到「後台設定」填寫連線設定。':esc(D.stErr);return`<div class="card" style="border-color:var(--dg)"><b>讀不到王國名冊</b><div class="sub" style="margin-top:6px">${m}</div>${/密碼/.test(String(D.stErr))?`<div class="sub" style="margin-top:8px">網頁裡的存取密碼，和 Apps Script 的 ACCESS_TOKEN 不一樣。最簡單的做法：到 Apps Script「專案設定 → 指令碼屬性」把 ACCESS_TOKEN 這一列刪掉，再按重新載入。如果這台裝置曾用舊連結開過，可以先按下面的「清除本機連線設定」。</div><div class="row" style="margin-top:8px"><button class="btn" data-a="cfgReset">清除本機連線設定</button></div>`:''}<div class="row" style="margin-top:8px"><button class="btn" data-a="reload">重新載入</button></div></div>`}
 function pgPlayers(){if(!D.stLoaded)return loadingCard('載入全王國名冊中…');if(D.stErr)return errCard();rebuild();const m=D.meta||{},ks=Object.keys(P.filt);
  return`<div class="card"><h3>2611 王國全玩家</h3><div class="sub">這是寒霜啟示錄 2611 王國的玩家名冊。可以像試算表一樣排序、篩選：點欄位標題。輸入名字可以直接跳到那位玩家在表格中的位置，點一位玩家就能報名活動、看歷史紀錄。</div><div class="sub" style="margin-top:6px">已收錄 ${D.rows.length} 人，來自 ${m.ok||'—'} / ${m.alliances||'—'} 個聯盟（統計站讀不到 ${m.fail||0} 個聯盟，沒加入聯盟的玩家也可能抓不到）· 更新：${esc(D.updatedAt)}</div></div>
  <div class="card"><input id="qs" autocomplete="off" placeholder="輸入名字，直接跳到表格中的位置" style="width:100%"><div id="sugq"></div>
@@ -330,7 +330,7 @@ document.addEventListener('click',e=>{const t=e.target;
  if(t.closest('[data-close]')){closeSheet();return}
  const a=t.closest('[data-a]');
  if(a){const k=a.dataset.a;if(k==='jump'||k==='openPl'||k==='bindPick'||k==='lgPick'){}
-  if(k==='lgMode'){U.lgMode=a.dataset.v;render();return}if(k==='lgPick'){U.lg={fid:a.dataset.v};render();return}
+  if(k==='cfgReset'){Store.del('cfg');CFG={url:DEFC.url||'',token:DEFC.token||''};D.stErr='';D.stLoaded=false;render();loadState();loadRegs();loadAcc();return}if(k==='lgMode'){U.lgMode=a.dataset.v;render();return}if(k==='lgPick'){U.lg={fid:a.dataset.v};render();return}
   act(k,a);return}
  const tr=t.closest('tr[data-fid]');if(tr)openSheet({kind:'player',fid:tr.dataset.fid,tab:'reg'})});
 document.addEventListener('input',e=>{const t=e.target,id=t.id;
