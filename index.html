@@ -72,7 +72,7 @@ textarea{width:100%;min-height:120px}
 <script src="config.js"></script>
 <script>
 'use strict';
-const APP_VERSION='4.5.0';
+const APP_VERSION='4.6.1';
 const $=s=>document.querySelector(s);
 const esc=s=>String(s==null?'':s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 const nz=s=>String(s==null?'':s).normalize('NFKC').toLowerCase().replace(/[\s\p{P}\p{S}]+/gu,'');
@@ -402,7 +402,7 @@ document.addEventListener('input',e=>{const t=e.target;
 /* ===== v4.2 活動報名：一鍵報名（依排名自動依名額幫玩家報名） ===== */
 const BRM=[['power','戰力'],['kills','擊殺數'],['furn','熔爐等級'],['lab','迷宮'],['cave','魔物洞穴'],['loh','英雄之地'],['charm','魅力礦場'],['rc','研究中心'],['forge','裝備鍛造'],['gaia','蓋亞之心'],['ts','遷服積分'],['pr','全服戰力排名（名次小的優先）'],['kr','全服擊殺排名（名次小的優先）']];
 const BRN={tal:100,frost:60,sfc:50};
-const BR={ev:'tal',metric:'cave',n:100,als:[],minFurn:16,target:'',prev:null,arm:false,busy:false};
+const BR={ev:'tal',metric:'lab',n:100,als:[],minFurn:16,target:'',prev:null,arm:false,busy:false};
 function brCalc(){const c=colOf(BR.metric),asc=!!c.asc,m=D.regs[BR.ev]||{};let declined=0,nodata=0,low=0;const cand=[],total=Object.keys(m).filter(f=>m[f].choice==='in'&&D.byF[f]).length;
  D.rows.forEach(r=>{if(r.src==='舊資料')return;if(BR.als.length&&!BR.als.includes(r.al))return;const g=m[r.fid];if(g&&g.choice==='in')return;if(g&&g.choice==='out'){declined++;return}
   if(BR.minFurn&&r.furn<BR.minFurn){low++;return}const v=c.v(r);if(v==null||(!asc&&v<=0)){nodata++;return}cand.push({r,v})});
@@ -504,14 +504,14 @@ document.addEventListener('click',e=>{const a=e.target.closest('[data-a]');if(a&
 function caveOf(r,c){const a=(c&&c!=='load'&&c!=='err'&&c.detail)||[];return a.length?a[a.length-1].st.cave:(r.dt?r.dt.st.cave:null)}
 function histHtml(r){const c=D.card[r.fid];if(!c||c==='load')return'<div class="card">載入歷史紀錄中…</div>';if(c==='err')return`<div class="card" style="border-color:var(--dg)">讀不到歷史紀錄<div class="row" style="margin-top:8px"><button class="btn" data-a="cardRetry">重試</button></div></div>`;
  const s=c.series||[],dt=c.detail||[];let h=chart('戰力走勢',s.map(x=>({l:x.d.slice(5),v:x.power})),fmtP);
- h+=dt.length?chart('魔物洞穴（累計通過關數）',dt.map(x=>({l:x.d.slice(5),v:(x.st.cave||{}).n||0})),v=>Math.round(v)):'<div class="card"><h3>魔物洞穴</h3><div class="sub">還沒有洞穴資料（第一次同步完成後才會出現）</div></div>';
+ h+=dt.length?chart('迷宮（通過關數）',dt.map(x=>({l:x.d.slice(5),v:x.lab.n||0})),v=>Math.round(v)):'<div class="card"><h3>迷宮</h3><div class="sub">還沒有迷宮資料（第一次同步完成後才會出現）</div></div>';
  const nm=c.names||[];h+=`<div class="card"><h3>暱稱歷程</h3>${nm.length?nm.map((x,i)=>`<div class="row sp" style="padding:6px 0;border-bottom:1px solid var(--bd)"><span><b>${esc(x.name)}</b>${i===nm.length-1?' <span class="bd a">目前</span>':''}</span><span class="sub">${esc(x.first)}${x.last!==x.first?' ～ '+esc(x.last):''}</span></div>`).join('')+(nm.length===1?'<div class="sub" style="margin-top:6px">目前沒有改名紀錄（紀錄從系統開始同步那天算起）</div>':''):'<div class="sub">尚無紀錄</div>'}</div>`;
  const mv=c.moves||[];h+=`<div class="card"><h3>聯盟異動</h3>${mv.length?mv.map(x=>`<div class="row sp" style="padding:6px 0;border-bottom:1px solid var(--bd)"><span>${esc(x.from||'無聯盟')} → <b>${esc(x.to||'無聯盟')}</b></span><span class="sub">${esc(x.d)}</span></div>`).join(''):'<div class="sub">沒有異動紀錄（從系統開始同步那天算起）</div>'}</div>`;
  const rg=(c.regs||[]).slice().reverse();h+=`<div class="card"><h3>報名紀錄</h3>${rg.length?rg.map(x=>`<div class="row sp" style="padding:6px 0;border-bottom:1px solid var(--bd)"><span>${esc(EVN[x.event]||x.event)} · <b>${esc(CHN[x.choice]||x.choice)}</b>${x.note==='正選'||x.note==='候補'?' <span class="bd a">'+x.note+'</span>':''}${x.play?' <span class="sub">'+esc(x.play)+'</span>':''}${x.by&&x.by!=='self'?' <span class="bd">'+(x.by==='admin'?'管理員修改':'幹部修改')+'</span>':''}</span><span class="sub">${esc(String(x.at).slice(0,16))}</span></div>`).join(''):'<div class="sub">尚無報名紀錄</div>'}</div>`;
  if(isStaff())h+='<div class="card"><h3>出席紀錄</h3><div class="sub">之後的版本開放：賽後總結完成後，這裡會顯示出席率與缺席次數，只有幹部看得到。</div></div>';
  return h}
 function playerSheet(fid){const r=D.byF[fid];if(!r)return'';const tab=U.sh.tab||'reg';if(!D.card[fid])loadCard(fid);const cv=caveOf(r,D.card[fid]);
- return`<div class="row sp"><div><b style="font-size:18px">${esc(r.name)}</b><div class="sub">${esc(r.al||'無聯盟')} · ${esc(r.rk||'')} · FID ${esc(r.fid)}</div></div><button class="btn sm" data-close>✕</button></div><div class="grid g4"><div class="mt"><div class="sub">戰力</div><div class="v">${fmtP(r.power)}</div></div><div class="mt"><div class="sub">7日增</div><div class="v" style="font-size:15px">${dlt(r.d7)}</div></div><div class="mt"><div class="sub">魔物洞穴</div><div class="v" style="font-size:17px">${cv&&cv.l?esc(cv.l):'—'}</div>${cv&&cv.l?`<div class="sub">${cv.r!=null?'#'+cv.r:'100+'}</div>`:''}</div></div>${accHtml(r)}<div class="row"><button class="btn ${tab==='reg'?'on':''}" data-a="shTab" data-v="reg">報名</button><button class="btn ${tab==='hist'?'on':''}" data-a="shTab" data-v="hist">歷史紀錄</button></div>${tab==='hist'?histHtml(r):regPanel(r)}`}
+ return`<div class="row sp"><div><b style="font-size:18px">${esc(r.name)}</b><div class="sub">${esc(r.al||'無聯盟')} · ${esc(r.rk||'')} · FID ${esc(r.fid)}</div></div><button class="btn sm" data-close>✕</button></div><div class="grid g4"><div class="mt"><div class="sub">戰力</div><div class="v">${fmtP(r.power)}</div></div><div class="mt"><div class="sub">7日增</div><div class="v" style="font-size:15px">${dlt(r.d7)}</div></div><div class="mt"><div class="sub">迷宮</div><div class="v" style="font-size:17px">${cv&&cv.n?'第 '+cv.n.toLocaleString()+' 關':'—'}</div>${cv&&cv.n?`<div class="sub">${cv.r!=null?'#'+cv.r:'100+'}</div>`:''}</div></div>${accHtml(r)}<div class="row"><button class="btn ${tab==='reg'?'on':''}" data-a="shTab" data-v="reg">報名</button><button class="btn ${tab==='hist'?'on':''}" data-a="shTab" data-v="hist">歷史紀錄</button></div>${tab==='hist'?histHtml(r):regPanel(r)}`}
 
 /* ===== v4.5 名單直接編輯（正選／候補／取消）、一鍵產生通知 ===== */
 const seBtns=(k,f,m)=>{if(!isStaff())return'';const b=(v,l,on)=>`<button class="btn sm ${on?'on':''}" style="min-height:28px;padding:2px 8px" data-a="se_set" data-ev="${k}" data-fid="${f}" data-v="${v}">${l}</button>`;
@@ -547,6 +547,9 @@ document.addEventListener('click',e=>{const a=e.target.closest('[data-a]');if(!a
  else if(k==='ntc_regen'){U.sh.note=($('#ntcN')||{}).value||'';U.sh.text=noticeText(U.sh.ev,U.sh.note);renderSheet()}
  else if(k==='ntc_copy')copyText(($('#ntcT')||{}).value||U.sh.text);
  else if(k==='ntc_share'){const t=($('#ntcT')||{}).value||U.sh.text;if(navigator.share)navigator.share({text:t}).catch(()=>{});else copyText(t)}});
+
+/* ===== v4.6 玩家視窗改顯示迷宮關卡 ===== */
+function caveOf(r,c){const a=(c&&c!=='load'&&c!=='err'&&c.detail)||[];if(a.length){const l=a[a.length-1].lab;return{n:l.n,r:l.r}}return r.dt?{n:r.dt.lab,r:r.dt.labR}:null}
 
 /* ===== 畫面 ===== */
 function applyTheme(){const t=U.theme,dark=t==='dark'||(t==='auto'&&matchMedia('(prefers-color-scheme: dark)').matches);document.documentElement.setAttribute('data-theme',dark?'dark':'light')}
