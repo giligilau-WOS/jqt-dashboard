@@ -72,7 +72,7 @@ textarea{width:100%;min-height:120px}
 <script src="config.js"></script>
 <script>
 'use strict';
-const APP_VERSION='4.9.1';
+const APP_VERSION='5.1.0';
 const $=s=>document.querySelector(s);
 const esc=s=>String(s==null?'':s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 const nz=s=>String(s==null?'':s).normalize('NFKC').toLowerCase().replace(/[\s\p{P}\p{S}]+/gu,'');
@@ -599,6 +599,79 @@ U.pal=Store.get('pal','indigo');if(!PALN[U.pal])U.pal='indigo';
 /* ===== v4.9.1 修正：佈景主題沒有套用（原本的 applyTheme 排在後面，蓋掉了新版） ===== */
 applyTheme=function(){const t=U.theme,dark=t==='dark'||(t==='auto'&&matchMedia('(prefers-color-scheme: dark)').matches),el=document.documentElement;el.setAttribute('data-theme',dark?'dark':'light');el.setAttribute('data-palette',U.pal||'indigo')};
 applyTheme();
+
+/* ===== v5.0 日系／禪風／聖誕主題與動態效果（積雪、花瓣、聖誕樹） ===== */
+const du=s=>'url("data:image/svg+xml,'+encodeURIComponent(s)+'")';
+const PX={wa:{fx:'petal'},zen:{fx:''},xmas:{fx:'snow'}};
+Object.assign(PD,{
+ wa:{n:'和風櫻',d:'藍染與櫻花瓣，淡淡的青海波，會飄花瓣',sw:['#2f4a6d','#b3405c','#f7dde4','#faf6f1'],
+  l:{bg:'#faf6f1',s1:'#ffffff',s2:'#f3ebe2',bd:'#e5d8c9',t1:'#2b2a33',t2:'#7b6f6a',ac:'#b3405c',acb:'#f7dde4',btxt:'#ffffff',hd:'linear-gradient(135deg,#2f4a6d,#4d6d94)',hdt:'#ffffff',fx:'#f6b3c6',fx2:'#f08aa6'},
+  d:{bg:'#15171f',s1:'#1d2029',s2:'#262a36',bd:'#383d4d',t1:'#f1ece6',t2:'#b4aaa4',ac:'#f08aa6',acb:'#4a2a37',btxt:'#2a0f18',hd:'linear-gradient(135deg,#1f3250,#35507a)',hdt:'#ffffff',fx:'#f4a9bf',fx2:'#ffd1de'}},
+ zen:{n:'禪風',d:'和紙、墨色與苔綠，安靜的枯山水',sw:['#3b3b36','#5b6b4a','#e1e6d6','#f2efe8'],
+  l:{bg:'#f2efe8',s1:'#faf8f3',s2:'#e8e4d9',bd:'#d6d0c2',t1:'#2a2a26',t2:'#7a766a',ac:'#5b6b4a',acb:'#e1e6d6',btxt:'#ffffff',hd:'linear-gradient(135deg,#3b3b36,#55554d)',hdt:'#f2efe8'},
+  d:{bg:'#1a1a17',s1:'#232320',s2:'#2c2c28',bd:'#413f38',t1:'#ece8dc',t2:'#a8a393',ac:'#a7b88f',acb:'#394032',btxt:'#1a1f12',hd:'linear-gradient(135deg,#0f0f0d,#2b2b26)',hdt:'#ece8dc'}},
+ xmas:{n:'聖誕雪夜',d:'聖誕紅配松綠，會下雪，還有聖誕樹',sw:['#b3202a','#1f7a4d','#fde1e1','#eef5fa'],
+  l:{bg:'#eef5fa',s1:'#ffffff',s2:'#e3eef6',bd:'#cadbe8',t1:'#1c2b2a',t2:'#5f7a78',ac:'#c1272d',acb:'#fde1e1',btxt:'#ffffff',hd:'linear-gradient(135deg,#b3202a,#1f7a4d)',hdt:'#ffffff',fx:'#9fc2de'},
+  d:{bg:'#0e1d17',s1:'#15281f',s2:'#1c3429',bd:'#2c4a3b',t1:'#f3f7f2',t2:'#a8c4b4',ac:'#ff6b6b',acb:'#4a2326',btxt:'#2a0c0c',hd:'linear-gradient(135deg,#8f1c25,#1b6b45)',hdt:'#ffffff',fx:'#ffffff'}}});
+['wa','zen','xmas'].forEach(k=>{PALS.push([k,PD[k].n,PD[k].d,PD[k].sw]);PALN[k]=PD[k].n});
+U.pal=Store.get('pal','indigo');if(!PALN[U.pal])U.pal='indigo';
+(function(){const css=v=>Object.keys(v).map(n=>'--'+n+':'+v[n]).join(';');
+ const sei=c=>du(`<svg xmlns="http://www.w3.org/2000/svg" width="40" height="20" viewBox="0 0 40 20"><g fill="none" stroke="${c}" stroke-opacity=".09" stroke-width="1.2"><circle cx="0" cy="20" r="9"/><circle cx="0" cy="20" r="6"/><circle cx="0" cy="20" r="3"/><circle cx="40" cy="20" r="9"/><circle cx="40" cy="20" r="6"/><circle cx="40" cy="20" r="3"/><circle cx="20" cy="10" r="9"/><circle cx="20" cy="10" r="6"/><circle cx="20" cy="10" r="3"/></g></svg>`);
+ const enso=c=>du(`<svg xmlns="http://www.w3.org/2000/svg" width="340" height="340" viewBox="0 0 340 340"><path d="M170 36A134 134 0 1 1 96 60" fill="none" stroke="${c}" stroke-opacity=".07" stroke-width="16" stroke-linecap="round"/></svg>`);
+ const drip=c=>du(`<svg xmlns="http://www.w3.org/2000/svg" width="60" height="16" viewBox="0 0 60 16"><path d="M0 0H60V6Q54 15 46 6Q40 11 32 6Q24 14 16 6Q8 11 0 6Z" fill="${c}"/></svg>`);
+ const trees=du(`<svg xmlns="http://www.w3.org/2000/svg" width="150" height="100" viewBox="0 0 150 100"><rect x="34" y="80" width="8" height="14" fill="#6b4226"/><polygon points="38,16 20,46 56,46" fill="#1f7a4d"/><polygon points="38,30 15,62 61,62" fill="#238a58"/><polygon points="38,46 10,80 66,80" fill="#2a9a63"/><polygon points="38,16 31,26 45,26" fill="#fff"/><polygon points="38,32 32,41 44,41" fill="#fff" opacity=".9"/><circle cx="38" cy="11" r="4" fill="#f7c948"/><circle cx="30" cy="52" r="2.6" fill="#e63946"/><circle cx="46" cy="66" r="2.6" fill="#f7c948"/><circle cx="25" cy="70" r="2.6" fill="#e63946"/><circle cx="50" cy="52" r="2.2" fill="#f7c948"/><rect x="108" y="84" width="6" height="10" fill="#6b4226"/><polygon points="111,40 97,62 125,62" fill="#1f7a4d"/><polygon points="111,52 94,76 128,76" fill="#2a9a63"/><polygon points="111,40 106,47 116,47" fill="#fff"/><circle cx="111" cy="36" r="3" fill="#f7c948"/><circle cx="105" cy="68" r="2" fill="#e63946"/><circle cx="117" cy="60" r="2" fill="#f7c948"/><path d="M0 100V92Q18 84 38 92T78 91T118 93T150 90V100Z" fill="#ffffff" opacity=".92"/></svg>`);
+ let t=['wa','zen','xmas'].map(k=>`html[data-palette=${k}]{${css(PD[k].l)}}html[data-palette=${k}][data-theme=dark]{${css(PD[k].d)}}`).join('');
+ const layer='body::before{content:"";position:fixed;z-index:-1;pointer-events:none;';
+ t+=`html[data-palette=wa] ${layer}inset:0;background:${sei('#2f4a6d')} repeat}html[data-palette=wa][data-theme=dark] body::before{background:${sei('#9db8e6')} repeat}`;
+ t+=`html[data-palette=zen] ${layer}inset:0;background:${enso('#2a2a26')} no-repeat right -70px bottom 70px/340px 340px,repeating-linear-gradient(180deg,rgba(60,58,48,.04) 0 1px,transparent 1px 18px)}html[data-palette=zen][data-theme=dark] body::before{background:${enso('#ece8dc')} no-repeat right -70px bottom 70px/340px 340px,repeating-linear-gradient(180deg,rgba(236,232,220,.04) 0 1px,transparent 1px 18px)}`;
+ t+=`html[data-palette=xmas] ${layer}left:0;right:0;bottom:0;height:150px;background:${trees} repeat-x left bottom/auto 120px}html[data-palette=xmas] #top{position:relative}html[data-palette=xmas] #top::after{content:"";position:absolute;left:0;right:0;bottom:-13px;height:16px;background:${drip('#ffffff')} repeat-x left top/60px 16px;pointer-events:none;z-index:2}html[data-palette=xmas][data-theme=dark] #top::after{background-image:${drip('#dbe8f3')}}`;
+ const s=document.createElement('style');s.textContent=t;document.head.appendChild(s)})();
+const FX={on:Store.get('fx',true),raf:0,c:null,t:'',p:[],col:'#fff',col2:'#fff',rz:null};
+function fxStop(){cancelAnimationFrame(FX.raf);FX.raf=0;if(FX.rz){window.removeEventListener('resize',FX.rz);FX.rz=null}if(FX.c){FX.c.remove();FX.c=null}FX.t='';FX.p=[]}
+function fxSync(){const px=PX[U.pal],want=!!(px&&px.fx&&FX.on&&!matchMedia('(prefers-reduced-motion: reduce)').matches);
+ if(!want){if(FX.c)fxStop();return}
+ const cs=getComputedStyle(document.documentElement);FX.col=cs.getPropertyValue('--fx').trim()||'#ffffff';FX.col2=cs.getPropertyValue('--fx2').trim()||FX.col;
+ if(FX.c&&FX.t===px.fx)return;fxStop();FX.t=px.fx;
+ const c=document.createElement('canvas');c.style.cssText='position:fixed;left:0;top:0;width:100%;height:100%;z-index:40;pointer-events:none';document.body.appendChild(c);FX.c=c;const ctx=c.getContext('2d');
+ FX.rz=()=>{c.width=innerWidth;c.height=innerHeight};FX.rz();window.addEventListener('resize',FX.rz);
+ const snow=px.fx==='snow',n=snow?(innerWidth<500?55:110):28;
+ FX.p=Array.from({length:n},()=>({x:Math.random()*c.width,y:Math.random()*c.height,r:snow?1+Math.random()*2.6:2+Math.random()*2.2,v:snow?.4+Math.random()*1:.5+Math.random()*.8,w:Math.random()*6.28,s:.005+Math.random()*.02,a:Math.random()*6.28,alt:Math.random()<.5}));
+ const loop=()=>{ctx.clearRect(0,0,c.width,c.height);
+  FX.p.forEach(p=>{p.w+=p.s;p.y+=p.v;p.x+=Math.sin(p.w)*(snow?.5:.9)+(snow?0:.3);if(p.y>c.height+10){p.y=-10;p.x=Math.random()*c.width}if(p.x>c.width+10)p.x=-10;if(p.x<-10)p.x=c.width+10;
+   if(snow){ctx.globalAlpha=.9;ctx.fillStyle=FX.col;ctx.beginPath();ctx.arc(p.x,p.y,p.r,0,6.283);ctx.fill()}
+   else{p.a+=.02;ctx.save();ctx.translate(p.x,p.y);ctx.rotate(p.a);ctx.globalAlpha=.85;ctx.fillStyle=p.alt?FX.col2:FX.col;ctx.beginPath();ctx.ellipse(0,0,p.r*2.2,p.r*1.2,0,0,6.283);ctx.fill();ctx.restore()}});
+  FX.raf=requestAnimationFrame(loop)};loop()}
+const _rd11=render;render=function(){_rd11();fxSync()};
+function themeSheet(){const mode=(k,l)=>`<button class="btn ${U.theme===k?'on':''}" data-a="th_mode" data-v="${k}">${l}</button>`,px=PX[U.pal]||{};
+ return`<div class="row sp"><b style="font-size:17px">外觀</b><button class="btn sm" data-close>✕</button></div><div class="card"><b>佈景主題</b><div style="margin-top:8px">${PALS.map(([k,n,d,sw])=>`<div class="row sp" data-a="th_pal" data-v="${k}" style="padding:10px;border:${U.pal===k?'2px solid var(--ac)':'1px solid var(--bd)'};border-radius:12px;cursor:pointer;margin-bottom:8px"><span style="min-width:0"><b>${n}</b>${U.pal===k?' <span class="bd a">使用中</span>':''}<div class="sub">${d}</div></span><span class="row" style="gap:4px;flex-wrap:nowrap">${sw.map(c=>`<span style="display:inline-block;width:20px;height:20px;border-radius:6px;background:${c};border:1px solid var(--bd)"></span>`).join('')}</span></div>`).join('')}</div><div class="sub">你選的只會存在這台裝置，不會影響別人。</div></div>${px.fx?`<div class="card"><b>動態效果</b><div class="sub">${px.fx==='snow'?'畫面會下雪':px.fx==='leaf'?'畫面會飄楓葉':'畫面會飄櫻花瓣'}。關掉可以省電，手機設定了「減少動態效果」時會自動關閉。</div><div class="row" style="margin-top:8px"><button class="btn ${FX.on?'on':''}" data-a="th_fx" data-v="1">開</button><button class="btn ${FX.on?'':'on'}" data-a="th_fx" data-v="0">關</button></div></div>`:''}<div class="card"><b>明暗模式</b><div class="row" style="margin-top:8px">${mode('auto','自動（跟著手機）')}${mode('light','淺色')}${mode('dark','深色')}</div></div>`}
+document.addEventListener('click',e=>{const a=e.target.closest('[data-a]');if(a&&a.dataset.a==='th_fx'){FX.on=a.dataset.v==='1';Store.set('fx',FX.on);fxSync();renderSheet()}});
+
+/* ===== v5.1 秋天飄楓主題 ===== */
+PX.maple={fx:'leaf'};
+PD.maple={n:'楓紅秋色',d:'楓紅與金黃，會飄楓葉，底部有落葉堆',sw:['#c2410c','#b8431f','#fbdcc8','#fbf4ea'],
+ l:{bg:'#fbf4ea',s1:'#fffdf9',s2:'#f6e7d3',bd:'#ead5ba',t1:'#3a2418',t2:'#8a6a50',ac:'#b8431f',acb:'#fbdcc8',btxt:'#ffffff',hd:'linear-gradient(135deg,#c2410c,#d99a1d)',hdt:'#ffffff',fx:'#c8452a',fx2:'#e38b1f',fx3:'#d9a520'},
+ d:{bg:'#1d1410',s1:'#281c16',s2:'#33241c',bd:'#4f3a2c',t1:'#f8eadb',t2:'#c9ab92',ac:'#ff9a62',acb:'#4d2c1c',btxt:'#2b1206',hd:'linear-gradient(135deg,#8a2e12,#9a6a14)',hdt:'#ffffff',fx:'#e0613a',fx2:'#f0a030',fx3:'#f2c94c'}};
+PALS.push(['maple',PD.maple.n,PD.maple.d,PD.maple.sw]);PALN.maple=PD.maple.n;
+U.pal=Store.get('pal','indigo');if(!PALN[U.pal])U.pal='indigo';
+(function(){const css=v=>Object.keys(v).map(n=>'--'+n+':'+v[n]).join(';');
+ const LP='M0,-1 L0.18,-0.62 L0.5,-0.7 L0.42,-0.3 L0.8,-0.38 L0.62,-0.05 L0.95,0.1 L0.45,0.3 L0.5,0.55 L0.12,0.45 L0.1,0.9 L-0.1,0.9 L-0.12,0.45 L-0.5,0.55 L-0.45,0.3 L-0.95,0.1 L-0.62,-0.05 L-0.8,-0.38 L-0.42,-0.3 L-0.5,-0.7 L-0.18,-0.62 Z';
+ const leaves=du(`<svg xmlns="http://www.w3.org/2000/svg" width="160" height="100" viewBox="0 0 160 100"><path d="M0 100V84Q16 70 34 82T70 80T108 84T146 78T160 82V100Z" fill="#a8341a" opacity=".92"/><path d="M0 100V90Q20 78 42 90T84 88T124 91T160 88V100Z" fill="#d9701c"/><g transform="translate(30 74) rotate(-20) scale(11)"><path d="${LP}" fill="#c8452a"/></g><g transform="translate(88 76) rotate(25) scale(9)"><path d="${LP}" fill="#e3a21f"/></g><g transform="translate(130 72) rotate(-8) scale(10)"><path d="${LP}" fill="#d9531f"/></g><g transform="translate(60 88) rotate(40) scale(7)"><path d="${LP}" fill="#f2c94c"/></g></svg>`);
+ const s=document.createElement('style');s.textContent=`html[data-palette=maple]{${css(PD.maple.l)}}html[data-palette=maple][data-theme=dark]{${css(PD.maple.d)}}html[data-palette=maple] body::before{content:"";position:fixed;left:0;right:0;bottom:0;height:130px;background:${leaves} repeat-x left bottom/auto 100px;z-index:-1;pointer-events:none}`;document.head.appendChild(s)})();
+const MAPLE=new Path2D('M0,-1 L0.18,-0.62 L0.5,-0.7 L0.42,-0.3 L0.8,-0.38 L0.62,-0.05 L0.95,0.1 L0.45,0.3 L0.5,0.55 L0.12,0.45 L0.1,0.9 L-0.1,0.9 L-0.12,0.45 L-0.5,0.55 L-0.45,0.3 L-0.95,0.1 L-0.62,-0.05 L-0.8,-0.38 L-0.42,-0.3 L-0.5,-0.7 L-0.18,-0.62 Z');
+function fxSync(){const px=PX[U.pal],want=!!(px&&px.fx&&FX.on&&!matchMedia('(prefers-reduced-motion: reduce)').matches);
+ if(!want){if(FX.c)fxStop();return}
+ const cs=getComputedStyle(document.documentElement);FX.col=cs.getPropertyValue('--fx').trim()||'#ffffff';FX.col2=cs.getPropertyValue('--fx2').trim()||FX.col;FX.col3=cs.getPropertyValue('--fx3').trim()||FX.col2;
+ if(FX.c&&FX.t===px.fx)return;fxStop();FX.t=px.fx;
+ const c=document.createElement('canvas');c.style.cssText='position:fixed;left:0;top:0;width:100%;height:100%;z-index:40;pointer-events:none';document.body.appendChild(c);FX.c=c;const ctx=c.getContext('2d');
+ FX.rz=()=>{c.width=innerWidth;c.height=innerHeight};FX.rz();window.addEventListener('resize',FX.rz);
+ const snow=px.fx==='snow',leaf=px.fx==='leaf',n=snow?(innerWidth<500?55:110):leaf?(innerWidth<500?18:30):28,R=Math.random;
+ FX.p=Array.from({length:n},()=>({x:R()*c.width,y:R()*c.height,r:snow?1+R()*2.6:leaf?7+R()*7:2+R()*2.2,v:snow?.4+R():leaf?.7+R()*.9:.5+R()*.8,w:R()*6.28,s:.005+R()*.02,a:R()*6.28,fl:R()*6.28,ci:Math.floor(R()*3),alt:R()<.5}));
+ const loop=()=>{ctx.clearRect(0,0,c.width,c.height);
+  FX.p.forEach(p=>{p.w+=p.s;p.y+=p.v;p.x+=Math.sin(p.w)*(snow?.5:leaf?1.1:.9)+(snow?0:.3);if(p.y>c.height+20){p.y=-20;p.x=R()*c.width}if(p.x>c.width+20)p.x=-20;if(p.x<-20)p.x=c.width+20;
+   if(snow){ctx.globalAlpha=.9;ctx.fillStyle=FX.col;ctx.beginPath();ctx.arc(p.x,p.y,p.r,0,6.283);ctx.fill()}
+   else if(leaf){p.a+=.015;p.fl+=.03;ctx.save();ctx.translate(p.x,p.y);ctx.rotate(p.a);ctx.scale(p.r*(.55+.45*Math.abs(Math.cos(p.fl))),p.r);ctx.globalAlpha=.88;ctx.fillStyle=[FX.col,FX.col2,FX.col3][p.ci];ctx.fill(MAPLE);ctx.restore()}
+   else{p.a+=.02;ctx.save();ctx.translate(p.x,p.y);ctx.rotate(p.a);ctx.globalAlpha=.85;ctx.fillStyle=p.alt?FX.col2:FX.col;ctx.beginPath();ctx.ellipse(0,0,p.r*2.2,p.r*1.2,0,0,6.283);ctx.fill();ctx.restore()}});
+  FX.raf=requestAnimationFrame(loop)};loop()}
 
 /* ===== 畫面 ===== */
 function applyTheme(){const t=U.theme,dark=t==='dark'||(t==='auto'&&matchMedia('(prefers-color-scheme: dark)').matches);document.documentElement.setAttribute('data-theme',dark?'dark':'light')}
