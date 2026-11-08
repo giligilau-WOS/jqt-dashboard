@@ -1,763 +1,706 @@
-<!DOCTYPE html>
-<html lang="zh-Hant">
-<head>
-<meta charset="utf-8">
-<meta name="viewport" content="width=device-width,initial-scale=1">
-<meta name="apple-mobile-web-app-capable" content="yes">
-<meta name="apple-mobile-web-app-title" content="2611王國">
-<title>2611王國</title>
-<style>
-:root{--bg:#f4f5fb;--s1:#fff;--s2:#eef0f8;--bd:#dfe2ef;--t1:#1b1f3a;--t2:#5d6485;--ac:#4f46e5;--acb:#e6e4ff;--ok:#15803d;--dg:#dc2626;--dgb:#fde8e8;--wn:#9a5b00;--wnb:#fff1d0;--btxt:#fff;--l0:120,126,145;--l1:124,58,237;--l2:13,148,136}
-html[data-theme=dark]{--bg:#0e1120;--s1:#171b30;--s2:#1f2440;--bd:#2c3256;--t1:#e8ebff;--t2:#9aa2c8;--ac:#8b86ff;--acb:#2a2860;--ok:#4ade80;--dg:#f87171;--dgb:#3a1d24;--wn:#fbbf24;--wnb:#3a2e12;--btxt:#0e1120;--l0:160,166,185;--l1:167,139,250;--l2:45,212,191}
-*{box-sizing:border-box}
-html{overflow-x:hidden;-webkit-text-size-adjust:100%}
-body{margin:0;background:var(--bg);color:var(--t1);font:15px/1.5 -apple-system,"PingFang TC","Noto Sans TC","Microsoft JhengHei",sans-serif;padding-bottom:124px;overflow-x:clip}
-#top{display:flex;align-items:center;gap:8px;padding:10px 14px;background:linear-gradient(135deg,#4f46e5,#7c3aed);color:#fff}
-#top b{font-size:18px}.grow{flex:1}
-#main{max-width:1200px;margin:0 auto;padding:12px;display:flex;flex-direction:column;gap:12px;min-width:0}
-#main>*{min-width:0}
-.card{background:var(--s1);border:1px solid var(--bd);border-radius:14px;padding:14px;overflow-wrap:anywhere}
-.card h3{margin:0 0 6px;font-size:16px}
-.sub{font-size:13px;color:var(--t2)}
-.row{display:flex;flex-wrap:wrap;gap:8px;align-items:center}
-.sp{justify-content:space-between}
-.btn{border:1px solid var(--bd);background:var(--s1);color:var(--t1);border-radius:10px;padding:9px 14px;font-size:15px;cursor:pointer;min-height:40px}
-.btn.sm{padding:6px 10px;font-size:13px;min-height:32px}
-.btn.pri,.btn.on{background:var(--ac);color:var(--btxt);border-color:var(--ac)}
-.btn:disabled{opacity:.45;cursor:not-allowed}
-input,select,textarea{font:inherit;font-size:16px;color:var(--t1);background:var(--s1);border:1px solid var(--bd);border-radius:10px;padding:9px 10px;min-width:0;max-width:100%}
-textarea{width:100%;min-height:120px}
-.bd{display:inline-block;font-size:12px;padding:1px 8px;border-radius:6px;background:var(--s2);color:var(--t2)}
-.bd.a{background:var(--acb);color:var(--ac)}.bd.w{background:var(--wnb);color:var(--wn)}.bd.d{background:var(--dgb);color:var(--dg)}
-.grid{display:grid;gap:10px}
-.g2{grid-template-columns:repeat(auto-fit,minmax(min(100%,240px),1fr))}
-.g4{grid-template-columns:repeat(auto-fit,minmax(min(100%,110px),1fr))}
-.mt{background:var(--s2);border-radius:10px;padding:8px 10px}
-.mt .v{font-size:19px;font-weight:700}
-.tabsb{display:flex;gap:6px;overflow-x:auto}
-#nav{position:fixed;left:0;right:0;bottom:0;display:flex;gap:4px;background:var(--s1);border-top:1px solid var(--bd);padding:6px 6px calc(env(safe-area-inset-bottom) + 14px);z-index:30;border-radius:18px 18px 0 0;box-shadow:0 -4px 14px rgba(30,35,70,.1)}
-#nav button{flex:1;min-width:0;min-height:58px;margin-top:2px;border:0;background:transparent;color:var(--t2);font-size:14px;border-radius:12px;cursor:pointer;line-height:1.2}
-#nav button.on{background:var(--acb);color:var(--ac);font-weight:700}
-.tw{overflow:auto;max-height:68vh;border:1px solid var(--bd);border-radius:12px;background:var(--s1);-webkit-overflow-scrolling:touch}
-.pt{border-collapse:separate;border-spacing:0;min-width:100%}
-.pt th,.pt td{padding:0 12px;height:40px;white-space:nowrap;border-bottom:1px solid var(--bd);text-align:left;font-size:14px}
-.pt th{position:sticky;top:0;background:var(--s2);z-index:2;cursor:pointer;font-weight:600}
-.pt td.nm,.pt th.nm{position:sticky;left:0;background:var(--s1);z-index:1;max-width:40vw;overflow:hidden;text-overflow:ellipsis;font-weight:600}
-.pt th.nm{background:var(--s2);z-index:3}
-.pt tbody tr{cursor:pointer}
-.pt tr.hl td{background:var(--acb)}
-.pt th.fl{color:var(--ac)}
-.sug{border:1px solid var(--bd);border-radius:12px;background:var(--s1);margin-top:6px;overflow:hidden}
-.sg{padding:12px 14px;min-height:46px;display:flex;align-items:center;gap:8px;border-bottom:1px solid var(--bd);cursor:pointer}
-.sg:last-child{border-bottom:0}
-.l0{--lc:var(--l0)}.l1{--lc:var(--l1)}.l2{--lc:var(--l2)}
-.lgb{display:inline-block;font-size:12px;font-weight:700;padding:1px 9px;border-radius:6px;color:var(--btxt);background:rgb(var(--lc))}
-.btn.lgbtn{border:2px solid rgb(var(--lc));color:rgb(var(--lc));font-weight:700}
-.btn.lgbtn.on{background:rgb(var(--lc));color:var(--btxt)}
-#sheet{position:fixed;inset:0;z-index:50;display:none}
-#sheet.on{display:block}
-#sheet .bk{position:absolute;inset:0;background:rgba(0,0,0,.45)}
-#sheet .pn{position:absolute;left:0;right:0;bottom:0;max-height:92vh;overflow:auto;background:var(--bg);border-radius:18px 18px 0 0;padding:14px 14px calc(env(safe-area-inset-bottom) + 28px);display:flex;flex-direction:column;gap:12px}
-@media(min-width:760px){#sheet .pn{left:50%;transform:translateX(-50%);width:640px;bottom:4vh;border-radius:18px}}
-#toast{position:fixed;left:50%;bottom:112px;transform:translateX(-50%);background:#222;color:#fff;padding:10px 16px;border-radius:12px;opacity:0;pointer-events:none;transition:opacity .2s;z-index:80;max-width:88vw;font-size:14px}
-#toast.on{opacity:1}
-</style>
-</head>
-<body>
-<header id="top"></header>
-<main id="main"></main>
-<nav id="nav"></nav>
-<div id="sheet"></div>
-<div id="toast"></div>
-<script src="config.js"></script>
-<script>
-'use strict';
-const APP_VERSION='5.1.0';
-const $=s=>document.querySelector(s);
-const esc=s=>String(s==null?'':s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
-const nz=s=>String(s==null?'':s).normalize('NFKC').toLowerCase().replace(/[\s\p{P}\p{S}]+/gu,'');
-function fmtP(n){n=Number(n)||0;if(n>=1e8)return(n/1e8).toFixed(2)+' 億';if(n>=1e4)return Math.round(n/1e4).toLocaleString()+' 萬';return String(n)}
-const dlt=v=>v==null?'<span class="sub">—</span>':v>0?`<span style="color:var(--ok)">▲ ${fmtP(v)}</span>`:v<0?`<span style="color:var(--dg)">▼ ${fmtP(-v)}</span>`:'<span class="sub">0</span>';
-const fmtT=ms=>new Date(ms).toLocaleString('zh-TW',{hour12:false,month:'numeric',day:'numeric',hour:'2-digit',minute:'2-digit'});
-const toLocalIn=iso=>{const d=new Date(iso),p=n=>String(n).padStart(2,'0');return d.getFullYear()+'-'+p(d.getMonth()+1)+'-'+p(d.getDate())+'T'+p(d.getHours())+':'+p(d.getMinutes())};
-function toast(m){const t=$('#toast');t.textContent=m;t.classList.add('on');clearTimeout(toast.t);toast.t=setTimeout(()=>t.classList.remove('on'),2800)}
-function copyText(s){const fb=()=>{const a=document.createElement('textarea');a.value=s;document.body.appendChild(a);a.select();try{document.execCommand('copy');toast('已複製')}catch(e){toast('複製失敗，請手動選取')}a.remove()};if(navigator.clipboard&&navigator.clipboard.writeText)navigator.clipboard.writeText(s).then(()=>toast('已複製'),fb);else fb()}
+/**
+ * iPad 學習與生活管理面板 —— 後端 v17（正式版，含收藏雲端備份、含隱藏任務選項、含許願池、含署名 logo、含信箱、平常考、段考進步加碼、任務時間、計時任務、含段考課表、寶物編號、記帳修正、限時與條件任務、家長修改任務、商店、特殊任務）
+ *
+ * 【第一次安裝】
+ * 1. 打開試算表 → 擴充功能 → Apps Script → 刪光原本內容 → 貼上這整份 → 存檔
+ * 2. 上方函式選單選「setup」→ 按「執行」→ 授權
+ *    會自動建立 7 張分頁並放入範例資料（已存在的分頁不會被覆蓋）
+ * 3. 部署 → 管理部署作業 → 鉛筆 → 版本選「新版本」→ 部署（網址不變）
+ *
+ * 【家長日常使用】直接用手機 Google 試算表 App 修改各分頁即可，iPad 會自動同步。
+ * 專案裡只能有這一份程式碼。
+ */
 
-/* ===== 活動設定 ===== */
-const EV=[['foundry','兵工廠','聯盟內活動'],['canyon','峽谷會戰','聯盟內活動'],['sfc','太陽城','聯盟間活動'],['tal','雪域兵器聯賽','王國間活動'],['frost','霜龍霸主','王國間活動']];
-const EVN={};EV.forEach(e=>{EVN[e[0]]=e[1]});
-const INNER=['foundry','canyon'];
-const CAP={foundry:{n:80,t:'每聯盟最多 2 個軍團，每軍團 30 正選 + 10 候補，熔爐 16 級以上'},canyon:{n:80,t:'每聯盟最多 2 個軍團，每軍團 30 正選 + 10 候補，至少 15 人才能配對'},sfc:{n:0,t:'州內每個聯盟都能參加，沒有名額上限'},tal:{n:100,t:'每軍團 30 正選 + 20 候補，最多 2 個軍團，名單報名後鎖定'},frost:{n:60,t:'最多派 60 人，報名階段後才加入聯盟的人失格'}};
-const CHN={'1':'軍團一','2':'軍團二','in':'參加','out':'不克參加'};
-const SG=[['loh','英雄之地'],['cave','魔物洞穴'],['charm','魅力礦場'],['rc','研究中心'],['forge','裝備鍛造'],['gaia','蓋亞之心']];
-const DLG=[['inner','聯盟內活動（兵工廠、峽谷會戰）',['foundry','canyon']],['sfc','太陽城',['sfc']],['tal','雪域兵器聯賽',['tal']],['frost','霜龍霸主',['frost']]];
-const ERR={closed:'報名已截止，一般玩家無法變更',unknown_fid:'名冊裡找不到這個人',forbidden:'連結的密碼不正確',forbidden_staff:'需要幹部或管理員登入',forbidden_admin:'需要管理員',bad_fields:'資料不完整',bad_login:'名字或密碼不正確，或你不是 R4／R5'};
-const DEF_ACC='主：主流兔 / 小：盟浪兔、兔仔子\n主：冬來冬往 / 小：小冬冬\n主：劼吉撈 / 小：乂Oo煞气ㄟ屁孩oO乂\n主：Masaorange / 小：小馬殺、小馬哥\n主：小螞蟻 / 小：小小螞蟻\n主：快樂永伴 / 小：HappyHappy\n主：一念關山 / 小：一念觀山\n主：PekingDuck / 小：北京烤鸭\n主：YI9908zh / 小：Yi2\n主：周星星 / 小：麻麻豆豆~\n主：錢包包 / 小：錢多多\n主：Rueiii / 小：小梅幾';
+var SECRET = 'change-me-1234';   // 要和 iPad 面板裡的 API_KEY 一樣
+var APP = 'ipad-panel';
+var VER = 10;
+var TZ = 'Asia/Taipei';
 
-/* ===== 儲存、連線、登入 ===== */
-const Store={get(k,d){try{const v=localStorage.getItem('k2611-'+k);return v==null?d:JSON.parse(v)}catch(e){return d}},set(k,v){try{localStorage.setItem('k2611-'+k,JSON.stringify(v))}catch(e){}},del(k){try{localStorage.removeItem('k2611-'+k)}catch(e){}}};
-const QP=new URLSearchParams(location.search);
-let CFG=Store.get('cfg',{url:'',token:''});const BUILTIN={url:'',token:''}; /* 想把連線直接寫進網頁：把 Apps Script 網址貼在 url 的引號裡 */ const DEFC=window.K2611_CFG||BUILTIN;if(DEFC.url)CFG={url:DEFC.url,token:DEFC.token||''};
-if(QP.get('api')){CFG={url:QP.get('api'),token:QP.get('t')||''};Store.set('cfg',CFG)}
-let AU=Store.get('auth',null);
-const isAdmin=()=>!!AU&&AU.role==='admin',isCadre=()=>!!AU&&AU.role==='cadre',isStaff=()=>!!AU;
-const authBody=()=>!AU?{}:AU.role==='admin'?{pin:AU.pin}:{fid:AU.fid,code:AU.code};
-async function apiGet(params){if(!CFG.url)throw new Error('NOURL');const q=Object.assign({token:CFG.token||'',_:Date.now()},params),u=CFG.url+(CFG.url.includes('?')?'&':'?')+Object.entries(q).map(([k,v])=>k+'='+encodeURIComponent(v)).join('&'),ctl=new AbortController(),to=setTimeout(()=>ctl.abort(),30000);
- try{const r=await fetch(u,{cache:'no-store',signal:ctl.signal});if(!r.ok)throw new Error('HTTP '+r.status);const j=await r.json();if(j.status==='forbidden')throw new Error('連結的密碼不正確');if(j.status==='error')throw new Error(j.message);return j}
- catch(e){throw new Error(e.name==='AbortError'?'連線逾時，請稍後再試':e.message)}finally{clearTimeout(to)}}
-async function apiPost(body,authOverride){if(!CFG.url)throw new Error('NOURL');const ctl=new AbortController(),to=setTimeout(()=>ctl.abort(),30000);
- try{const r=await fetch(CFG.url,{method:'POST',headers:{'Content-Type':'text/plain;charset=utf-8'},body:JSON.stringify(Object.assign({token:CFG.token||''},authOverride||authBody(),body)),signal:ctl.signal});if(!r.ok)throw new Error('HTTP '+r.status);return await r.json()}
- catch(e){throw new Error(e.name==='AbortError'?'連線逾時，請稍後再試（可能已經送出，請重新整理確認）':e.message)}finally{clearTimeout(to)}}
+/* ===================== 一鍵建立分頁 ===================== */
 
-/* ===== 資料 ===== */
-const D={rows:[],byF:{},regs:{},acc:[],accOf:{},card:{},dls:{},meta:{},off:0,updatedAt:'',stLoaded:false,stBusy:false,stErr:'',detTried:false};
-const U={tab:'players',theme:Store.get('theme','auto'),sh:null,sg:{},clr:{},tg:{},pend:new Set()};
-const P={sort:{k:'power',dir:-1},filt:{},cols:Store.get('cols',['al','rk','power','furn','kills','d7','reg']),view:[],act:[],hl:''};
-const nowS=()=>Date.now()+D.off;
-const regOf=(ev,f)=>(D.regs[ev]||{})[f];
-const closed=ev=>{const d=D.dls[ev];return !!d&&Date.parse(d)<=nowS()};
-function remain(ev){const d=Date.parse(D.dls[ev]);if(!d)return'';const s=Math.max(0,Math.floor((d-nowS())/1000)),dd=Math.floor(s/86400),h=Math.floor(s%86400/3600),m=Math.floor(s%3600/60);return(dd?dd+' 天 ':'')+h+' 小時 '+m+' 分'}
-const canReg=(ev,r)=>!closed(ev)||isAdmin()||(isCadre()&&INNER.includes(ev)&&r.al===AU.al);
-const regTok=f=>{const t=EV.filter(e=>{const g=regOf(e[0],f);return g&&g.choice!=='out'}).map(e=>e[1]);return t.length?t:['未報名']};
-const regCount=f=>EV.filter(e=>{const g=regOf(e[0],f);return g&&g.choice!=='out'}).length;
-const chips=f=>EV.map(([k,l])=>{const g=regOf(k,f);if(!g||g.choice==='out')return'';return`<span class="${g.choice==='1'||g.choice==='2'?'lgb l'+g.choice:'bd a'}" style="margin-right:3px">${l.slice(0,1)}</span>`}).join('')||'<span class="sub">—</span>';
-function mapDt(a){const st={},g=x=>x===''||x==null?null:Number(x);SG.forEach(([k],i)=>{const b=3+i*3;st[k]={l:String(a[b]||''),n:a[b+1]===''||a[b+1]==null?0:Number(a[b+1])||0,r:g(a[b+2])}});return{vip:Number(a[0])||0,lab:Number(a[1])||0,labR:g(a[2]),st,pr:g(a[21]),kr:g(a[22]),fr:g(a[23]),ts:Number(a[24])||0,tsR:g(a[25]),d:String(a[26]||'')}}
-function syncMeta(j){if(j.now)D.off=Number(j.now)-Date.now();if(j.deadlines)D.dls=j.deadlines}
-async function loadState(){D.stBusy=true;D.stErr='';try{const j=await apiGet({action:'state'});if(j.status!=='ok')throw new Error(j.status==='empty'?'名冊還沒有資料，請幹部先在 Apps Script 執行 syncStateRoster':'回傳格式不正確');
-  const n=x=>x===''||x==null?null:Number(x);D.rows=j.rows.map(a=>({fid:String(a[0]),name:String(a[1]==null?'':a[1]),al:String(a[2]||''),rk:String(a[3]||''),power:+a[4]||0,furn:+a[5]||0,kills:+a[6]||0,src:String(a[7]||''),d1:n(a[8]),d7:n(a[9]),rkN:+a[10]||0}));
-  D.byF={};D.rows.forEach(r=>{D.byF[r.fid]=r});D.meta=j.meta||{};D.updatedAt=String(j.updatedAt||'');syncMeta(j);D.detTried=false}
- catch(e){D.stErr=e.message}D.stBusy=false;D.stLoaded=true;afterLoad();if(!D.stErr&&isStaff())loadDetail()}
-async function loadRegs(){try{const j=await apiGet({action:'regsall'});D.regs=j.regs||{};syncMeta(j)}catch(e){if(e.message!=='NOURL')D.regsErr=e.message}afterLoad()}
-async function loadAcc(){try{const j=await apiGet({action:'accounts'});D.acc=j.groups||[];D.accOf={};D.acc.forEach(g=>g.members.forEach(m=>{D.accOf[m.fid]=g}))}catch(e){}afterLoad()}
-async function loadDetail(){if(D.detTried||!D.rows.length)return;D.detTried=true;try{const j=await apiGet({action:'stdetail'}),d=j.details||{};D.rows.forEach(r=>{if(d[r.fid])r.dt=mapDt(d[r.fid])})}catch(e){}afterLoad()}
-async function loadCard(fid){if(D.card[fid]&&D.card[fid]!=='err')return;D.card[fid]='load';try{D.card[fid]=await apiGet({action:'card',fid})}catch(e){D.card[fid]='err'}if(U.sh&&U.sh.fid===fid)renderSheet()}
-function afterLoad(){render();if(U.sh)renderSheet()}
+var SHEETS = {
+  Tasks: {
+    head: TASK_HEAD,
+    note: TASK_NOTE,
+    rows: [
+      [1, '寫功課', '平日', 2, '是', '', '準時', '20:00', 1, '', '否', '18:30', ''],
+      [2, '閱讀 20 分鐘', '每天', 1, '是', '', '計時', '20', 0, '', '否', '20:30', ''],
+      [3, '整理書包', '平日', 1, '是', '', '限時挑戰', '10', 1, '', '否', '20:00', ''],
+      [4, '刷牙洗臉', '每天', 1, '是', '', '限時挑戰', '3', 1, '', '否', '07:00', ''],
+      [5, '喝水', '每天', 1, '是', '', '次數', '6', 0, '', '否', '', ''],
+      [6, '練習樂器', '一三五', 1, '是', '', '一般', '', 0, '', '否', '17:30', ''],
+      [7, '看卡通', '平日', 1, '否', '', '一般', '', 0, '寫功課', '否', '19:30', ''],
+      [8, '整理房間', '週末', 2, '否', '', '一般', '', 0, '', '是', '10:00', ''],
+      [9, '早起打卡', '平日', 1, '否', '', '時段打卡', '06:30-07:15', 0, '', '否', '', ''],
+      [10, '今天專注 2 次', '每天', 1, '否', '', '專注', '2', 0, '', '否', '', '']
+    ]
+  },
+  Schedule: {
+    head: ['節次', '時間', '一', '二', '三', '四', '五'],
+    note: '節次填「放學後」的那一列會顯示成放學後行程。',
+    rows: [
+      ['1', '08:40', '國語', '數學', '國語', '英語', '數學'],
+      ['2', '09:30', '數學', '國語', '體育', '國語', '社會'],
+      ['3', '10:30', '體育', '音樂', '數學', '自然', '美勞'],
+      ['4', '11:20', '自然', '社會', '英語', '數學', '美勞'],
+      ['5', '13:30', '社會', '體育', '', '綜合', '國語'],
+      ['6', '14:20', '英語', '自然', '', '體育', ''],
+      ['放學後', '', '安親班', '鋼琴課', '安親班', '游泳', '安親班']
+    ]
+  },
+  ExamSchedule: {
+    head: ['日期', '節次', '考試科目', '備註'],
+    note: '段考特殊課表：當天填寫的節次會自動換成考試科目，其他節照常上課。節次要和 Schedule 的節次寫法一樣（1、2、3…）。',
+    rows: [
+      ['2026-12-03', '1', '國語', ''],
+      ['2026-12-03', '2', '數學', ''],
+      ['2026-12-03', '4', '自然', ''],
+      ['2026-12-04', '1', '英語', ''],
+      ['2026-12-04', '2', '社會', '']
+    ],
+    textCols: [1, 2]
+  },
+  Reminders: {
+    head: ['科目關鍵字', '攜帶物品', '服裝叮嚀', '指定日期'],
+    note: '關鍵字填「每天」代表每天都要帶。填了指定日期（例如 2026-11-20）就只在那天提醒。物品用「、」分隔。',
+    rows: [
+      ['每天', '聯絡簿、鉛筆盒、水壺', '', ''],
+      ['體育', '毛巾', '穿運動服和球鞋', ''],
+      ['音樂', '直笛、音樂課本', '', ''],
+      ['美勞', '美勞用具、彩色筆', '', ''],
+      ['英語', '英語課本', '', ''],
+      ['', '校外教學費 200 元', '', '2026-11-20']
+    ]
+  },
+  Config: {
+    head: ['類別', '項目', '值', '備註'],
+    note: '段考、停課日可以有很多列。',
+    rows: [
+      ['段考', '第二次段考', '2026-12-03', ''],
+      ['段考', '期末考', '2027-01-15', ''],
+      ['存錢', '目標名稱', '樂高', ''],
+      ['存錢', '目標金額', 1500, ''],
+      ['設定', '家長密碼', '0000', '四位數字，請修改'],
+      ['設定', '蕃茄鐘完成星數', 1, ''],
+      ['設定', '夜間開始時間', 21, '24 小時制'],
+      ['設定', '夜間結束時間', 6, ''],
+      ['停課日', '範例：補假', '2026-12-25', '一列一天']
+    ],
+    textCols: [3]
+  },
+  Rewards: {
+    head: ['獎勵名稱', '所需星數', '連動零用錢', '置頂', '啟用'],
+    note: '連動零用錢填金額，兌換時會自動記一筆收入。置頂填「是」的會顯示在進度條上。',
+    rows: [
+      ['零用錢 50 元', 20, 50, '是', '是'],
+      ['看卡通 30 分鐘', 10, 0, '', '是'],
+      ['週末出去玩', 40, 0, '', '是']
+    ]
+  },
+  Special: {
+    head: ['編號', '名稱', '類型', '日期', '科目', '計算方式', '分數下限', '滿分', '獎勵下限', '獎勵上限', '自訂區段', '計分對象', '狀態', '分數紀錄', '獲得寶石', '進步加碼'],
+    note: '特殊任務（段考、檢定考等），建議用 iPad 的「家長設定 → 特殊任務」新增與登記分數。\n' +
+      '計算方式：自動＝分數下限到滿分之間，依比例給「獎勵下限～獎勵上限」；區段＝依自訂區段（例如 90:10,80:6）；通過＝達到分數下限就給「獎勵上限」。\n' +
+      '計分對象：每科＝每科分開算再加總；平均＝用平均分數算一次。',
+    rows: [
+      ['SP1', '第二次段考', '段考', '2026-12-03', '國語、數學、英語、自然、社會', '自動', 60, 100, 1, 10, '', '每科', '進行中', '', 0, 0],
+      ['SP2', '英檢初級', '檢定考', '2027-03-20', '英檢', '通過', 1, 1, 0, 30, '', '每科', '進行中', '', 0]
+    ],
+    textCols: [1, 4, 11, 14]
+  },
+  Shop: {
+    head: ['商品編號', '名稱', '價格', '上架'],
+    note: '商店的 50 種預設商品，只有家長改過價格或下架的才會出現在這裡。建議用 iPad 的「家長設定 → 商店管理」修改。',
+    rows: [],
+    textCols: [1]
+  },
+  Ledger: {
+    head: ['id', '日期', '收支', '項目', '金額', '來源'],
+    note: '家長可以直接新增一列（id 留空），收支填「收入」或「支出」。',
+    rows: [['', '2026-11-01', '收入', '每週零用錢', 100, '家長']],
+    textCols: [1]
+  },
+  StarLog: {
+    head: ['id', '時間', '星數', '原因', '類型', '參照'],
+    note: '星星紀錄，由 iPad 自動寫入。要手動加減星星，新增一列只填「星數」和「原因」即可。',
+    rows: [],
+    textCols: [1, 2, 6]
+  },
+  Quiz: {
+    head: ['編號', '時間', '科目', '分數', '滿分', '獲得寶石', '寶物', '寶物代號'],
+    note: '平常考紀錄，由 iPad 的「特殊任務 → 平常考登記」自動寫入。',
+    rows: [],
+    textCols: [1, 2, 8]
+  },
+  Wish: {
+    head: ['編號', '許願時間', '願望', '價格', '小布丁存', '爸媽贊助', '狀態', '爸媽的話', '小布丁的話', '圖示', '實現時間'],
+    note: '許願池，建議用 iPad 的「家長特區 → 許願池」回覆。狀態：等爸媽回覆／存錢中／已實現／先不要。',
+    rows: [],
+    textCols: [1, 2]
+  },
+  Backup: {
+    head: ['備份時間', '裝置', '大小', '資料1', '資料2', '資料3', '資料4'],
+    note: '收藏雲端備份（寶物、預告函、展示櫃等），由 iPad 自動寫入，最新的在最上面，保留最近 20 份。請不要手動修改。',
+    rows: [],
+    textCols: [1, 4, 5, 6, 7]
+  },
+  Mail: {
+    head: ['編號', '投遞時間', '寄件人', '收件人', '標題', '內容', '狀態', '署名圖'],
+    note: '怪盜信箱。要偷偷寫信給小布丁：新增一列，填「投遞時間」（例如 2026-11-08 06:30，留空＝馬上）、寄件人（例如 怪盜基德的父母）、收件人填「小布丁」、標題、內容。\n' +
+      '編號會自動產生。狀態：未讀／已讀／刪除（填「刪除」就會收回）。收件人是「爸媽」的是小布丁寄給你們的信。',
+    rows: [],
+    textCols: [1, 2]
+  }
+};
 
-/* ===== 表格欄位 ===== */
-const rkc=(k,l)=>({k,l,t:'n',asc:1,det:1,v:r=>r.dt?r.dt[k]:null,d:r=>r.dt&&r.dt[k]?'#'+r.dt[k]:'—'});
-const NAMECOL={k:'name',l:'名稱',t:'s',asc:1,v:r=>r.name};
-const COLS=[
- {k:'al',l:'聯盟',t:'s',asc:1,v:r=>r.al||'（無聯盟）',d:r=>esc(r.al||'—')},
- {k:'rk',l:'階級',t:'s',asc:1,v:r=>r.rk||'—',d:r=>esc(r.rk||'—')},
- {k:'power',l:'戰力',t:'n',u:1e8,ul:'億',v:r=>r.power,d:r=>fmtP(r.power)},
- {k:'furn',l:'熔爐',t:'n',v:r=>r.furn,d:r=>r.furn||'—'},
- {k:'kills',l:'擊殺',t:'n',u:1e4,ul:'萬',v:r=>r.kills,d:r=>r.kills?Math.round(r.kills/1e4).toLocaleString()+' 萬':'—'},
- {k:'d1',l:'日增',t:'n',u:1e4,ul:'萬',v:r=>r.d1,d:r=>dlt(r.d1)},
- {k:'d7',l:'7日增',t:'n',u:1e4,ul:'萬',v:r=>r.d7,d:r=>dlt(r.d7)},
- {k:'reg',l:'報名',t:'s',v:r=>regTok(r.fid),sv:r=>regCount(r.fid),d:r=>chips(r.fid)},
- {k:'vip',l:'VIP',t:'n',det:1,v:r=>r.dt?r.dt.vip:null,d:r=>r.dt?r.dt.vip:'—'},
- {k:'lab',l:'迷宮',t:'n',det:1,v:r=>r.dt?r.dt.lab:null,d:r=>r.dt?r.dt.lab.toLocaleString():'—'}
-].concat(SG.map(([k,l])=>({k,l,t:'n',det:1,v:r=>r.dt?r.dt.st[k].n:null,d:r=>r.dt&&r.dt.st[k].l?r.dt.st[k].l:'—'})),[rkc('pr','戰力排名'),rkc('kr','擊殺排名'),rkc('fr','熔爐排名'),{k:'ts',l:'遷服積分',t:'n',det:1,v:r=>r.dt?r.dt.ts:null,d:r=>r.dt?r.dt.ts.toLocaleString():'—'}]);
-const colOf=k=>k==='name'?NAMECOL:COLS.find(c=>c.k===k);
-function passF(r){for(const k in P.filt){const c=colOf(k),f=P.filt[k];if(!c)continue;const v=c.v(r);
- if(f.vals){const arr=Array.isArray(v)?v:[v];if(!arr.some(x=>f.vals.includes(String(x==null?'':x))))return false}
- else if(f.text!=null){if(!nz(v).includes(nz(f.text)))return false}
- else{if(v==null)return false;const x=v/(c.u||1);if(f.min!=null&&x<f.min)return false;if(f.max!=null&&x>f.max)return false}}return true}
-function rebuild(){P.act=P.cols.map(colOf).filter(c=>c&&(!c.det||isStaff()));const sk=P.sort,c=colOf(sk.k)||colOf('power'),f=c.sv||c.v;
- const a=D.rows.filter(passF);a.sort((x,y)=>{const u=f(x),w=f(y);if(u==null&&w==null)return 0;if(u==null)return 1;if(w==null)return -1;return(c.t==='s'?String(u).localeCompare(String(w),'zh-Hant'):u-w)*sk.dir});P.view=a}
-function uniq(c){const m={};D.rows.forEach(r=>{const v=c.v(r),arr=Array.isArray(v)?v:[v];arr.forEach(x=>{const s=String(x==null?'':x);m[s]=(m[s]||0)+1})});return Object.keys(m).sort((a,b)=>m[b]-m[a]||a.localeCompare(b)).map(k=>[k,m[k]])}
-function fdesc(k){const f=P.filt[k];if(f.vals)return f.vals.slice(0,3).join('、')+(f.vals.length>3?'…（'+f.vals.length+'）':'');if(f.text!=null)return f.text;return(f.min!=null?f.min:'')+'～'+(f.max!=null?f.max:'')}
-const RH=40;
-function rowHtml(r){return`<tr data-fid="${r.fid}"${P.hl===r.fid?' class="hl"':''}><td class="nm">${esc(r.name)}</td>${P.act.map(c=>`<td>${c.d(r)}</td>`).join('')}</tr>`}
-function drawRows(){const box=$('#tw'),tb=$('#ptb');if(!box||!tb)return;const rows=P.view,n=rows.length,cs=P.act.length+1,st=Math.max(0,Math.floor(box.scrollTop/RH)-8),en=Math.min(n,st+Math.ceil(box.clientHeight/RH)+16);
- const sp=h=>h>0?`<tr style="height:${h}px"><td colspan="${cs}" style="padding:0;border:0"></td></tr>`:'';
- tb.innerHTML=sp(st*RH)+rows.slice(st,en).map(rowHtml).join('')+sp((n-en)*RH)||`<tr><td colspan="${cs}" style="padding:12px">沒有符合的玩家</td></tr>`}
-function suggest(q,only){q=nz(q);if(!q)return[];const a=[];for(const r of D.rows){if(only&&!only(r))continue;const k=nz(r.name);let s=0;if(k===q)s=3;else if(k.startsWith(q))s=2;else if(k.includes(q))s=1;else if(/^\d+$/.test(q)&&r.fid.includes(q))s=1;if(s)a.push([s,r])}a.sort((x,y)=>y[0]-x[0]||y[1].power-x[1].power);return a.slice(0,8).map(x=>x[1])}
-const sugHtml=(list,act)=>list.length?`<div class="sug">${list.map(r=>`<div class="sg" data-a="${act}" data-v="${r.fid}"><b>${esc(r.name)}</b><span class="sub">${esc(r.al||'無聯盟')} ${esc(r.rk||'')}</span></div>`).join('')}</div>`:'<div class="sub" style="padding:8px 2px">找不到相近的名字</div>';
-function jump(fid){const r=D.byF[fid];if(!r)return;let i=P.view.indexOf(r);if(i<0){P.filt={};rebuild();i=P.view.indexOf(r);U.tab='players';render()}const box=$('#tw');if(!box)return;P.hl=fid;box.scrollTop=Math.max(0,i*RH-box.clientHeight/2+RH);drawRows();box.scrollIntoView({behavior:'smooth',block:'start'});clearTimeout(jump.t);jump.t=setTimeout(()=>{P.hl='';drawRows()},6000);const q=$('#qs');if(q)q.value=r.name;const s=$('#sugq');if(s)s.innerHTML='';toast('已跳到 '+r.name+'，點那一列可以報名或看歷史')}
+var TASK_HEAD = ['排序', '任務名稱', '適用星期', '獎勵星數', '啟用', '寶物編號', '類型', '條件', '加碼星數', '解鎖條件', '家長確認', '時間', '隱藏'];
+var TASK_TYPES = ['一般', '準時', '限時挑戰', '計時', '時段打卡', '次數', '連續', '專注'];
+var OLD_TYPE = { '截止': '準時', '挑戰': '限時挑戰', '時段': '時段打卡' };
+var TASK_NOTE = '類型（怎麼完成）與條件：\n' +
+  '一般：條件留空\n準時：截止時間，例如 20:00（準時完成多拿加碼星數）\n' +
+  '限時挑戰：分鐘數，例如 10（點開始後在時間內完成多拿加碼）\n計時：分鐘數，例如 20（點開始計時，累積滿 20 分鐘才能打勾，可暫停）\n時段打卡：例如 06:30-07:15（只有這段時間能打卡）\n' +
+  '次數：例如 6（點滿 6 次才完成）\n連續：天數，例如 7（每連續 7 天多拿加碼）\n專注：次數，例如 2（今天專注滿 2 次自動完成）\n' +
+  '加碼星數：只有準時、限時挑戰、連續會用到。\n解鎖條件：填另一個任務名稱，先完成它才能做。\n家長確認：填「是」，打勾時要家長密碼。\n' +
+  '時間：什麼時候做，例如 07:00（任務會照早上到晚上排列，可留空）\n隱藏：有解鎖條件時，填「是」＝完成條件前看不到（預設），填「否」＝先顯示但鎖住\n適用星期：每天、平日、假日，或直接寫星期幾，例如「一三五」「六日」\n寶物編號：1～100，留空自動分配。建議用 iPad 的「家長設定」修改，有下拉選單比較不會填錯。';
 
-/* ===== 頁面 ===== */
-function loadingCard(t){return`<div class="card">${t||'載入中…'}</div>`}
-function errCard(){const m=D.stErr==='NOURL'?'這個網址還沒有設定戰情室連線。請使用幹部給你的連結，或到「後台設定」填寫連線設定。':esc(D.stErr);return`<div class="card" style="border-color:var(--dg)"><b>讀不到王國名冊</b><div class="sub" style="margin-top:6px">${m}</div>${/密碼/.test(String(D.stErr))?`<div class="sub" style="margin-top:8px">網頁裡的存取密碼，和 Apps Script 的 ACCESS_TOKEN 不一樣。最簡單的做法：到 Apps Script「專案設定 → 指令碼屬性」把 ACCESS_TOKEN 這一列刪掉，再按重新載入。如果這台裝置曾用舊連結開過，可以先按下面的「清除本機連線設定」。</div><div class="row" style="margin-top:8px"><button class="btn" data-a="cfgReset">清除本機連線設定</button></div>`:''}<div class="row" style="margin-top:8px"><button class="btn" data-a="reload">重新載入</button></div></div>`}
-function pgPlayers(){if(!D.stLoaded)return loadingCard('載入全王國名冊中…');if(D.stErr)return errCard();rebuild();const m=D.meta||{},ks=Object.keys(P.filt);
- return`<div class="card"><h3>2611 王國全玩家</h3><div class="sub">這是寒霜啟示錄 2611 王國的玩家名冊。可以像試算表一樣排序、篩選：點欄位標題。輸入名字可以直接跳到那位玩家在表格中的位置，點一位玩家就能報名活動、看歷史紀錄。</div><div class="sub" style="margin-top:6px">已收錄 ${D.rows.length} 人，來自 ${m.ok||'—'} / ${m.alliances||'—'} 個聯盟（統計站讀不到 ${m.fail||0} 個聯盟，沒加入聯盟的玩家也可能抓不到）· 更新：${esc(D.updatedAt)}</div></div>
- <div class="card"><input id="qs" autocomplete="off" placeholder="輸入名字，直接跳到表格中的位置" style="width:100%"><div id="sugq"></div>
- <div class="row sp" style="margin-top:8px"><span class="sub" id="cnt">${P.view.length} / ${D.rows.length} 人</span><span class="row"><button class="btn sm" data-a="colsT">${U.colsOpen?'收合欄位':'選擇欄位'}</button><button class="btn sm" data-a="reload">重新整理</button></span></div>
- ${U.colsOpen?`<div class="row" style="margin-top:8px;gap:6px">${COLS.filter(c=>!c.det||isStaff()).map(c=>`<button class="btn sm ${P.cols.includes(c.k)?'on':''}" data-a="colTog" data-v="${c.k}">${c.l}</button>`).join('')}</div>${isStaff()?'':'<div class="sub" style="margin-top:6px">VIP、迷宮、關卡等細項只有幹部看得到</div>'}`:''}
- ${ks.length?`<div class="row" style="margin-top:8px">${ks.map(k=>`<span class="bd a">${esc(colOf(k).l)}：${esc(fdesc(k))} <a data-a="fClear" data-v="${k}" style="cursor:pointer">✕</a></span>`).join('')}<button class="btn sm" data-a="fClearAll">清除全部篩選</button></div>`:''}</div>
- <div class="tw" id="tw"><table class="pt"><thead><tr><th class="nm${P.filt.name?' fl':''}" data-a="hmenu" data-v="name">名稱${P.sort.k==='name'?(P.sort.dir>0?' ▲':' ▼'):''}</th>${P.act.map(c=>`<th class="${P.filt[c.k]?'fl':''}" data-a="hmenu" data-v="${c.k}">${c.l}${P.sort.k===c.k?(P.sort.dir>0?' ▲':' ▼'):''}${P.filt[c.k]?' ●':''}</th>`).join('')}</tr></thead><tbody id="ptb"></tbody></table></div>`}
-function sgBody(k,fids,m){const nm=f=>{const r=D.byF[f];return`<div class="row sp" style="padding:4px 0;border-bottom:1px solid var(--bd)"><span>${esc(r.name)}${r.furn&&r.furn<16?' <span style="color:var(--wn)">⚠</span>':''}</span><span class="sub">${fmtP(r.power)}</span></div>`};
- if(!fids.length)return'<div class="sub" style="margin-top:8px">還沒有人報名</div>';
- if(INNER.includes(k)){const g={};fids.forEach(f=>{const al=D.byF[f].al||'—',lg=m[f].choice==='2'?'2':'1';if(!g[al])g[al]={'1':[],'2':[]};g[al][lg].push(f)});
-  return Object.keys(g).sort((x,y)=>(y==='jQt')-(x==='jQt')||(y==='aQt')-(x==='aQt')||(g[y]['1'].length+g[y]['2'].length)-(g[x]['1'].length+g[x]['2'].length)).map(al=>`<div style="margin-top:10px"><b>${esc(al)}</b><div class="grid g2" style="margin-top:6px">${['1','2'].map(lg=>{const a=g[al][lg].sort((x,y)=>D.byF[y].power-D.byF[x].power),over=a.length>40;return`<div class="card" style="padding:8px"><div class="row sp"><span class="lgb l${lg}">${CHN[lg]}</span><span class="${over?'bd d':'sub'}">${a.length} 人${over?'・超額 '+(a.length-40):''}${k==='canyon'&&a.length&&a.length<15?'・未滿 15':''}</span></div>${a.map(nm).join('')}</div>`}).join('')}</div></div>`).join('')}
- const a=fids.slice().sort((x,y)=>D.byF[y].power-D.byF[x].power);
- if(k==='sfc'){const g={};a.forEach(f=>{const al=D.byF[f].al||'—';(g[al]=g[al]||[]).push(f)});return Object.keys(g).sort((x,y)=>g[y].length-g[x].length).map(al=>`<div style="margin-top:10px"><b>${esc(al)}</b> <span class="sub">${g[al].length} 人</span>${g[al].map(nm).join('')}</div>`).join('')}
- return`<div style="margin-top:8px">${a.map(f=>{const r=D.byF[f],tg=m[f].play;return`<div class="row sp" style="padding:4px 0;border-bottom:1px solid var(--bd)"><span>${esc(r.name)}${r.furn&&r.furn<16?' <span style="color:var(--wn)">⚠</span>':''} <span class="sub">${esc(r.al||'無聯盟')}${tg&&tg!==r.al?' → '+esc(tg):''}</span></span><span class="sub">${fmtP(r.power)}</span></div>`}).join('')}${CAP[k].n&&a.length>CAP[k].n?`<div class="sub" style="color:var(--dg);margin-top:4px">超過 ${CAP[k].n} 人，需要幹部選拔</div>`:''}</div>`}
-function pgSignups(){if(!D.stLoaded)return loadingCard();if(D.stErr)return errCard();
- let h=`<div class="card"><h3>王國活動報名列表</h3><div class="sub">在「全玩家」勾選的活動，會自動出現在這裡。點活動標題展開名單。人數規則來自第三方攻略，實際以遊戲內為準。</div></div>`;
- EV.forEach(([k,l,grp])=>{const m=D.regs[k]||{},fids=Object.keys(m).filter(f=>m[f].choice!=='out'&&D.byF[f]),cap=CAP[k],cl=closed(k),open=U.sg[k];
-  h+=`<div class="card"><div class="row sp" data-a="sgT" data-v="${k}" style="cursor:pointer"><div><b style="font-size:16px">${l}</b> <span class="sub">${grp}</span><div class="sub">${cap.t}</div></div><div style="text-align:right"><div style="font-size:20px;font-weight:700">${fids.length}${cap.n?` <span class="sub">/ ${cap.n}</span>`:''}</div>${cl?'<span class="bd w">已截止</span>':D.dls[k]?`<span class="bd a">還剩 ${remain(k)}</span>`:''}</div></div>${open?`<div class="row" style="margin-top:8px"><button class="btn sm" data-a="copyEv" data-v="${k}">複製名單（貼到 LINE）</button>${INNER.includes(k)?'':`<button class="btn sm pri" data-a="ntc" data-v="${k}">產生通知（LINE／頻道）</button>`}</div>${sgBody(k,fids,m)}`:''}</div>`});
- return h}
-function evText(k){const m=D.regs[k]||{},fids=Object.keys(m).filter(f=>m[f].choice!=='out'&&D.byF[f]);let t=`【${EVN[k]}報名名單】共 ${fids.length} 人\n`;
- if(INNER.includes(k)){const g={};fids.forEach(f=>{const r=D.byF[f],al=r.al||'—';if(!g[al])g[al]={'1':[],'2':[]};g[al][m[f].choice==='2'?'2':'1'].push(r)});Object.keys(g).forEach(al=>{t+=`\n${al}\n`;['1','2'].forEach(lg=>{const a=g[al][lg].sort((x,y)=>y.power-x.power);t+=`${CHN[lg]}（${a.length} 人）：${a.map(r=>r.name).join('、')||'無'}\n`})})}
- else{const a=fids.map(f=>D.byF[f]).sort((x,y)=>y.power-x.power);t+=a.map(r=>r.name+(m[r.fid].play&&m[r.fid].play!==r.al?'（→'+m[r.fid].play+'）':'')).join('、')}
- return t}
-function pgListsOld(){const cnt=k=>Object.keys(D.regs[k]||{}).filter(f=>D.regs[k][f].choice!=='out').length;
- return`<div class="card"><h3>活動名單（聯盟內活動分隊）</h3><div class="sub">這一頁是給各聯盟幹部，用「全玩家」裡報名的人分隊：選聯盟（可多選，jQt・aQt 有特區）→ 選兵工廠或峽谷 → 設定各隊出戰時間與分隊邏輯 → 預覽 → 一鍵產出報告（可貼到 LINE）→ 鎖定。<br>這一部分在下一個版本開放，目前只能先看報名人數。</div></div><div class="card"><b>目前報名人數</b><div class="grid g4" style="margin-top:8px">${INNER.map(k=>`<div class="mt"><div class="sub">${EVN[k]}</div><div class="v">${cnt(k)}</div></div>`).join('')}</div></div>`}
+/* 舊版的 Tasks 分頁升級：補上「寶物編號、類型、條件、加碼星數」欄位與下拉選單。只需要執行一次。 */
+function upgradeTasks() {
+  var sh = SpreadsheetApp.getActiveSpreadsheet().getSheetByName('Tasks');
+  if (!sh) { setup(); return; }
+  sh.getRange(1, 1, 1, TASK_HEAD.length).setValues([TASK_HEAD]).setFontWeight('bold').setBackground('#e8f0fe');
+  sh.getRange(1, 1).setNote(TASK_NOTE);
+  taskValidation_(sh);
+  var last = sh.getLastRow();
+  if (last > 1) {
+    var v = sh.getRange(2, 7, last - 1, 5).getValues();       // 類型、條件、加碼、解鎖條件、家長確認
+    for (var i = 0; i < v.length; i++) {
+      var t = String(v[i][0] || '一般');
+      if (t === '前置') { v[i][3] = v[i][1]; v[i][1] = ''; t = '一般'; }
+      if (t === '家長確認') { v[i][4] = '是'; t = '一般'; }
+      v[i][0] = OLD_TYPE[t] || t;
+      if (v[i][4] === '') v[i][4] = '否';
+    }
+    sh.getRange(2, 7, last - 1, 5).setValues(v);
+  }
+  try { SpreadsheetApp.getUi().alert('Tasks 分頁已升級完成！'); } catch (e) {}
+}
+function taskValidation_(sh) {
+  var rule = SpreadsheetApp.newDataValidation().requireValueInList(TASK_TYPES, true).setAllowInvalid(false).build();
+  sh.getRange(2, 7, 300, 1).setDataValidation(rule);
+  var yes = SpreadsheetApp.newDataValidation().requireValueInList(['是', '否'], true).build();
+  sh.getRange(2, 5, 300, 1).setDataValidation(yes);
+  sh.getRange(2, 11, 300, 1).setDataValidation(yes);
+  sh.getRange(2, 13, 300, 1).setDataValidation(yes);
+  sh.getRange(2, 8, 300, 1).setNumberFormat('@');
+  sh.getRange(2, 12, 300, 1).setNumberFormat('@');
+}
 
-/* ===== 後台設定 ===== */
-const elig=r=>r.rkN>=4||/^(R[45]\b|leader|盟主)/i.test(r.rk||'');
-function lgSelect(){const m={};D.rows.filter(elig).forEach(r=>{const k=r.al||'（無聯盟）';(m[k]=m[k]||[]).push(r)});return Object.keys(m).sort((a,b)=>(b==='jQt')-(a==='jQt')||(b==='aQt')-(a==='aQt')||m[b].length-m[a].length).map(al=>`<optgroup label="${esc(al)}（${m[al].length}）">${m[al].sort((x,y)=>y.power-x.power).map(r=>`<option value="${r.fid}" ${U.lg&&U.lg.fid===r.fid?'selected':''}>${esc(r.name)}（${esc(r.rk||'')}）</option>`).join('')}</optgroup>`).join('')}
-function lgInfo(){if(!D.rows.length)return'<div class="sub" style="color:var(--dg);margin-top:6px">名冊還沒載入，所以選不到名字。請先到下方「戰情室連線」確認網址與密碼，再到「全玩家」按「重新整理」。</div>';const n=D.rows.filter(elig).length;return n?`<div class="sub" style="margin-top:6px">名冊裡有 ${n} 位 R4／R5 可以選。輸入名字的一部分，下面會列出相近的人。</div>`:'<div class="sub" style="color:var(--dg);margin-top:6px">名冊裡找不到任何 R4／R5。可能是 Apps Script 還沒重新部署成最新版本，或階級資料還沒更新。</div>'}
-function loginHtml2(){const mode=U.lgMode||'cadre',sel=U.lg&&D.byF[U.lg.fid];
- const tabs=`<div class="row"><button class="btn ${mode==='cadre'?'on':''}" data-a="lgMode" data-v="cadre">我是聯盟幹部（R4／R5）</button><button class="btn ${mode==='admin'?'on':''}" data-a="lgMode" data-v="admin">我是管理員</button></div>`;
- const body=mode==='admin'?`<div class="sub" style="margin-top:12px"><b>管理員不用輸入名字，只要輸入 PIN。</b></div><input id="lgp" type="password" autocomplete="off" placeholder="管理員 PIN" style="width:100%;margin-top:8px"><div class="row" style="margin-top:8px"><button class="btn pri" data-a="loginAdmin">登入</button></div>`
- :`<div class="sub" style="margin-top:12px"><b>步驟 1：找到你的名字。</b>輸入名字的一部分，下面會列出相近的 R4／R5，點一下就選好；也可以直接用下拉選單選。</div>${lgInfo()}<input id="lgq" autocomplete="off" placeholder="輸入名字的幾個字" style="width:100%;margin-top:8px"><div id="lgsug"><div class="sub" style="margin-top:6px">打幾個字，這裡就會列出相近的人</div></div><div class="row" style="margin-top:8px"><span class="sub">或</span><select id="lgsel" style="flex:1"><option value="">從 R4／R5 名單選擇…</option>${lgSelect()}</select></div>${sel?`<div class="card" style="margin-top:10px;background:var(--acb)">已選：<b>${esc(sel.name)}</b>（${esc(sel.al)} ${esc(sel.rk)}）</div>`:'<div class="sub" style="color:var(--wn);margin-top:10px">還沒選名字</div>'}<div class="sub" style="margin-top:12px"><b>步驟 2：輸入幹部密碼。</b></div><input id="lgc" type="password" autocomplete="off" placeholder="幹部密碼" style="width:100%;margin-top:8px"><div class="row" style="margin-top:8px"><button class="btn pri" data-a="login">登入</button></div>`;
- return`<div class="card"><h3>後台登入</h3>${tabs}${body}<div class="sub" style="margin-top:14px">網頁版本 ${APP_VERSION}</div></div>`}
-function loginHtml(){const sel=U.lg&&D.byF[U.lg.fid];return`<div class="card"><h3>幹部登入</h3><div class="sub">只有遊戲內階級是 R4 或 R5 的人可以登入。輸入你的名字，點選後再輸入幹部密碼。</div>${lgInfo()}<input id="lgq" autocomplete="off" placeholder="輸入你的名字（打幾個字就會出現選單）" style="width:100%;margin-top:8px"><div id="lgsug"></div><div class="row" style="margin-top:8px"><span class="sub">或</span><select id="lgsel" style="flex:1"><option value="">從 R4／R5 名單選擇…</option>${lgSelect()}</select></div>${sel?`<div class="sub" style="margin-top:8px">已選：<b>${esc(sel.name)}</b>（${esc(sel.al)} ${esc(sel.rk)}）</div>`:''}<input id="lgc" type="password" autocomplete="off" placeholder="幹部密碼" style="width:100%;margin-top:8px"><div class="row" style="margin-top:8px"><button class="btn pri" data-a="login">登入</button></div></div><div class="card"><h3>管理員登入</h3><input id="lgp" type="password" autocomplete="off" placeholder="管理員 PIN" style="width:100%"><div class="row" style="margin-top:8px"><button class="btn pri" data-a="loginAdmin">登入</button></div></div>`}
-function statusHtml(){const m=D.meta||{};return`<div class="card"><h3>資料狀態</h3><div class="sub">收錄 ${D.rows.length} 人 · 聯盟 ${m.ok||0} / ${m.alliances||0} 個成功 · 更新 ${esc(D.updatedAt)}</div>${(m.failed||[]).length?`<div class="sub" style="margin-top:6px">統計站讀不到的聯盟：${esc(m.failed.join('、'))}</div>`:''}</div>`}
-function dlHtml(){return`<div class="card"><h3>報名截止時間</h3><div class="sub">到時間後，一般玩家無法再變更；聯盟幹部只能改自己聯盟的聯盟內活動，管理員可以改全部。</div>${DLG.map(([k,l,evs])=>{const d=D.dls[evs[0]];return`<div style="margin-top:12px"><b>${l}</b> <span class="sub">${d?(closed(evs[0])?'已截止':'報名中')+'（'+fmtT(Date.parse(d))+'）':'沒有設定'}</span><div class="row" style="margin-top:6px"><input type="datetime-local" id="dl_${k}" value="${d?toLocalIn(d):''}" style="flex:1"><button class="btn sm pri" data-a="dlSet" data-v="${k}">設定截止</button></div><div class="row" style="margin-top:6px"><button class="btn sm" data-a="dlNow" data-v="${k}">立即截止</button><button class="btn sm" data-a="dlClear" data-v="${k}">重新開放</button></div></div>`}).join('')}</div>`}
-const regTotal=(k,al)=>Object.keys(D.regs[k]||{}).filter(f=>D.byF[f]&&(!al||D.byF[f].al===al)).length;
-function clrHtml(){const evs=isAdmin()?EV:EV.filter(e=>INNER.includes(e[0])),arm=U.clrArm,al=isAdmin()?'':AU.al;
- return`<div class="card"><h3>清除報名</h3><div class="sub">勾選要清除的活動。清掉的紀錄會先封存到試算表，不會真的消失。${isAdmin()?'':'你只能清除自己聯盟（'+esc(AU.al)+'）的人。'}</div><div style="margin-top:8px">${evs.map(([k,l])=>`<label style="display:flex;gap:8px;padding:6px 0;align-items:center"><input type="checkbox" data-clr="${k}" ${U.clr[k]?'checked':''} style="width:20px;height:20px"> ${l} <span class="sub">（${regTotal(k,al)} 人）</span></label>`).join('')}</div><div class="row" style="margin-top:8px"><button class="btn ${arm?'pri':''}" data-a="clrGo">${arm?'再按一次確認清除':'清除選取的報名'}</button></div></div>`}
-function findByName(q){const k=nz(q);if(!k)return null;let c=D.rows.filter(r=>nz(r.name)===k);if(c.length>1){const o=c.filter(r=>r.al==='jQt'||r.al==='aQt');if(o.length===1)c=o}return c.length===1?c[0]:null}
-function impResHtml(){const r=U.impRes;if(!r)return'';return`<div style="margin-top:10px">${r.ok.length?`<div class="sub">比對成功 ${r.ok.length} 組：</div>${r.ok.map(g=>`<div style="padding:3px 0">✓ ${esc(g.label)}</div>`).join('')}<div class="row" style="margin-top:8px"><button class="btn pri" data-a="impGo">匯入這 ${r.ok.length} 組</button></div>`:'<div class="sub">沒有比對成功的組別</div>'}${r.bad.length?`<div class="sub" style="margin-top:10px;color:var(--wn)">沒對上的名字（可能已改名、含特殊符號，或名冊裡沒有）：${esc(r.bad.join('、'))}。這些請到「全玩家」點該玩家，用「綁定另一個帳號」手動處理。</div>`:''}</div>`}
-function accMgrHtml(){return`<div class="card"><h3>大小號綁定</h3><div class="sub">一個人可以有多個帳號。個別綁定請到「全玩家」點該玩家；這裡可以批次匯入，也能看到全部的綁定。</div><div class="sub" style="margin-top:8px">目前共 ${D.acc.length} 組</div>${D.acc.map(g=>`<div style="padding:6px 0;border-top:1px solid var(--bd)">${g.members.map(m=>{const o=D.byF[m.fid];return`<span class="bd ${m.role==='主'?'a':''}" style="margin-right:4px">${esc(o?o.name:m.fid)}・${m.role}</span>`}).join('')}</div>`).join('')}<h3 style="margin-top:14px">批次匯入</h3><div class="sub">每行一組，格式「主：名字 / 小：名字、名字」。系統會用名字去名冊比對遊戲 ID。</div><textarea id="imp" placeholder="主：主流兔 / 小：盟浪兔、兔仔子" style="margin-top:6px">${esc(U.impText||'')}</textarea><div class="row" style="margin-top:8px"><button class="btn" data-a="impFill">填入舊文件的名單</button><button class="btn" data-a="impCheck">比對名單</button></div>${impResHtml()}</div>`}
-function shareLink(){return location.origin+location.pathname+'?api='+encodeURIComponent(CFG.url||'')+'&t='+encodeURIComponent(CFG.token||'')}
-function connHtml(){return`<div class="card"><h3>戰情室連線</h3><div class="sub">Apps Script 網址（結尾是 /exec）和存取密碼。用幹部給的連結打開時，這裡會自動填好。</div><input id="cfu" autocomplete="off" placeholder="Apps Script 網址" value="${esc(CFG.url||'')}" style="width:100%;margin-top:8px"><input id="cft" type="password" autocomplete="off" placeholder="存取密碼" value="${esc(CFG.token||'')}" style="width:100%;margin-top:8px"><div class="row" style="margin-top:8px"><button class="btn pri" data-a="cfgSave">儲存連線設定</button></div>${isStaff()&&CFG.url?`<div class="sub" style="margin-top:12px">分享給玩家的連結（含存取密碼，只分享給遊戲內的人）</div><input readonly id="shl" value="${esc(shareLink())}" style="width:100%;margin-top:4px"><div class="row" style="margin-top:6px"><button class="btn" data-a="copyLink">複製連結</button></div>`:''}</div>`}
-function verHtml(){return`<div class="card"><h3>版本</h3><div class="sub">目前版本 ${APP_VERSION}</div><div class="row" style="margin-top:8px"><button class="btn" data-a="verCheck">檢查有沒有新版本</button></div>${U.ver?`<div class="sub" style="margin-top:6px">${esc(U.ver)}</div>`:''}</div>`}
-function pgAdmin(){if(!AU)return loginHtml2()+connHtml()+verHtml();
- return`<div class="card"><div class="row sp"><div><b>${isAdmin()?'管理員':'聯盟幹部'}</b><div class="sub">${esc(AU.name||'')}${AU.al&&AU.al!=='*'?' · '+esc(AU.al):''}</div></div><button class="btn" data-a="logout">登出</button></div></div>`+statusHtml()+(isAdmin()?dlHtml():'')+clrHtml()+accMgrHtml()+connHtml()+verHtml()}
+function setup() {
+  var ss = SpreadsheetApp.getActiveSpreadsheet();
+  var made = [];
+  for (var name in SHEETS) {
+    if (!SHEETS.hasOwnProperty(name)) continue;
+    if (ss.getSheetByName(name)) continue;
+    makeSheet_(ss, name);
+    made.push(name);
+  }
+  var first = ss.getSheets()[0];
+  if (ss.getSheets().length > 1 && first.getLastRow() === 0 && !SHEETS[first.getName()]) {
+    ss.deleteSheet(first);
+  }
+  var msg = made.length ? '已建立：' + made.join('、') : '所有分頁都已存在，沒有變更';
+  try { SpreadsheetApp.getUi().alert(msg); } catch (e) {}
+  return msg;
+}
+function makeSheet_(ss, name) {
+    var def = SHEETS[name];
+    var sh = ss.insertSheet(name);
+    if (def.textCols) {
+      for (var c = 0; c < def.textCols.length; c++) {
+        sh.getRange(1, def.textCols[c], sh.getMaxRows(), 1).setNumberFormat('@');
+      }
+    }
+    sh.getRange(1, 1, 1, def.head.length).setValues([def.head]).setFontWeight('bold').setBackground('#e8f0fe');
+    sh.getRange(1, 1).setNote(def.note);
+    if (def.rows.length) sh.getRange(2, 1, def.rows.length, def.head.length).setValues(def.rows);
+    sh.setFrozenRows(1);
+    sh.autoResizeColumns(1, def.head.length);
+    if (name === 'Tasks') taskValidation_(sh);
+    return sh;
+}
 
-/* ===== 玩家視窗：報名、帳號、歷史紀錄 ===== */
-function regPanel(r){let h='';EV.forEach(([k,l,grp])=>{const g=regOf(k,r.fid),ch=g?g.choice:'',ok=canReg(k,r),dis=ok?'':' disabled',cl=closed(k);
- h+=`<div class="card"><div class="row sp"><b>${l}</b><span class="sub">${grp}${cl?(ok?' · 已截止（你有權限修改）':' · 已截止'):D.dls[k]?' · 還剩 '+remain(k):''}</span></div><div class="row" style="margin-top:8px">`;
- if(INNER.includes(k))h+=['1','2'].map(v=>`<button class="btn lgbtn l${v} ${ch===v?'on':''}"${dis} data-a="reg" data-ev="${k}" data-v="${v}">${CHN[v]}</button>`).join('');
- else h+=`<button class="btn ${ch==='in'?'pri':''}"${dis} data-a="reg" data-ev="${k}" data-v="in">${ch==='in'?'已參加'+(g&&g.note?'・'+g.note:''):'參加'}</button>`;
- h+=`<button class="btn"${(!g||ch==='out'||!ok)?' disabled':''} data-a="reg" data-ev="${k}" data-v="out">取消報名</button></div>`;
- if(k==='tal'||k==='frost')h+=`<div class="row" style="margin-top:8px"><span class="sub">目標聯盟：</span><input data-tg="${k}" autocomplete="off" placeholder="${esc((g&&g.play)||r.al||'聯盟簡稱')}" value="${esc(U.tg[k]||'')}" style="flex:1"></div><div class="sub">跨聯盟報名時，請在報名截止前先加入目標聯盟</div>`;
- if(r.furn&&r.furn<16&&k!=='sfc')h+=`<div class="sub" style="color:var(--wn);margin-top:6px">熔爐未滿 16 級，通常不能參加</div>`;
- h+='</div>'});return h}
-function accHtml(r){const g=D.accOf[r.fid],oth=g?g.members.filter(m=>m.fid!==r.fid):[];let h='';
- if(oth.length)h+=`<div class="card"><b>同一個人的其他帳號</b><div class="row" style="margin-top:6px">${oth.map(m=>{const o=D.byF[m.fid];return`<span class="bd a" data-a="openPl" data-v="${m.fid}" style="cursor:pointer;font-size:13px;padding:4px 10px">${esc(o?o.name:m.fid)}（${m.role}）</span>`}).join('')}</div>${isStaff()?`<div class="row" style="margin-top:8px"><button class="btn sm" data-a="unbind" data-v="${r.fid}">解除這個帳號的綁定</button></div>`:''}</div>`;
- if(isStaff()){const b=U.sh.bind;if(!b)h+=`<div class="row"><button class="btn sm" data-a="bindOpen">綁定另一個帳號（大小號）</button></div>`;
-  else{const p=b.pick&&D.byF[b.pick];h+=`<div class="card"><b>綁定大小號</b><div class="sub">輸入另一個帳號的名字，點選後設定哪個是主號。</div><input id="bq" autocomplete="off" placeholder="另一個帳號的名字" style="width:100%;margin-top:8px"><div id="bsug"></div>${p?`<div class="sub" style="margin-top:8px">已選：<b>${esc(p.name)}</b>（${esc(p.al||'無聯盟')}）</div><div class="row" style="margin-top:6px"><span class="sub">主號是：</span><button class="btn sm ${b.main==='self'?'on':''}" data-a="bindMain" data-v="self">${esc(r.name)}</button><button class="btn sm ${b.main==='other'?'on':''}" data-a="bindMain" data-v="other">${esc(p.name)}</button></div><div class="row" style="margin-top:8px"><button class="btn pri" data-a="bindGo">綁定</button><button class="btn" data-a="bindCancel">取消</button></div>`:`<div class="row" style="margin-top:8px"><button class="btn" data-a="bindCancel">取消</button></div>`}</div>`}}
- return h}
-function chart(title,pts,fy){if(pts.length<2)return`<div class="card"><h3>${title}</h3><div class="sub">資料累積中，至少要有兩筆紀錄才會出現走勢（目前 ${pts.length} 筆）</div></div>`;
- const W=340,H=150,L=52,R=10,T=10,B=24,vs=pts.map(p=>p.v),mn=Math.min(...vs),mx=Math.max(...vs),sp=(mx-mn)||1,X=i=>L+(W-L-R)*i/(pts.length-1),Y=v=>T+(H-T-B)*(1-(v-mn)/sp);
- const d=pts.map((p,i)=>(i?'L':'M')+X(i).toFixed(1)+' '+Y(p.v).toFixed(1)).join(' ');
- return`<div class="card"><h3>${title}</h3><svg viewBox="0 0 ${W} ${H}" style="width:100%;height:auto"><line x1="${L}" y1="${T}" x2="${L}" y2="${H-B}" stroke="var(--bd)"/><line x1="${L}" y1="${H-B}" x2="${W-R}" y2="${H-B}" stroke="var(--bd)"/><path d="${d}" fill="none" stroke="var(--ac)" stroke-width="2.2"/>${pts.length<=30?pts.map((p,i)=>`<circle cx="${X(i).toFixed(1)}" cy="${Y(p.v).toFixed(1)}" r="2.6" fill="var(--ac)"/>`).join(''):''}<text x="${L-4}" y="${T+4}" text-anchor="end" font-size="10" fill="var(--t2)">${fy(mx)}</text><text x="${L-4}" y="${H-B}" text-anchor="end" font-size="10" fill="var(--t2)">${fy(mn)}</text><text x="${L}" y="${H-6}" font-size="10" fill="var(--t2)">${esc(pts[0].l)}</text><text x="${W-R}" y="${H-6}" text-anchor="end" font-size="10" fill="var(--t2)">${esc(pts[pts.length-1].l)}</text></svg></div>`}
-function detailHtml(c){const a=c.detail||[];if(!a.length)return`<div class="card"><h3>玩家檔案</h3><div class="sub">還沒有資料（VIP、迷宮、六個關卡，jQt 和 aQt 每天更新，其他人每兩週更新）</div></div>`;
- const L=a[a.length-1],m=U.dm||'gaia',val=x=>m==='lab'?x.lab.n:((x.st[m]||{}).n||0),rk=r=>r==null?'100+':'#'+r;
- return`<div class="card"><h3>玩家檔案 <span class="sub">${esc(L.d)}</span></h3><div class="grid g4"><div class="mt"><div class="sub">VIP</div><b>${L.vip}</b></div><div class="mt"><div class="sub">迷宮</div><b>${L.lab.n.toLocaleString()}</b> <span class="sub">${rk(L.lab.r)}</span></div>${SG.map(([k,l])=>{const s=L.st[k]||{};return`<div class="mt"><div class="sub">${l}</div><b>${esc(s.l||'—')}</b> <span class="sub">${rk(s.r)}</span></div>`}).join('')}</div><div class="sub" style="margin-top:8px">全服排名：戰力 ${L.pr?'#'+L.pr:'—'} · 擊殺 ${L.kr?'#'+L.kr:'—'} · 熔爐 ${L.fr?'#'+L.fr:'—'}</div><div class="row" style="margin-top:8px">${[['lab','迷宮']].concat(SG).map(([k,l])=>`<button class="btn sm ${m===k?'on':''}" data-a="dm" data-v="${k}">${l}</button>`).join('')}</div></div>`+chart('累計通過關數走勢',a.map(x=>({l:x.d.slice(5),v:val(x)})),v=>Math.round(v))}
-function histHtml(r){const c=D.card[r.fid];if(!c||c==='load')return'<div class="card">載入歷史紀錄中…</div>';if(c==='err')return`<div class="card" style="border-color:var(--dg)">讀不到歷史紀錄<div class="row" style="margin-top:8px"><button class="btn" data-a="cardRetry">重試</button></div></div>`;
- const s=c.series||[];let h=chart('戰力走勢',s.map(x=>({l:x.d.slice(5),v:x.power})),fmtP)+chart('擊殺走勢',s.map(x=>({l:x.d.slice(5),v:x.kills})),fmtP)+chart('熔爐等級',s.map(x=>({l:x.d.slice(5),v:x.furnace})),v=>Math.round(v));
- const nm=c.names||[];h+=`<div class="card"><h3>暱稱歷程</h3>${nm.length?nm.map((x,i)=>`<div class="row sp" style="padding:6px 0;border-bottom:1px solid var(--bd)"><span><b>${esc(x.name)}</b>${i===nm.length-1?' <span class="bd a">目前</span>':''}</span><span class="sub">${esc(x.first)}${x.last!==x.first?' ～ '+esc(x.last):''}</span></div>`).join('')+(nm.length===1?'<div class="sub" style="margin-top:6px">目前沒有改名紀錄（紀錄從系統開始同步那天算起）</div>':''):'<div class="sub">尚無紀錄</div>'}</div>`;
- const mv=c.moves||[];h+=`<div class="card"><h3>聯盟異動</h3>${mv.length?mv.map(x=>`<div class="row sp" style="padding:6px 0;border-bottom:1px solid var(--bd)"><span>${esc(x.from||'無聯盟')} → <b>${esc(x.to||'無聯盟')}</b></span><span class="sub">${esc(x.d)}</span></div>`).join(''):'<div class="sub">沒有異動紀錄（從系統開始同步那天算起）</div>'}</div>`;
- const rg=(c.regs||[]).slice().reverse();h+=`<div class="card"><h3>報名紀錄</h3>${rg.length?rg.map(x=>`<div class="row sp" style="padding:6px 0;border-bottom:1px solid var(--bd)"><span>${esc(EVN[x.event]||x.event)} · <b>${esc(CHN[x.choice]||x.choice)}</b>${x.play?' <span class="sub">'+esc(x.play)+'</span>':''}${x.by&&x.by!=='self'?' <span class="bd p">'+(x.by==='admin'?'管理員修改':'幹部修改')+'</span>':''}</span><span class="sub">${esc(String(x.at).slice(0,16))}</span></div>`).join(''):'<div class="sub">尚無報名紀錄</div>'}</div>`;
- if(isStaff())h+=detailHtml(c)+`<div class="card"><h3>出席紀錄</h3><div class="sub">之後的版本開放：賽後總結完成後，這裡會顯示出席率與缺席次數，只有幹部看得到。</div></div>`;
- return h}
-function menuHtml(k){const c=colOf(k),f=P.filt[k],asc=P.sort.k===k&&P.sort.dir>0,desc=P.sort.k===k&&P.sort.dir<0;
- let h=`<div class="row sp"><b style="font-size:17px">${esc(c.l)}</b><button class="btn sm" data-close>✕</button></div><div class="row"><button class="btn ${asc?'on':''}" data-a="sort" data-v="${k}|1">升序 ▲</button><button class="btn ${desc?'on':''}" data-a="sort" data-v="${k}|-1">降序 ▼</button></div>`;
- if(c.t==='n')h+=`<div class="card"><b>篩選數值範圍${c.ul?'（單位：'+c.ul+'）':''}</b><div class="row" style="margin-top:8px;flex-wrap:nowrap"><input id="fmin" inputmode="decimal" placeholder="最小值" value="${f&&f.min!=null?f.min:''}" style="flex:1"><span>～</span><input id="fmax" inputmode="decimal" placeholder="最大值" value="${f&&f.max!=null?f.max:''}" style="flex:1"></div></div>`;
- else if(k==='name')h+=`<div class="card"><b>名稱包含</b><input id="ftext" autocomplete="off" placeholder="輸入關鍵字" value="${esc(f&&f.text!=null?f.text:'')}" style="width:100%;margin-top:8px"></div>`;
- else{const vals=uniq(c),sel=new Set(f&&f.vals?f.vals:vals.map(x=>x[0]));U.pend=sel;h+=`<div class="card"><input id="fsq" autocomplete="off" placeholder="搜尋選項" style="width:100%"><div class="row" style="margin:8px 0"><button class="btn sm" data-a="fAll">全選</button><button class="btn sm" data-a="fNone">全不選</button></div><div id="fl" style="max-height:38vh;overflow:auto">${vals.slice(0,500).map(([v,n])=>`<label class="fi" data-t="${esc(nz(v)||v)}" style="display:flex;gap:8px;padding:7px 0;align-items:center"><input type="checkbox" data-ck="${esc(v)}" ${sel.has(v)?'checked':''} style="width:20px;height:20px"><span>${esc(v)}</span><span class="sub">(${n})</span></label>`).join('')}</div></div>`}
- return h+`<div class="row"><button class="btn pri" data-a="fApply" data-v="${k}">套用篩選</button><button class="btn" data-a="fClear" data-v="${k}">清除此欄篩選</button></div>`}
-function playerSheet(fid){const r=D.byF[fid];if(!r)return'';const tab=U.sh.tab||'reg';
- return`<div class="row sp"><div><b style="font-size:18px">${esc(r.name)}</b><div class="sub">${esc(r.al||'無聯盟')} · ${esc(r.rk||'')} · FID ${esc(r.fid)}</div></div><button class="btn sm" data-close>✕</button></div><div class="grid g4"><div class="mt"><div class="sub">戰力</div><div class="v">${fmtP(r.power)}</div></div><div class="mt"><div class="sub">熔爐</div><div class="v">${r.furn||'—'}</div></div><div class="mt"><div class="sub">擊殺</div><div class="v">${fmtP(r.kills)}</div></div><div class="mt"><div class="sub">7日增</div><div class="v" style="font-size:15px">${dlt(r.d7)}</div></div></div>${accHtml(r)}<div class="row"><button class="btn ${tab==='reg'?'on':''}" data-a="shTab" data-v="reg">報名</button><button class="btn ${tab==='hist'?'on':''}" data-a="shTab" data-v="hist">歷史紀錄</button></div>${tab==='hist'?histHtml(r):regPanel(r)}`}
-function renderSheet(){const el=$('#sheet');if(!U.sh){el.classList.remove('on');return}const old=el.querySelector('.pn'),st=old?old.scrollTop:0;el.classList.add('on');el.innerHTML=`<div class="bk" data-close></div><div class="pn">${U.sh.kind==='menu'?menuHtml(U.sh.k):playerSheet(U.sh.fid)}</div>`;const pn=el.querySelector('.pn');if(pn)pn.scrollTop=st}
-function openSheet(s){U.sh=s;renderSheet()}
-function closeSheet(){U.sh=null;$('#sheet').classList.remove('on')}
+/* ===================== 網頁介面 ===================== */
 
-/* ===== v4.1 活動名單：聯盟內活動分隊（兵工廠、峽谷會戰） ===== */
-Object.assign(ERR,{forbidden_scope:'你的聯盟不在這份名單的範圍裡',locked:'這份名單已鎖定，請先解除鎖定'});
-const EL={als:[],ev:'foundry',plan:null,key:'',status:'',busy:false,saved:'',msg:'',pub:null,pubBusy:false,open:{},arm:false};
-const GRP={foundry:['10點鐘','5點鐘','2點鐘','7點鐘'],canyon:['左路','中路','右路']};
-const planKey=(ev,als)=>ev+'|'+als.slice().sort().join('+');
-const tl=t=>t.al+' 軍團'+(t.lg===1?'一':'二');
-const todayStr=()=>{const d=new Date(),p=n=>String(n).padStart(2,'0');return d.getFullYear()+'-'+p(d.getMonth()+1)+'-'+p(d.getDate())};
-const scopeOf=pl=>pl.als.slice().sort().join('+');
-function alList(){const m={};D.rows.forEach(r=>{if(r.al)m[r.al]=(m[r.al]||0)+1});return Object.keys(m).sort((a,b)=>(b==='jQt')-(a==='jQt')||(b==='aQt')-(a==='aQt')||m[b]-m[a]).map(a=>[a,m[a]])}
-function newPlan(ev,als){const teams=[];als.forEach(a=>[1,2].forEach(lg=>teams.push({id:a+'|'+lg,al:a,lg,time:lg===1?'22:00':'20:00',on:true})));return{ver:1,ev,als:als.slice(),date:todayStr(),teams,opt:{src:'vote',cross:'prefer',bal:'m',head:5,min:15,main:30,dur:60,grp:true},rules:{locks:{},only:{},groups:[]},manual:{},lock:null}}
-async function loadPlan(){const als=EL.als.slice();if(!als.length)return toast('請先選聯盟');EL.busy=true;EL.msg='';render();const key=planKey(EL.ev,als);
- try{await loadRegs();const j=await apiGet({action:'plan',key});EL.key=key;let p=null;if(j.plan&&j.plan.json){try{p=JSON.parse(j.plan.json)}catch(e){}}
-  if(!(p&&p.ver===1&&p.ev===EL.ev))p=newPlan(EL.ev,als);EL.status=j.plan?j.plan.status:'new';if(EL.status!=='locked')p.lock=null;
-  p.rules=p.rules||{locks:{},only:{},groups:[]};p.manual=p.manual||{};als.forEach(a=>[1,2].forEach(lg=>{if(!p.teams.some(t=>t.id===a+'|'+lg))p.teams.push({id:a+'|'+lg,al:a,lg,time:lg===1?'22:00':'20:00',on:false})}));
-  EL.plan=p;EL.saved=j.plan?('最後儲存：'+j.plan.at+(j.plan.by?'（'+j.plan.by+'）':'')):'尚未儲存'}catch(e){EL.msg='載入失敗：'+e.message}
- EL.busy=false;render()}
-let _sv=0;
-function planChanged(){clearTimeout(_sv);EL.saved='尚未儲存…';_sv=setTimeout(savePlan,1500)}
-async function savePlan(){const pl=EL.plan;if(!pl||pl.lock)return;try{const j=await apiPost({action:'planSave',key:EL.key,scope:scopeOf(pl),event:pl.ev,json:JSON.stringify(pl)});if(!j.ok)throw new Error(ERR[j.error]||j.error||'失敗');EL.saved='已儲存 '+new Date().toLocaleTimeString()}catch(e){EL.saved='儲存失敗：'+e.message}const el=$('#evsaved');if(el)el.textContent=EL.saved}
-async function loadPub(){EL.pubBusy=true;try{const j=await apiGet({action:'plans'});EL.pub=j.plans||[]}catch(e){EL.pub=[]}EL.pubBusy=false;if(U.tab==='lists')render()}
-function evPool(pl){const m=D.regs[pl.ev]||{};return Object.keys(m).filter(f=>{const g=m[f],r=D.byF[f];return r&&(g.choice==='1'||g.choice==='2')&&pl.als.includes(r.al)}).map(f=>({r:D.byF[f],vote:m[f].choice}))}
-function tmin(t){const m=String(t||'').match(/^(\d{1,2}):(\d{2})$/);return m?(+m[1])*60+(+m[2]):null}
-function overlap(a,b,dur){const x=tmin(a.time),y=tmin(b.time);if(x==null||y==null)return a.lg===b.lg;const d=Math.abs(x-y);return Math.min(d,1440-d)<dur}
-function assignGroups(x,ev){const G=GRP[ev],n=x.list.length;if(!G||!n)return;if(ev==='foundry'){x.list.forEach((p,i)=>{const r=Math.floor(i/G.length),pos=i%G.length;p.grp=G[r%2===0?pos:G.length-1-pos]})}else{const core=Math.ceil(n*.38);x.list.forEach((p,i)=>{p.grp=i<core?'中路':((i-core)%2===0?'左路':'右路')})}}
-function compute(pl){
- const T=pl.teams.filter(t=>t.on),P=evPool(pl),o=pl.opt,R=pl.rules,man=pl.manual||{},A={},why={},byT={};
- T.forEach(t=>{byT[t.id]={t,list:[],tot:0}});
- const put=(p,tid,w)=>{A[p.r.fid]=tid;why[p.r.fid]=w;if(byT[tid]){byT[tid].list.push(p);byT[tid].tot+=p.r.power}};
- P.forEach(p=>{const m=man[p.r.fid];if(m==='wait'){A[p.r.fid]='wait';why[p.r.fid]='手動'}else if(m&&byT[m])put(p,m,'手動')});
- P.forEach(p=>{if(A[p.r.fid])return;const l=R.locks[p.r.fid];if(l&&byT[l])put(p,l,'固定')});
- const cand=p=>{let c=T.filter(t=>o.src==='power'||String(t.lg)===p.vote);const on=R.only[p.r.fid];if(on){const x=c.filter(t=>t.al===on);if(x.length)c=x}else if(o.cross==='strict'){const x=c.filter(t=>t.al===p.r.al);if(x.length)c=x}return c};
- const score=(t,p)=>{const b=byT[t.id];return b.list.length*1e12+b.tot-((o.cross==='prefer'&&t.al===p.r.al)?5e11:0)};
- const best=(c,p,f)=>{let bt=null,bs=Infinity;c.forEach(t=>{const s=f?f(t):score(t,p);if(s<bs){bs=s;bt=t}});return bt};
- (R.groups||[]).forEach(g=>{P.filter(p=>!A[p.r.fid]&&g.includes(p.r.fid)).sort((a,b)=>b.r.power-a.r.power).forEach(p=>{const c=cand(p);if(!c.length)return;const gc=t=>byT[t.id].list.filter(q=>g.includes(q.r.fid)).length;put(p,best(c,p,t=>gc(t)*1e15+score(t,p)).id,'互斥群組')})});
- const rest=P.filter(p=>!A[p.r.fid]),pools=o.src==='power'?[rest]:[rest.filter(p=>p.vote==='1'),rest.filter(p=>p.vote==='2')];
- pools.forEach((pool,pi)=>{pool.sort((a,b)=>b.r.power-a.r.power);const TL=o.src==='power'?T:T.filter(t=>t.lg===pi+1);
-  if(!TL.length){pool.forEach(p=>{A[p.r.fid]='none';why[p.r.fid]='沒有開對應的隊伍'});return}
-  let i=0;const cc=p=>cand(p).filter(t=>TL.includes(t));
-  if(o.bal==='m'){const K=Math.min(o.head*TL.length,Math.floor(pool.length/3)),hc=t=>byT[t.id].list.filter(q=>q.head).length;for(;i<K;i++){const p=pool[i],c=cc(p);if(!c.length){A[p.r.fid]='none';continue}const t=best(c,p,t2=>hc(t2)*1e15+score(t2,p));p.head=1;put(p,t.id,'頭部均分')}}
-  else if(o.bal==='step'){const per=Math.ceil((pool.length+TL.reduce((s,t)=>s+byT[t.id].list.length,0))/TL.length);for(;i<pool.length;i++){const p=pool[i],c=cc(p);if(!c.length){A[p.r.fid]='none';continue}const room=c.filter(t=>byT[t.id].list.length<per);put(p,(room[0]||best(c,p)).id,'階梯')}}
-  else if(o.bal==='s'){let k=0;for(;i<pool.length;i++){const p=pool[i],c=cc(p);if(!c.length){A[p.r.fid]='none';continue}if(c.length===TL.length){const r=Math.floor(k/TL.length),pos=k%TL.length;put(p,TL[r%2===0?pos:TL.length-1-pos].id,'蛇形')}else put(p,best(c,p).id,'蛇形');k++}}
-  for(;i<pool.length;i++){const p=pool[i],c=cc(p);if(!c.length){A[p.r.fid]='none';why[p.r.fid]='沒有可放的隊伍';continue}put(p,best(c,p).id,'均分')}});
- const teams=T.map(t=>{const b=byT[t.id];return{t,list:b.list.slice().sort((x,y)=>y.r.power-x.r.power),tot:b.tot}});
- teams.forEach(x=>{const n=x.list.length;x.list.forEach((p,i)=>{p.main=i<o.main});x.avg=n?x.tot/n:0;const k=Math.min(o.head,Math.max(1,Math.floor(n/3)));x.headAvg=n?x.list.slice(0,k).reduce((s,p)=>s+p.r.power,0)/Math.min(k,n):0;x.ratio=x.avg?x.headAvg/x.avg:0;if(o.grp)assignGroups(x,pl.ev)});
- const wait=P.filter(p=>A[p.r.fid]==='wait'),none=P.filter(p=>A[p.r.fid]==='none'),conf=[],cross=[];
- D.acc.forEach(g=>{const ms=g.members.map(m=>m.fid).filter(f=>A[f]&&byT[A[f]]);for(let a=0;a<ms.length;a++)for(let b=a+1;b<ms.length;b++){const ta=byT[A[ms[a]]].t,tb=byT[A[ms[b]]].t;if(overlap(ta,tb,o.dur)){const pa=D.byF[ms[a]],pb=D.byF[ms[b]],lo=pa.power<=pb.power?pa:pb,other=lo===pa?pb:pa;conf.push({a:pa,b:pb,move:lo,keep:other,ta,tb})}}});
- P.forEach(p=>{const t=byT[A[p.r.fid]];if(t&&t.t.al!==p.r.al)cross.push({r:p.r,to:t.t.al})});
- return{A,why,teams,wait,none,conf,cross,P}}
-function altFor(pl,res,fid,partnerTeam){const cnt={};res.teams.forEach(x=>{cnt[x.t.id]=x.list.length});return pl.teams.filter(t=>t.on&&t.id!==res.A[fid]&&!overlap(t,partnerTeam,pl.opt.dur)).sort((a,b)=>(cnt[a.id]||0)-(cnt[b.id]||0))[0]||null}
-function reportText(pl,res){const o=pl.opt,d=new Date((pl.date||todayStr())+'T00:00:00'),lab=(d.getMonth()+1)+'/'+d.getDate()+'（'+'日一二三四五六'[d.getDay()]+'）';
- let t=`【${pl.als.join('・')} ${EVN[pl.ev]}分隊】${lab}\n共 ${res.P.length} 人報名，開 ${res.teams.length} 隊\n`;
- res.teams.forEach(x=>{const main=x.list.filter(p=>p.main),sub=x.list.filter(p=>!p.main);t+=`\n■ ${tl(x.t)}（${x.t.time||'時間未定'}）正選 ${main.length}${sub.length?'・候補 '+sub.length:''}｜總戰力 ${fmtP(x.tot)}\n`;
-  if(o.grp)GRP[pl.ev].forEach(g=>{const m=main.filter(p=>p.grp===g);if(m.length)t+=`${g}：${m.map(p=>p.r.name).join('、')}\n`});else t+=main.map(p=>p.r.name).join('、')+'\n';
-  if(sub.length)t+=`候補：${sub.map(p=>p.r.name).join('、')}\n`});
- if(res.wait.length)t+=`\n■ 候補：${res.wait.map(p=>p.r.name).join('、')}\n`;
- if(res.cross.length)t+=`\n需要先轉聯盟：${res.cross.map(c=>c.r.name+'（'+c.r.al+'→'+c.to+'）').join('、')}\n`;
- return t.trim()}
-function evSug(q){const l=alList().filter(([a])=>nz(a).includes(q)).slice(0,8);return l.length?`<div class="sug">${l.map(([a,n])=>`<div class="sg" data-a="ev_addAl" data-v="${esc(a)}"><b>${esc(a)}</b><span class="sub">${n} 人</span></div>`).join('')}</div>`:'<div class="sub" style="padding:8px 2px">找不到這個聯盟</div>'}
-function pubHtml(){const a=EL.pub||[];if(!a.length)return EL.pubBusy?'':'<div class="card"><h3>已公布的名單</h3><div class="sub">目前還沒有幹部公布名單。</div></div>';
- return`<div class="card"><h3>已公布的名單</h3>${a.map(p=>`<div style="padding:8px 0;border-top:1px solid var(--bd)"><div class="row sp" data-a="ev_pubT" data-v="${esc(p.key)}" style="cursor:pointer"><span><b>${esc(EVN[p.event]||p.event)}</b> <span class="sub">${esc(p.scope.split('+').join('・'))}・${esc(p.label)}</span></span><span class="sub">${EL.open[p.key]?'收合':'展開'}</span></div>${EL.open[p.key]?`<pre style="white-space:pre-wrap;font:inherit;margin:8px 0">${esc(p.report)}</pre><button class="btn sm" data-a="ev_pubCopy" data-v="${esc(p.key)}">複製</button>`:''}</div>`).join('')}</div>`}
-function setupHtml(){const cad=isCadre()&&!isAdmin(),al=alList();
- return`<div class="card"><h3>活動名單（聯盟內活動分隊）</h3><div class="sub">步驟：選聯盟 → 選活動 → 載入 → 設定隊伍與邏輯 → 預覽調整 → 產出報告並鎖定。名單來源是「全玩家」裡報名的人。</div>
- <div style="margin-top:10px"><b>1. 選聯盟</b> <span class="sub">${cad?'（你的聯盟 '+esc(AU.al)+' 一定要在裡面）':'可以選多個，兩個聯盟的人會合在一起分'}</span></div>
- <div class="row" style="margin-top:6px">${EL.als.length?EL.als.map(a=>`<span class="bd a" style="padding:4px 10px;font-size:13px">${esc(a)} <a data-a="ev_delAl" data-v="${esc(a)}" style="cursor:pointer">✕</a></span>`).join(''):'<span class="sub">還沒選聯盟</span>'}</div>
- <input id="evq" autocomplete="off" placeholder="輸入聯盟簡稱的幾個字" style="width:100%;margin-top:8px"><div id="evsug"></div>
- <div class="row" style="margin-top:8px"><select id="evsel" style="flex:1"><option value="">從聯盟名單選擇…</option>${al.map(([a,n])=>`<option value="${esc(a)}">${esc(a)}（${n} 人）</option>`).join('')}</select><button class="btn" data-a="ev_special">jQt・aQt 特區</button></div>
- <div style="margin-top:12px"><b>2. 選活動</b></div><div class="row" style="margin-top:6px">${INNER.map(k=>`<button class="btn ${EL.ev===k?'on':''}" data-a="ev_ev" data-v="${k}">${EVN[k]}</button>`).join('')}</div>
- <div class="row" style="margin-top:12px"><button class="btn pri" data-a="ev_load" style="min-height:48px">3. 載入／開始分隊</button></div></div>`}
-function teamsHtml(pl,res){const cnt={};res.teams.forEach(x=>{cnt[x.t.id]=x.list.length});
- return`<div class="card"><h3>隊伍與出戰時間</h3><div class="sub">打開要用的隊伍並設定出戰時間。開幾隊由你們決定，人數不足只會警告。每隊最少 ${pl.opt.min} 人。</div>${pl.teams.map(t=>`<div class="row sp" style="padding:8px 0;border-top:1px solid var(--bd)"><span><b>${esc(tl(t))}</b> <span class="sub">${t.on?(cnt[t.id]||0)+' 人':'未開'}</span></span><span class="row" style="flex-wrap:nowrap"><input type="time" data-evtime="${esc(t.id)}" value="${esc(t.time||'')}" style="width:120px"><button class="btn sm ${t.on?'on':''}" data-a="ev_tog" data-v="${esc(t.id)}">${t.on?'已開':'開啟'}</button></span></div>`).join('')}</div>`}
-function optHtml(pl){const o=pl.opt,b=(k,v,l)=>`<button class="btn sm ${o[k]===v?'on':''}" data-a="ev_opt" data-k="${k}" data-v="${v}">${l}</button>`,n=(k,l,mn,mx)=>`<label class="row" style="gap:6px"><span class="sub">${l}</span><input type="number" data-evopt="${k}" value="${o[k]}" min="${mn}" max="${mx}" style="width:78px"></label>`;
- return`<div class="card"><h3>分隊邏輯</h3><div class="sub">軍團依據</div><div class="row" style="margin:4px 0 8px">${b('src','vote','依報名的軍團')}${b('src','power','依戰力重新分')}</div>${pl.als.length>1?`<div class="sub">聯盟分配</div><div class="row" style="margin:4px 0 8px">${b('cross','prefer','原聯盟優先')}${b('cross','strict','嚴格鎖定原聯盟')}${b('cross','free','完全平衡')}</div>`:''}<div class="sub">戰力平衡方式</div><div class="row" style="margin:4px 0 8px">${b('bal','m','強帶弱均分（M型）')}${b('bal','s','蛇形')}${b('bal','step','階梯（一隊最強）')}</div><div class="row">${n('head','頭部人數',1,15)}${n('min','每隊最少',1,60)}${n('main','每隊正選',1,60)}${n('dur','衝突判斷（分鐘）',10,240)}</div><div class="row" style="margin-top:8px"><button class="btn sm ${o.grp?'on':''}" data-a="ev_opt" data-k="grp" data-v="${o.grp?'0':'1'}">${pl.ev==='foundry'?'分四個小組':'分左中右三路'}：${o.grp?'開':'關'}</button></div></div>`}
-function rulesHtml(pl){const R=pl.rules,nm=f=>esc((D.byF[f]||{}).name||f),tn=id=>{const t=pl.teams.find(x=>x.id===id);return t?tl(t):id},lk=Object.keys(R.locks),on=Object.keys(R.only),mn=Object.keys(pl.manual||{});
- return`<div class="card"><h3>特殊規則</h3><div class="sub">點預覽裡的玩家，可以移到別隊、固定在某隊、限定聯盟或放候補。互斥群組是讓幾個人分散在不同隊伍。</div>${lk.length?`<div style="margin-top:8px"><b>固定隊伍</b>${lk.map(f=>`<div class="row sp" style="padding:4px 0"><span>${nm(f)} → ${esc(tn(R.locks[f]))}</span><button class="btn sm" data-a="ev_rmLock" data-v="${f}">移除</button></div>`).join('')}</div>`:''}${on.length?`<div style="margin-top:8px"><b>限定聯盟</b>${on.map(f=>`<div class="row sp" style="padding:4px 0"><span>${nm(f)} → 只能進 ${esc(R.only[f])}</span><button class="btn sm" data-a="ev_rmOnly" data-v="${f}">移除</button></div>`).join('')}</div>`:''}${(R.groups||[]).length?`<div style="margin-top:8px"><b>互斥群組</b>${R.groups.map((g,i)=>`<div class="row sp" style="padding:4px 0"><span>${g.map(nm).join('、')}</span><button class="btn sm" data-a="ev_rmGrp" data-v="${i}">移除</button></div>`).join('')}</div>`:''}<div class="row" style="margin-top:10px"><button class="btn sm" data-a="ev_grpNew">新增互斥群組</button>${mn.length?`<button class="btn sm" data-a="ev_clrMan">清除全部手動調整（${mn.length}）</button>`:''}</div></div>`}
-function memberRows(pl,x){const t=x.t,row=p=>{const w=x.why&&0;const tag=(EL.res&&EL.res.why[p.r.fid])||'';return`<div class="row sp" data-a="ev_mv" data-v="${p.r.fid}" style="padding:6px 0;border-bottom:1px solid var(--bd);cursor:pointer"><span>${p.main?'':'<span class="bd">候補</span> '}${esc(p.r.name)}${p.r.furn&&p.r.furn<16?' <span style="color:var(--wn)">⚠</span>':''}${t.al!==p.r.al?` <span class="bd a">${esc(p.r.al)}→${esc(t.al)}</span>`:''}${tag==='手動'||tag==='固定'||tag==='互斥群組'?` <span class="bd">${tag}</span>`:''}</span><span class="sub">${fmtP(p.r.power)}</span></div>`};
- if(!pl.opt.grp)return x.list.map(row).join('')||'<div class="sub">沒有人</div>';
- return GRP[pl.ev].map(g=>{const m=x.list.filter(p=>p.grp===g);return m.length?`<div class="sub" style="margin-top:8px"><b>${g}</b>（${m.length}）</div>${m.map(row).join('')}`:''}).join('')||'<div class="sub">沒有人</div>'}
-function previewHtml(pl,res){const o=pl.opt;EL.res=res;let h=`<div class="card"><h3>預覽</h3><div class="sub">共 ${res.P.length} 人報名（${esc(pl.als.join('、'))}）。點一位玩家可以移動、固定或放候補。</div><div class="sub" id="evsaved" style="margin-top:4px">${esc(EL.saved)}</div></div>`;
- res.teams.forEach(x=>{const n=x.list.length,w=[];if(n<o.min)w.push(`<span class="bd w">未滿 ${o.min} 人</span>`);if(n>40)w.push('<span class="bd d">超過 40 人</span>');
-  h+=`<div class="card"><div class="row sp"><div><b>${esc(tl(x.t))}</b> <span class="sub">${esc(x.t.time||'未設時間')}</span></div><div class="row">${w.join(' ')}<span class="bd">${n} 人</span></div></div><div class="sub" style="margin-top:4px">總戰力 ${fmtP(x.tot)}・平均 ${fmtP(x.avg)}・頭部÷平均 ${x.ratio?x.ratio.toFixed(2):'—'}</div><div style="margin-top:8px">${memberRows(pl,x)}</div></div>`});
- const lc=(t,a)=>a.length?`<div class="card"><h3>${t}（${a.length}）</h3>${a.map(p=>`<div class="row sp" data-a="ev_mv" data-v="${p.r.fid}" style="padding:6px 0;border-bottom:1px solid var(--bd);cursor:pointer"><span>${esc(p.r.name)} <span class="sub">${esc(p.r.al)}</span></span><span class="sub">${fmtP(p.r.power)}</span></div>`).join('')}</div>`:'';
- return h+lc('候補（手動）',res.wait)+lc('沒有隊伍可放',res.none)}
-function checkHtml(pl,res){const o=pl.opt,it=(ok,t,d)=>`<div class="row" style="padding:4px 0"><span style="color:var(${ok?'--ok':'--dg'});font-weight:700">${ok?'✓':'✗'}</span><span>${t}</span>${d?`<span class="sub">${d}</span>`:''}</div>`;
- const small=res.teams.filter(x=>x.list.length<o.min),over=res.teams.filter(x=>x.list.length>40),fur=res.P.filter(p=>p.r.furn&&p.r.furn<16).length;
- let h=`<div class="card"><h3>檢查</h3>${it(!res.none.length,'所有報名的人都有分到隊伍',res.none.length?res.none.length+' 人沒有隊伍可放':'')}${it(!small.length,'每隊至少 '+o.min+' 人',small.map(x=>tl(x.t)+' '+x.list.length+' 人').join('、'))}${it(!over.length,'沒有超過 40 人的隊伍',over.map(x=>tl(x.t)+' '+x.list.length+' 人').join('、'))}${it(!res.conf.length,'大小號沒有撞到時間',res.conf.length?res.conf.length+' 組衝突（見下方）':'')}${it(!fur,'熔爐都滿 16 級',fur?fur+' 人未滿':'')}${it(!res.cross.length,'沒有需要轉聯盟的人',res.cross.length?res.cross.length+' 人被分到其他聯盟的隊伍':'')}</div>`;
- if(res.conf.length)h+=`<div class="card"><h3>大小號衝突</h3><div class="sub">這幾組帳號被排進時間重疊的隊伍。建議把戰力較低的那個移開，按一下才會套用（要注意他報的軍團可能不同）。</div>${res.conf.map(c=>{const alt=altFor(pl,res,c.move.fid,c.keep===c.a?c.ta:c.tb);return`<div style="padding:8px 0;border-top:1px solid var(--bd)"><div><b>${esc(c.a.name)}</b>（${esc(tl(c.ta))}）與 <b>${esc(c.b.name)}</b>（${esc(tl(c.tb))}）</div><div class="row" style="margin-top:6px"><button class="btn sm" data-a="ev_fix" data-v="${c.move.fid}" data-k="wait">把 ${esc(c.move.name)} 放候補</button>${alt?`<button class="btn sm" data-a="ev_fix" data-v="${c.move.fid}" data-k="${esc(alt.id)}">把 ${esc(c.move.name)} 移到 ${esc(tl(alt))}</button>`:''}</div></div>`}).join('')}</div>`;
- return h}
-function reportHtml(pl,res){const text=reportText(pl,res);return`<div class="card"><h3>分隊報告</h3><div class="row" style="margin-bottom:8px"><span class="sub">日期</span><input type="date" id="evdate" value="${esc(pl.date||todayStr())}"></div><textarea readonly style="min-height:260px;font-size:14px">${esc(text)}</textarea><div class="row" style="margin-top:8px"><button class="btn" data-a="ev_copyRep">複製報告</button><button class="btn" data-a="ev_share">分享</button></div><div class="sub" style="margin-top:12px">鎖定後這份名單會公布在「活動名單」最上方，並保留到這個聯盟賽後總結完成，或報名被清除為止。</div><div class="row" style="margin-top:8px"><button class="btn ${EL.arm?'pri':''}" data-a="ev_lockPlan" style="min-height:48px">${EL.arm?'再按一次確認鎖定並公布':'鎖定並公布'}</button></div></div>`}
-function lockHtml(pl){const lk=pl.lock;return`<div class="card" style="border-color:var(--ok)"><div class="row sp"><div><b>已鎖定：${esc(pl.als.join('・'))} ${esc(EVN[pl.ev])}</b><div class="sub">${esc(lk.label)}・${esc(lk.by||'')}・${esc(new Date(lk.at).toLocaleString())}</div></div><span class="bd a">已公布</span></div><div class="sub" style="margin-top:6px">這份名單會保留到這個聯盟的賽後總結完成，或報名被清除為止。要修改請先解除鎖定。</div><textarea readonly style="margin-top:8px;min-height:260px;font-size:14px">${esc(lk.report)}</textarea><div class="row" style="margin-top:8px"><button class="btn" data-a="ev_copyRep">複製報告</button><button class="btn" data-a="ev_share">分享</button><button class="btn" data-a="ev_unlock">解除鎖定</button></div></div>`}
-function planHtml(){const pl=EL.plan;if(pl.lock)return lockHtml(pl);const res=compute(pl);return teamsHtml(pl,res)+optHtml(pl)+rulesHtml(pl)+previewHtml(pl,res)+checkHtml(pl,res)+reportHtml(pl,res)}
-function pgLists(){if(!D.stLoaded)return loadingCard();if(D.stErr)return errCard();if(!EL.pub&&!EL.pubBusy)loadPub();
- let h=pubHtml();if(!isStaff())return h+'<div class="card"><h3>活動名單（聯盟內活動分隊）</h3><div class="sub">分隊由各聯盟的 R4／R5 幹部操作。幹部請先到「後台設定」登入。</div></div>';
- h+=setupHtml();if(EL.busy)h+=loadingCard('載入分隊中…');else if(EL.msg)h+=`<div class="card" style="border-color:var(--dg)">${esc(EL.msg)}</div>`;if(EL.plan&&!EL.busy)h+=planHtml();return h}
-function moveSheet(fid){const pl=EL.plan,r=D.byF[fid],res=compute(pl),cur=res.A[fid],m=pl.manual[fid],R=pl.rules,on=pl.teams.filter(t=>t.on);
- return`<div class="row sp"><div><b style="font-size:17px">${esc(r.name)}</b><div class="sub">${esc(r.al)}・${fmtP(r.power)}</div></div><button class="btn sm" data-close>✕</button></div><div class="card"><b>移到哪一隊</b><div class="row" style="margin-top:8px">${on.map(t=>`<button class="btn ${cur===t.id?'on':''}" data-a="ev_move" data-v="${fid}" data-k="${esc(t.id)}">${esc(tl(t))}</button>`).join('')}<button class="btn ${cur==='wait'?'on':''}" data-a="ev_move" data-v="${fid}" data-k="wait">放候補</button>${m?`<button class="btn" data-a="ev_move" data-v="${fid}" data-k="auto">取消手動（回到自動）</button>`:''}</div></div><div class="card"><b>固定這個人</b><div class="sub">固定後，重新分隊也不會被動到。</div><div class="row" style="margin-top:8px">${on.map(t=>`<button class="btn sm ${R.locks[fid]===t.id?'on':''}" data-a="ev_lock" data-v="${fid}" data-k="${esc(t.id)}">固定在 ${esc(tl(t))}</button>`).join('')}${R.locks[fid]?`<button class="btn sm" data-a="ev_rmLock" data-v="${fid}">取消固定</button>`:''}</div></div><div class="card"><b>限定聯盟</b><div class="row" style="margin-top:8px">${pl.als.map(a=>`<button class="btn sm ${R.only[fid]===a?'on':''}" data-a="ev_only" data-v="${fid}" data-k="${esc(a)}">只能進 ${esc(a)}</button>`).join('')}${R.only[fid]?`<button class="btn sm" data-a="ev_rmOnly" data-v="${fid}">取消限定</button>`:''}</div></div>`}
-function grpSheet(){const fs=U.sh.fids||[];return`<div class="row sp"><b style="font-size:17px">新增互斥群組</b><button class="btn sm" data-close>✕</button></div><div class="sub">讓這幾個人分散到不同隊伍。只能選有報名的人。</div><input id="gpq" autocomplete="off" placeholder="輸入名字" style="width:100%"><div id="gpsug"></div><div class="card"><b>已加入（${fs.length}）</b><div class="row" style="margin-top:6px">${fs.map(f=>`<span class="bd a" style="padding:4px 10px">${esc((D.byF[f]||{}).name||f)} <a data-a="ev_gpDel" data-v="${f}" style="cursor:pointer">✕</a></span>`).join('')||'<span class="sub">還沒有人</span>'}</div></div><div class="row"><button class="btn pri" data-a="ev_gpMake">建立群組</button></div>`}
-const _ps=playerSheet;playerSheet=function(fid){const k=U.sh&&U.sh.kind;if(k==='move')return moveSheet(U.sh.fid);if(k==='grp')return grpSheet();return _ps(fid)};
-async function evAct(k,a){const v=a.dataset.v,kk=a.dataset.k,pl=EL.plan,chg=()=>{planChanged();render()};
- switch(k){
- case'ev_addAl':if(!EL.als.includes(v))EL.als.push(v);render();break;
- case'ev_delAl':EL.als=EL.als.filter(x=>x!==v);render();break;
- case'ev_special':EL.als=['jQt','aQt'];render();break;
- case'ev_ev':EL.ev=v;render();break;
- case'ev_load':if(isCadre()&&!isAdmin()&&!EL.als.includes(AU.al))return toast('你的聯盟 '+AU.al+' 一定要在名單裡');loadPlan();break;
- case'ev_tog':{const t=pl.teams.find(x=>x.id===v);t.on=!t.on;chg()}break;
- case'ev_opt':pl.opt[kk]=kk==='grp'?v==='1':v;chg();break;
- case'ev_mv':if(pl&&!pl.lock)openSheet({kind:'move',fid:v});break;
- case'ev_move':if(kk==='auto')delete pl.manual[v];else pl.manual[v]=kk;closeSheet();chg();break;
- case'ev_fix':pl.manual[v]=kk;chg();break;
- case'ev_lock':pl.rules.locks[v]=kk;delete pl.manual[v];closeSheet();chg();break;
- case'ev_rmLock':delete pl.rules.locks[v];closeSheet();chg();break;
- case'ev_only':pl.rules.only[v]=kk;closeSheet();chg();break;
- case'ev_rmOnly':delete pl.rules.only[v];closeSheet();chg();break;
- case'ev_rmGrp':pl.rules.groups.splice(+v,1);chg();break;
- case'ev_clrMan':pl.manual={};chg();break;
- case'ev_grpNew':openSheet({kind:'grp',fids:[]});break;
- case'ev_gpAdd':if(!U.sh.fids.includes(v))U.sh.fids.push(v);renderSheet();break;
- case'ev_gpDel':U.sh.fids=U.sh.fids.filter(x=>x!==v);renderSheet();break;
- case'ev_gpMake':if(U.sh.fids.length<2)return toast('至少要兩個人');pl.rules.groups.push(U.sh.fids.slice());closeSheet();chg();break;
- case'ev_copyRep':copyText(pl.lock?pl.lock.report:reportText(pl,compute(pl)));break;
- case'ev_share':{const t=pl.lock?pl.lock.report:reportText(pl,compute(pl));if(navigator.share)navigator.share({text:t}).catch(()=>{});else copyText(t)}break;
- case'ev_lockPlan':{if(!EL.arm){EL.arm=true;render();toast('再按一次才會鎖定並公布');setTimeout(()=>{if(EL.arm){EL.arm=false;render()}},5000);break}EL.arm=false;lockPlan()}break;
- case'ev_unlock':unlockPlan();break;
- case'ev_pubT':EL.open[v]=!EL.open[v];render();break;
- case'ev_pubCopy':{const p=(EL.pub||[]).find(x=>x.key===v);if(p)copyText(p.report)}break;
- }}
-async function lockPlan(){const pl=EL.plan,res=compute(pl),text=reportText(pl,res),d=new Date((pl.date||todayStr())+'T00:00:00');
- pl.lock={at:Date.now(),by:AU.name||'',label:(d.getMonth()+1)+'/'+d.getDate()+' 名單',report:text,teams:res.teams.map(x=>({id:x.t.id,label:tl(x.t),time:x.t.time,members:x.list.map(p=>[p.r.fid,p.r.name,p.r.al,p.r.power,p.grp||'',p.main?1:0])}))};
- try{const j=await apiPost({action:'planLock',key:EL.key,scope:scopeOf(pl),event:pl.ev,label:pl.lock.label,json:JSON.stringify(pl),report:text});if(!j.ok)throw new Error(ERR[j.error]||j.error||'失敗');EL.status='locked';toast('已鎖定並公布');loadPub()}catch(e){pl.lock=null;toast('鎖定失敗：'+e.message)}render()}
-async function unlockPlan(){const pl=EL.plan;try{const j=await apiPost({action:'planUnlock',key:EL.key,scope:scopeOf(pl),event:pl.ev});if(!j.ok)throw new Error(ERR[j.error]||j.error||'失敗');pl.lock=null;EL.status='draft';toast('已解除鎖定');loadPub()}catch(e){toast('解除失敗：'+e.message)}render()}
-document.addEventListener('click',e=>{const a=e.target.closest('[data-a]');if(!a)return;const k=a.dataset.a;if(k.slice(0,3)==='ev_')evAct(k,a)});
-document.addEventListener('change',e=>{const t=e.target;
- if(t.id==='evsel'&&t.value){if(!EL.als.includes(t.value))EL.als.push(t.value);render();return}
- if(t.dataset.evtime!==undefined&&EL.plan){const tm=EL.plan.teams.find(x=>x.id===t.dataset.evtime);if(tm){tm.time=t.value;planChanged();render()}return}
- if(t.dataset.evopt&&EL.plan){const n=+t.value;if(n>0){EL.plan.opt[t.dataset.evopt]=n;planChanged();render()}return}
- if(t.id==='evdate'&&EL.plan){EL.plan.date=t.value;planChanged();render()}});
-document.addEventListener('input',e=>{const t=e.target;
- if(t.id==='evq'){const q=nz(t.value);$('#evsug').innerHTML=q?evSug(q):''}
- else if(t.id==='gpq'){const q=nz(t.value);$('#gpsug').innerHTML=q?sugHtml(suggest(t.value,r=>EL.plan&&evPool(EL.plan).some(p=>p.r.fid===r.fid)),'ev_gpAdd'):''}});
+/* 收藏備份資料比較大，iPad 會用 POST 送來；處理方式跟 GET 一樣 */
+function doPost(e) { return doGet(e); }
 
-/* ===== v4.2 活動報名：一鍵報名（依排名自動依名額幫玩家報名） ===== */
-const BRM=[['power','戰力'],['kills','擊殺數'],['furn','熔爐等級'],['lab','迷宮'],['cave','魔物洞穴'],['loh','英雄之地'],['charm','魅力礦場'],['rc','研究中心'],['forge','裝備鍛造'],['gaia','蓋亞之心'],['ts','遷服積分'],['pr','全服戰力排名（名次小的優先）'],['kr','全服擊殺排名（名次小的優先）']];
-const BRN={tal:100,frost:60,sfc:50};
-const BR={ev:'tal',metric:'lab',n:100,als:[],minFurn:16,target:'',prev:null,arm:false,busy:false};
-function brCalc(){const c=colOf(BR.metric),asc=!!c.asc,m=D.regs[BR.ev]||{};let declined=0,nodata=0,low=0;const cand=[],total=Object.keys(m).filter(f=>m[f].choice==='in'&&D.byF[f]).length;
- D.rows.forEach(r=>{if(r.src==='舊資料')return;if(BR.als.length&&!BR.als.includes(r.al))return;const g=m[r.fid];if(g&&g.choice==='in')return;if(g&&g.choice==='out'){declined++;return}
-  if(BR.minFurn&&r.furn<BR.minFurn){low++;return}const v=c.v(r);if(v==null||(!asc&&v<=0)){nodata++;return}cand.push({r,v})});
- cand.sort((a,b)=>asc?a.v-b.v:b.v-a.v);const slots=Math.max(0,BR.n-total);return{total,declined,nodata,low,slots,list:cand.slice(0,slots),pool:cand.length}}
-function brPrevHtml(){const p=BR.prev,c=colOf(BR.metric);return`<div class="card"><h3>預覽：將報名 ${p.list.length} 人</h3><div class="sub">依「${esc(c.l)}」${c.asc?'名次由小到大':'由高到低'}排序，取前面的人。目前已有 ${p.total} 人報名；跳過：自己選「不參加」${p.declined} 人、熔爐不足 ${p.low} 人、沒有這項資料 ${p.nodata} 人。</div>${p.list.length?`<div style="margin-top:8px">${p.list.map((x,i)=>`<div class="row sp" style="padding:5px 0;border-bottom:1px solid var(--bd)"><span><span class="sub">${i+1}.</span> ${esc(x.r.name)} <span class="sub">${esc(x.r.al||'無聯盟')}</span></span><span class="sub">${c.d(x.r)}</span></div>`).join('')}</div><div class="row" style="margin-top:10px"><button class="btn ${BR.arm?'pri':''}" data-a="br_go" style="min-height:48px" ${BR.busy?'disabled':''}>${BR.busy?'報名中…':BR.arm?'再按一次確認報名':'確認，幫他們報名'}</button></div>`:'<div class="sub" style="margin-top:8px">沒有符合的人。可能名額已滿，或選的範圍、排名依據沒有資料。</div>'}</div>`}
-function brHtml(){if(!isStaff())return'';const cad=isCadre()&&!isAdmin();if(cad)BR.als=[AU.al];const ev=BR.ev,cal=brCalc();
- return`<div class="card"><h3>一鍵報名（幹部）</h3><div class="sub">依排名自動抓前面的玩家，一次幫他們報名。已經自己報名的不會重複，自己選「不參加」的人會跳過。${cad?'你只能幫自己聯盟（'+esc(AU.al)+'）的人報名。':''}</div>
- <div style="margin-top:10px"><b>活動</b></div><div class="row" style="margin-top:6px">${['sfc','tal','frost'].map(k=>`<button class="btn sm ${ev===k?'on':''}" data-a="br_ev" data-v="${k}">${EVN[k]}</button>`).join('')}</div>
- <div style="margin-top:10px"><b>排名依據</b></div><select id="brm" style="width:100%;margin-top:6px">${BRM.map(([k,l])=>`<option value="${k}" ${BR.metric===k?'selected':''}>${l}</option>`).join('')}</select>
- <div class="row" style="margin-top:10px"><label class="row" style="gap:6px"><span class="sub">報名名額</span><input type="number" id="brn" value="${BR.n}" min="1" max="300" style="width:90px"></label><label class="row" style="gap:6px"><span class="sub">最低熔爐</span><input type="number" id="brf" value="${BR.minFurn}" min="0" max="80" style="width:80px"></label></div>
- ${cad?'':`<div style="margin-top:10px"><b>範圍</b> <span class="sub">（空白＝全王國）</span></div><div class="row" style="margin-top:6px">${BR.als.length?BR.als.map(a=>`<span class="bd a" style="padding:4px 10px;font-size:13px">${esc(a)} <a data-a="br_delAl" data-v="${esc(a)}" style="cursor:pointer">✕</a></span>`).join(''):'<span class="bd">全王國</span>'}</div><div class="row" style="margin-top:6px"><select id="brsel" style="flex:1"><option value="">加入聯盟…</option>${alList().map(([a,n])=>`<option value="${esc(a)}">${esc(a)}（${n} 人）</option>`).join('')}</select><button class="btn sm" data-a="br_sp">jQt・aQt</button><button class="btn sm" data-a="br_all">全王國</button></div>`}
- ${ev==='tal'||ev==='frost'?`<div class="row" style="margin-top:10px"><span class="sub">目標聯盟（空白＝各自目前的聯盟）</span><input id="brt" value="${esc(BR.target)}" placeholder="聯盟簡稱" style="flex:1"></div>`:''}
- <div class="sub" style="margin-top:10px">目前已有 ${cal.total} 人報名，名額 ${BR.n}，還缺 ${cal.slots} 人。${Object.keys(D.rows[0]&&D.rows[0].dt?{}:{}).length?'':''}${D.rows.some(r=>r.dt)?'':'（細項資料還沒載入完，迷宮、關卡、遷服積分、排名可能暫時沒有資料）'}</div>
- <div class="row" style="margin-top:8px"><button class="btn pri" data-a="br_prev">預覽</button></div></div>${BR.prev?brPrevHtml():''}`}
-const _pgS=pgSignups;pgSignups=function(){const h=_pgS();return D.stLoaded&&!D.stErr?brHtml()+h:h};
-async function brGo(){const p=BR.prev;if(!p||!p.list.length)return;if(closed(BR.ev)&&!isAdmin())return toast('這個活動已截止，只有管理員可以報名');BR.busy=true;render();
- try{const j=await apiPost({action:'regMany',event:BR.ev,choice:'in',fids:p.list.map(x=>x.r.fid),play:BR.target.trim()});if(!j.ok)throw new Error(ERR[j.error]||j.error||'失敗');await loadRegs();toast('已報名 '+j.n+' 人（跳過：已報名 '+(j.skip&&j.skip.already||0)+'、不參加 '+(j.skip&&j.skip.declined||0)+'）');BR.prev=null}catch(e){toast('一鍵報名失敗：'+e.message)}BR.busy=false;render()}
-document.addEventListener('click',e=>{const a=e.target.closest('[data-a]');if(!a)return;const k=a.dataset.a;if(k.slice(0,3)!=='br_')return;const v=a.dataset.v;
- switch(k){
- case'br_ev':BR.ev=v;BR.n=BRN[v]||BR.n;BR.prev=null;render();break;
- case'br_prev':BR.prev=brCalc();BR.arm=false;render();break;
- case'br_go':{if(!BR.arm){BR.arm=true;render();toast('再按一次才會一次幫這些人報名');setTimeout(()=>{if(BR.arm){BR.arm=false;render()}},6000);break}BR.arm=false;brGo()}break;
- case'br_delAl':BR.als=BR.als.filter(x=>x!==v);BR.prev=null;render();break;
- case'br_sp':BR.als=['jQt','aQt'];BR.prev=null;render();break;
- case'br_all':BR.als=[];BR.prev=null;render();break}});
-document.addEventListener('change',e=>{const t=e.target;
- if(t.id==='brm'){BR.metric=t.value;BR.prev=null;render()}
- else if(t.id==='brn'){const n=+t.value;if(n>0){BR.n=n;BR.prev=null;render()}}
- else if(t.id==='brf'){BR.minFurn=Math.max(0,+t.value||0);BR.prev=null;render()}
- else if(t.id==='brt'){BR.target=t.value.trim();BR.prev=null}
- else if(t.id==='brsel'&&t.value){if(!BR.als.includes(t.value))BR.als.push(t.value);BR.prev=null;render()}});
+function doGet(e) {
+  var p = (e && e.parameter) || {};
+  var out;
+  try {
+    if (p.key !== SECRET) out = { ok: false, error: '密鑰錯誤' };
+    else if (p.action === 'ping') out = { ok: true, serverTime: now_() };
+    else if (p.action === 'load') out = load_(p);
+    else if (p.action === 'push') out = push_(p);
+    else if (p.action === 'addTask') out = addTask_(p);
+    else if (p.action === 'toggleTask') out = toggleTask_(p);
+    else if (p.action === 'editTask') out = editTask_(p);
+    else if (p.action === 'setShop') out = setShop_(p);
+    else if (p.action === 'saveSpecial') out = saveSpecial_(p);
+    else if (p.action === 'saveState') out = saveState_(p);
+    else if (p.action === 'loadState') out = loadState_(p);
+    else out = { ok: false, error: '未知的 action：' + p.action };
+  } catch (err) {
+    out = { ok: false, error: String(err) };
+  }
+  out.app = APP;
+  out.ver = VER;
+  out.n = p.n || '';
 
-/* ===== v4.3 正選／候補名額預設 ===== */
-Object.assign(CAP.foundry,{legs:2,m:30,s:10,t:'每聯盟最多 2 個軍團，每軍團正選 30 + 候補 10，熔爐 16 級以上'});
-Object.assign(CAP.canyon,{legs:2,m:30,s:10,t:'每聯盟最多 2 個軍團，每軍團正選 30 + 候補 10，至少 15 人才能配對'});
-Object.assign(CAP.sfc,{legs:1,m:0,s:0,t:'州內每個聯盟都能參加，沒有名額上限'});
-Object.assign(CAP.tal,{legs:2,m:30,s:20,n:100,t:'最多 2 個軍團，每軍團正選 30 + 候補 20，名單報名後鎖定'});
-Object.assign(CAP.frost,{legs:1,m:60,s:0,n:60,t:'最多派 60 人（找到的資料沒有寫候補名額，預設 0，可自己改），報名階段後才加入聯盟的人失格'});
-const BRD={sfc:{legs:1,m:50,s:0},tal:{legs:2,m:30,s:20},frost:{legs:1,m:60,s:0}};
-Object.assign(BR,{legs:2,m:30,s:20});
-const mainTot=()=>BR.legs*BR.m,subTot=()=>BR.legs*BR.s;
-function brCalc(){const c=colOf(BR.metric),asc=!!c.asc,m=D.regs[BR.ev]||{},mt=mainTot(),N=mt+subTot();let declined=0,nodata=0,low=0;const pool=[];
- D.rows.forEach(r=>{if(r.src==='舊資料')return;if(BR.als.length&&!BR.als.includes(r.al))return;const g=m[r.fid];if(g&&g.choice==='out'){declined++;return}
-  if(BR.minFurn&&r.furn<BR.minFurn){low++;return}const v=c.v(r);if(v==null||(!asc&&v<=0)){nodata++;return}pool.push({r,v,g})});
- pool.sort((a,b)=>asc?a.v-b.v:b.v-a.v);
- const list=pool.slice(0,N).map((x,i)=>{const role=i<mt?'正選':'候補',cur=x.g&&x.g.choice==='in'?(x.g.note||''):null;return Object.assign(x,{role,st:cur===null?'新報名':(cur===role?'不變':'更新名額')})});
- const total=Object.keys(m).filter(f=>m[f].choice==='in'&&D.byF[f]).length;
- return{total,declined,nodata,low,N,mt,list,pool:pool.length,add:list.filter(x=>x.st==='新報名').length,upd:list.filter(x=>x.st==='更新名額').length,same:list.filter(x=>x.st==='不變').length}}
-function brPrevHtml(){const p=BR.prev,c=colOf(BR.metric),todo=p.add+p.upd;
- const row=(x,i)=>`<div class="row sp" style="padding:5px 0;border-bottom:1px solid var(--bd)"><span><span class="sub">${i+1}.</span> ${esc(x.r.name)} <span class="sub">${esc(x.r.al||'無聯盟')}</span> <span class="bd ${x.role==='正選'?'a':''}">${x.role}</span>${x.st!=='新報名'?` <span class="sub">（${x.st}）</span>`:''}</span><span class="sub">${c.d(x.r)}</span></div>`;
- return`<div class="card"><h3>預覽：正選 ${Math.min(p.mt,p.list.length)} 人・候補 ${Math.max(0,p.list.length-p.mt)} 人</h3><div class="sub">依「${esc(c.l)}」${c.asc?'名次由小到大':'由高到低'}排序，前 ${p.mt} 名當正選，接下來 ${p.N-p.mt} 名當候補。新報名 ${p.add} 人、更新名額 ${p.upd} 人、不用變更 ${p.same} 人；跳過：自己選「不參加」${p.declined} 人、熔爐不足 ${p.low} 人、沒有這項資料 ${p.nodata} 人。</div>${p.list.length?`<div style="margin-top:8px">${p.list.map(row).join('')}</div><div class="row" style="margin-top:10px"><button class="btn ${BR.arm?'pri':''}" data-a="br_go" style="min-height:48px" ${BR.busy||!todo?'disabled':''}>${BR.busy?'報名中…':!todo?'沒有需要變更的人':BR.arm?'再按一次確認報名':'確認，幫他們報名（'+todo+' 人）'}</button></div>`:'<div class="sub" style="margin-top:8px">沒有符合的人。可能選的範圍、排名依據沒有資料。</div>'}</div>`}
-function brHtml(){if(!isStaff())return'';const cad=isCadre()&&!isAdmin();if(cad)BR.als=[AU.al];const ev=BR.ev,m=D.regs[ev]||{},tot=Object.keys(m).filter(f=>m[f].choice==='in'&&D.byF[f]).length;
- return`<div class="card"><h3>一鍵報名（幹部）</h3><div class="sub">依排名自動抓前面的玩家，前面的當正選，接著的當候補，一次幫他們報名。已經自己報名的人會一起排名並標上正選／候補，自己選「不參加」的人會跳過。${cad?'你只能幫自己聯盟（'+esc(AU.al)+'）的人報名。':''}</div>
- <div style="margin-top:10px"><b>活動</b></div><div class="row" style="margin-top:6px">${['sfc','tal','frost'].map(k=>`<button class="btn sm ${ev===k?'on':''}" data-a="br_ev" data-v="${k}">${EVN[k]}</button>`).join('')}</div>
- <div style="margin-top:10px"><b>排名依據</b></div><select id="brm" style="width:100%;margin-top:6px">${BRM.map(([k,l])=>`<option value="${k}" ${BR.metric===k?'selected':''}>${l}</option>`).join('')}</select>
- <div style="margin-top:10px"><b>名額</b></div><div class="sub">${esc(CAP[ev].t)}</div>
- <div class="row" style="margin-top:6px">${ev==='tal'?`<label class="row" style="gap:6px"><span class="sub">軍團數</span><input type="number" id="brl" value="${BR.legs}" min="1" max="2" style="width:70px"></label>`:''}<label class="row" style="gap:6px"><span class="sub">${ev==='tal'?'每軍團':''}正選</span><input type="number" id="brm1" value="${BR.m}" min="0" max="300" style="width:80px"></label><label class="row" style="gap:6px"><span class="sub">${ev==='tal'?'每軍團':''}候補</span><input type="number" id="brs1" value="${BR.s}" min="0" max="300" style="width:80px"></label><label class="row" style="gap:6px"><span class="sub">最低熔爐</span><input type="number" id="brf" value="${BR.minFurn}" min="0" max="80" style="width:80px"></label></div>
- <div class="sub" style="margin-top:6px">合計：正選 ${mainTot()} 人 ＋ 候補 ${subTot()} 人。目前已有 ${tot} 人報名。${ev==='sfc'?'太陽城沒有名額上限，這裡的數字只是方便你一次報幾個，可以自己改。':''}</div>
- ${cad?'':`<div style="margin-top:10px"><b>範圍</b> <span class="sub">（空白＝全王國）</span></div><div class="row" style="margin-top:6px">${BR.als.length?BR.als.map(a=>`<span class="bd a" style="padding:4px 10px;font-size:13px">${esc(a)} <a data-a="br_delAl" data-v="${esc(a)}" style="cursor:pointer">✕</a></span>`).join(''):'<span class="bd">全王國</span>'}</div><div class="row" style="margin-top:6px"><select id="brsel" style="flex:1"><option value="">加入聯盟…</option>${alList().map(([a,n])=>`<option value="${esc(a)}">${esc(a)}（${n} 人）</option>`).join('')}</select><button class="btn sm" data-a="br_sp">jQt・aQt</button><button class="btn sm" data-a="br_all">全王國</button></div>`}
- ${ev==='tal'||ev==='frost'?`<div class="row" style="margin-top:10px"><span class="sub">目標聯盟（空白＝各自目前的聯盟）</span><input id="brt" value="${esc(BR.target)}" placeholder="聯盟簡稱" style="flex:1"></div>`:''}
- <div class="row" style="margin-top:10px"><button class="btn pri" data-a="br_prev">預覽</button></div></div>${BR.prev?brPrevHtml():''}`}
-async function brGo(){const p=BR.prev;if(!p)return;const todo=p.list.filter(x=>x.st!=='不變');if(!todo.length)return;if(closed(BR.ev)&&!isAdmin())return toast('這個活動已截止，只有管理員可以報名');BR.busy=true;render();
- try{const roles={};todo.forEach(x=>{roles[x.r.fid]=x.role});const j=await apiPost({action:'regMany',event:BR.ev,choice:'in',fids:todo.map(x=>x.r.fid),roles,play:BR.target.trim()});if(!j.ok)throw new Error(ERR[j.error]||j.error||'失敗');await loadRegs();toast('完成：新增或更新 '+j.n+' 人'+(j.skip&&j.skip.scope?'（有 '+j.skip.scope+' 人不在你的聯盟，已跳過）':''));BR.prev=null}catch(e){toast('一鍵報名失敗：'+e.message)}BR.busy=false;render()}
-document.addEventListener('click',e=>{const a=e.target.closest('[data-a]');if(!a||a.dataset.a!=='br_ev')return;const d=BRD[a.dataset.v];if(d)Object.assign(BR,d);BR.prev=null;render()});
-document.addEventListener('change',e=>{const t=e.target,v=Math.max(0,Math.floor(+t.value||0));
- if(t.id==='brl'){BR.legs=Math.min(2,Math.max(1,v||1));BR.prev=null;render()}
- else if(t.id==='brm1'){BR.m=v;BR.prev=null;render()}
- else if(t.id==='brs1'){BR.s=v;BR.prev=null;render()}});
-const roleOf=(m,f)=>m[f].note==='正選'?0:m[f].note==='候補'?1:2;
-const roleTag=(m,f)=>m[f].note==='正選'?'<span class="bd a">正選</span> ':m[f].note==='候補'?'<span class="bd">候補</span> ':'';
-function sgBody(k,fids,m){const cap=CAP[k],nm=(f,tag)=>{const r=D.byF[f],tg=m[f].play;return`<div class="row sp" style="padding:4px 0;border-bottom:1px solid var(--bd)"><span>${tag||''}${esc(r.name)}${r.furn&&r.furn<16?' <span style="color:var(--wn)">⚠</span>':''}${!INNER.includes(k)&&tg&&tg!==r.al?` <span class="sub">→ ${esc(tg)}</span>`:''}</span><span class="sub">${fmtP(r.power)}</span></div>`};
- if(!fids.length)return'<div class="sub" style="margin-top:8px">還沒有人報名</div>';
- if(INNER.includes(k)){const g={};fids.forEach(f=>{const al=D.byF[f].al||'—',lg=m[f].choice==='2'?'2':'1';if(!g[al])g[al]={'1':[],'2':[]};g[al][lg].push(f)});
-  return Object.keys(g).sort((x,y)=>(y==='jQt')-(x==='jQt')||(y==='aQt')-(x==='aQt')||(g[y]['1'].length+g[y]['2'].length)-(g[x]['1'].length+g[x]['2'].length)).map(al=>`<div style="margin-top:10px"><b>${esc(al)}</b><div class="grid g2" style="margin-top:6px">${['1','2'].map(lg=>{const a=g[al][lg].sort((x,y)=>D.byF[y].power-D.byF[x].power),tot=cap.m+cap.s,over=a.length>tot;return`<div class="card" style="padding:8px"><div class="row sp"><span class="lgb l${lg}">${CHN[lg]}</span><span class="${over?'bd d':'sub'}">正選 ${Math.min(a.length,cap.m)}／${cap.m}・候補 ${Math.max(0,Math.min(a.length-cap.m,cap.s))}／${cap.s}${over?'・超額 '+(a.length-tot):''}${k==='canyon'&&a.length&&a.length<15?'・未滿 15':''}</span></div>${a.map((f,i)=>nm(f,i<cap.m?'':i<tot?'<span class="bd">候補</span> ':'<span class="bd d">超額</span> ')).join('')}</div>`}).join('')}</div></div>`).join('')}
- const a=fids.slice().sort((x,y)=>roleOf(m,x)-roleOf(m,y)||D.byF[y].power-D.byF[x].power),c0=a.filter(f=>roleOf(m,f)===0).length,c1=a.filter(f=>roleOf(m,f)===1).length,c2=a.length-c0-c1;
- const sum=`<div class="sub" style="margin-top:8px">正選 ${c0}${cap.m?'／'+cap.m*cap.legs:''}・候補 ${c1}${cap.s?'／'+cap.s*cap.legs:''}・未排定 ${c2}${cap.n&&a.length>cap.n?'<span style="color:var(--dg)">（超過 '+cap.n+' 人，需要幹部選拔）</span>':''}</div>`;
- if(k==='sfc'){const g={};a.forEach(f=>{const al=D.byF[f].al||'—';(g[al]=g[al]||[]).push(f)});return sum+Object.keys(g).sort((x,y)=>g[y].length-g[x].length).map(al=>`<div style="margin-top:10px"><b>${esc(al)}</b> <span class="sub">${g[al].length} 人</span>${g[al].map(f=>nm(f,roleTag(m,f))).join('')}</div>`).join('')}
- return sum+`<div style="margin-top:8px">${a.map(f=>nm(f,roleTag(m,f))).join('')}</div>`}
-function evText(k){const m=D.regs[k]||{},fids=Object.keys(m).filter(f=>m[f].choice!=='out'&&D.byF[f]),cap=CAP[k],nmx=f=>{const r=D.byF[f],tg=m[f].play;return r.name+(!INNER.includes(k)&&tg&&tg!==r.al?'（→'+tg+'）':'')};let t=`【${EVN[k]}報名名單】共 ${fids.length} 人\n`;
- if(INNER.includes(k)){const g={};fids.forEach(f=>{const al=D.byF[f].al||'—';if(!g[al])g[al]={'1':[],'2':[]};g[al][m[f].choice==='2'?'2':'1'].push(f)});
-  Object.keys(g).forEach(al=>{t+=`\n${al}\n`;['1','2'].forEach(lg=>{const a=g[al][lg].sort((x,y)=>D.byF[y].power-D.byF[x].power),mm=a.slice(0,cap.m),ss=a.slice(cap.m,cap.m+cap.s),oo=a.slice(cap.m+cap.s);t+=`${CHN[lg]}（正選 ${mm.length}・候補 ${ss.length}${oo.length?'・超額 '+oo.length:''}）\n正選：${mm.map(nmx).join('、')||'無'}\n`;if(ss.length)t+=`候補：${ss.map(nmx).join('、')}\n`;if(oo.length)t+=`超額：${oo.map(nmx).join('、')}\n`})})}
- else{const a=fids.slice().sort((x,y)=>roleOf(m,x)-roleOf(m,y)||D.byF[y].power-D.byF[x].power),mm=a.filter(f=>roleOf(m,f)===0),ss=a.filter(f=>roleOf(m,f)===1),uu=a.filter(f=>roleOf(m,f)===2);
-  t+=`正選（${mm.length}）：${mm.map(nmx).join('、')||'無'}\n`;if(ss.length)t+=`候補（${ss.length}）：${ss.map(nmx).join('、')}\n`;if(uu.length)t+=`未排定（${uu.length}）：${uu.map(nmx).join('、')}\n`}
- return t.trim()}
+  if (p.mode === 'frame') {
+    var payload = JSON.stringify(JSON.stringify(out)).replace(/</g, '\\u003c');
+    return HtmlService.createHtmlOutput('<script>try{window.top.postMessage(' + payload + ',"*");}catch(err){}</script>')
+      .setXFrameOptionsMode(HtmlService.XFrameOptionsMode.ALLOWALL);
+  }
+  var cb = p.callback || 'callback';
+  if (!/^[A-Za-z_$][\w$]*$/.test(cb)) cb = 'callback';
+  return ContentService.createTextOutput(cb + '(' + JSON.stringify(out) + ');')
+    .setMimeType(ContentService.MimeType.JAVASCRIPT);
+}
 
-/* ===== v4.4 一鍵報名錯誤處理與連動、玩家資料只留戰力與洞穴 ===== */
-Object.assign(ERR,{unknown_action:'Apps Script 還沒更新到最新版（Plans 檔案內容，或重新部署還沒做）'});
-const regTok2=f=>{const t=[];EV.forEach(e=>{const g=regOf(e[0],f);if(g&&g.choice!=='out'){t.push(e[1]);if(g.note==='正選'||g.note==='候補')t.push(e[1]+'・'+g.note)}});return t.length?t:['未報名']};
-const chips2=f=>EV.map(([k,l])=>{const g=regOf(k,f);if(!g||g.choice==='out')return'';const r=g.note==='正選'?'正':g.note==='候補'?'候':'';return`<span class="${g.choice==='1'||g.choice==='2'?'lgb l'+g.choice:'bd a'}" style="margin-right:3px">${l.slice(0,1)}${r}</span>`}).join('')||'<span class="sub">—</span>';
-(()=>{const c=COLS.find(x=>x.k==='reg');c.v=r=>regTok2(r.fid);c.d=r=>chips2(r.fid)})();
-async function brSeq(todo){let ok=0,fail=0,last='';for(let i=0;i<todo.length;i++){const x=todo[i];try{const j=await apiPost({action:'register',event:BR.ev,fid:x.r.fid,choice:'in',play:(BR.target.trim()||x.r.al||''),note:x.role});if(j.ok)ok++;else{fail++;last=ERR[j.error]||j.error}}catch(e){fail++;last=e.message}if(i%5===4)toast('報名中 '+(i+1)+'／'+todo.length)}return{ok,fail,last}}
-async function brGo(){const p=BR.prev;if(!p)return;const todo=p.list.filter(x=>x.st!=='不變');if(!todo.length)return;if(closed(BR.ev)&&!isAdmin())return toast('這個活動已截止，只有管理員可以報名');BR.busy=true;BR.err='';render();
- try{const roles={};todo.forEach(x=>{roles[x.r.fid]=x.role});let j;try{j=await apiPost({action:'regMany',event:BR.ev,choice:'in',fids:todo.map(x=>x.r.fid),roles,play:BR.target.trim()})}catch(e){j={ok:false,net:e.message}}
-  if(j.ok){await loadRegs();toast('完成：新增或更新 '+j.n+' 人'+(j.skip&&j.skip.scope?'（有 '+j.skip.scope+' 人不在你的聯盟，已跳過）':''));BR.prev=null}
-  else if(j.error==='unknown_action'){toast('Apps Script 還沒更新，改用慢速方式逐一報名，請稍等（約 '+Math.max(1,Math.ceil(todo.length*1.5/60))+' 分鐘）');const r=await brSeq(todo);await loadRegs();if(r.fail)BR.err='成功 '+r.ok+' 人，失敗 '+r.fail+' 人（'+(r.last||'未知原因')+'）。';else BR.prev=null;toast('完成：成功 '+r.ok+' 人'+(r.fail?'，失敗 '+r.fail+' 人':''))}
-  else throw new Error(j.net||ERR[j.error]||j.error||'失敗')}catch(e){BR.err=e.message;toast('一鍵報名失敗，原因寫在畫面上')}BR.busy=false;render()}
-const _brh=brHtml;brHtml=function(){const h=_brh();return h&&BR.err?h+`<div class="card" style="border-color:var(--dg)"><b>一鍵報名失敗</b><div class="sub" style="margin-top:6px">${esc(BR.err)}</div><div class="row" style="margin-top:8px"><button class="btn sm" data-a="br_errx">關閉</button></div></div>`:h};
-document.addEventListener('click',e=>{const a=e.target.closest('[data-a]');if(a&&a.dataset.a==='br_errx'){BR.err='';render()}});
-function caveOf(r,c){const a=(c&&c!=='load'&&c!=='err'&&c.detail)||[];return a.length?a[a.length-1].st.cave:(r.dt?r.dt.st.cave:null)}
-function histHtml(r){const c=D.card[r.fid];if(!c||c==='load')return'<div class="card">載入歷史紀錄中…</div>';if(c==='err')return`<div class="card" style="border-color:var(--dg)">讀不到歷史紀錄<div class="row" style="margin-top:8px"><button class="btn" data-a="cardRetry">重試</button></div></div>`;
- const s=c.series||[],dt=c.detail||[];let h=chart('戰力走勢',s.map(x=>({l:x.d.slice(5),v:x.power})),fmtP);
- h+=dt.length?chart('迷宮（通過關數）',dt.map(x=>({l:x.d.slice(5),v:x.lab.n||0})),v=>Math.round(v)):'<div class="card"><h3>迷宮</h3><div class="sub">還沒有迷宮資料（第一次同步完成後才會出現）</div></div>';
- const nm=c.names||[];h+=`<div class="card"><h3>暱稱歷程</h3>${nm.length?nm.map((x,i)=>`<div class="row sp" style="padding:6px 0;border-bottom:1px solid var(--bd)"><span><b>${esc(x.name)}</b>${i===nm.length-1?' <span class="bd a">目前</span>':''}</span><span class="sub">${esc(x.first)}${x.last!==x.first?' ～ '+esc(x.last):''}</span></div>`).join('')+(nm.length===1?'<div class="sub" style="margin-top:6px">目前沒有改名紀錄（紀錄從系統開始同步那天算起）</div>':''):'<div class="sub">尚無紀錄</div>'}</div>`;
- const mv=c.moves||[];h+=`<div class="card"><h3>聯盟異動</h3>${mv.length?mv.map(x=>`<div class="row sp" style="padding:6px 0;border-bottom:1px solid var(--bd)"><span>${esc(x.from||'無聯盟')} → <b>${esc(x.to||'無聯盟')}</b></span><span class="sub">${esc(x.d)}</span></div>`).join(''):'<div class="sub">沒有異動紀錄（從系統開始同步那天算起）</div>'}</div>`;
- const rg=(c.regs||[]).slice().reverse();h+=`<div class="card"><h3>報名紀錄</h3>${rg.length?rg.map(x=>`<div class="row sp" style="padding:6px 0;border-bottom:1px solid var(--bd)"><span>${esc(EVN[x.event]||x.event)} · <b>${esc(CHN[x.choice]||x.choice)}</b>${x.note==='正選'||x.note==='候補'?' <span class="bd a">'+x.note+'</span>':''}${x.play?' <span class="sub">'+esc(x.play)+'</span>':''}${x.by&&x.by!=='self'?' <span class="bd">'+(x.by==='admin'?'管理員修改':'幹部修改')+'</span>':''}</span><span class="sub">${esc(String(x.at).slice(0,16))}</span></div>`).join(''):'<div class="sub">尚無報名紀錄</div>'}</div>`;
- if(isStaff())h+='<div class="card"><h3>出席紀錄</h3><div class="sub">之後的版本開放：賽後總結完成後，這裡會顯示出席率與缺席次數，只有幹部看得到。</div></div>';
- return h}
-function playerSheet(fid){const r=D.byF[fid];if(!r)return'';const tab=U.sh.tab||'reg';if(!D.card[fid])loadCard(fid);const cv=caveOf(r,D.card[fid]);
- return`<div class="row sp"><div><b style="font-size:18px">${esc(r.name)}</b><div class="sub">${esc(r.al||'無聯盟')} · ${esc(r.rk||'')} · FID ${esc(r.fid)}</div></div><button class="btn sm" data-close>✕</button></div><div class="grid g4"><div class="mt"><div class="sub">戰力</div><div class="v">${fmtP(r.power)}</div></div><div class="mt"><div class="sub">7日增</div><div class="v" style="font-size:15px">${dlt(r.d7)}</div></div><div class="mt"><div class="sub">迷宮</div><div class="v" style="font-size:17px">${cv&&cv.n?'第 '+cv.n.toLocaleString()+' 關':'—'}</div>${cv&&cv.n?`<div class="sub">${cv.r!=null?'#'+cv.r:'100+'}</div>`:''}</div></div>${accHtml(r)}<div class="row"><button class="btn ${tab==='reg'?'on':''}" data-a="shTab" data-v="reg">報名</button><button class="btn ${tab==='hist'?'on':''}" data-a="shTab" data-v="hist">歷史紀錄</button></div>${tab==='hist'?histHtml(r):regPanel(r)}`}
+/* ===================== 讀取全部資料 ===================== */
 
-/* ===== v4.5 名單直接編輯（正選／候補／取消）、一鍵產生通知 ===== */
-const seBtns=(k,f,m)=>{if(!isStaff())return'';const b=(v,l,on)=>`<button class="btn sm ${on?'on':''}" style="min-height:28px;padding:2px 8px" data-a="se_set" data-ev="${k}" data-fid="${f}" data-v="${v}">${l}</button>`;
- if(INNER.includes(k))return`<span class="row" style="gap:4px;flex-wrap:nowrap">${b('1','一',m[f].choice==='1')}${b('2','二',m[f].choice==='2')}${b('out','✕',false)}</span>`;
- return`<span class="row" style="gap:4px;flex-wrap:nowrap">${b('正選','正',m[f].note==='正選')}${b('候補','候',m[f].note==='候補')}${b('out','✕',false)}</span>`};
-function sgBody(k,fids,m){const cap=CAP[k],nm=(f,tag)=>{const r=D.byF[f],tg=m[f].play;return`<div class="ln"><span class="fit">${tag||''}${esc(r.name)}${r.furn&&r.furn<16?' <span style="color:var(--wn)">⚠</span>':''}${!INNER.includes(k)&&tg&&tg!==r.al?` <span class="sub">→ ${esc(tg)}</span>`:''}</span><span class="row rt" style="gap:6px;flex-wrap:nowrap"><span class="sub">${fmtP(r.power)}</span>${seBtns(k,f,m)}</span></div>`};
- if(!fids.length)return'<div class="sub" style="margin-top:8px">還沒有人報名</div>';
- const hint=isStaff()?`<div class="sub" style="margin-top:8px">${INNER.includes(k)?'右邊的「一／二／✕」可以改軍團或取消報名。':'右邊的「正／候／✕」可以改成正選、候補（再按一次取消標記），或取消報名。'}取消後會標成不參加，一鍵報名不會再把他加回來。</div>`:'';
- if(INNER.includes(k)){const g={};fids.forEach(f=>{const al=D.byF[f].al||'—',lg=m[f].choice==='2'?'2':'1';if(!g[al])g[al]={'1':[],'2':[]};g[al][lg].push(f)});
-  return hint+Object.keys(g).sort((x,y)=>(y==='jQt')-(x==='jQt')||(y==='aQt')-(x==='aQt')||(g[y]['1'].length+g[y]['2'].length)-(g[x]['1'].length+g[x]['2'].length)).map(al=>`<div style="margin-top:10px"><b>${esc(al)}</b><div class="grid g2" style="margin-top:6px">${['1','2'].map(lg=>{const a=g[al][lg].sort((x,y)=>D.byF[y].power-D.byF[x].power),tot=cap.m+cap.s,over=a.length>tot;return`<div class="card" style="padding:8px"><div class="row sp"><span class="lgb l${lg}">${CHN[lg]}</span><span class="${over?'bd d':'sub'}">正選 ${Math.min(a.length,cap.m)}／${cap.m}・候補 ${Math.max(0,Math.min(a.length-cap.m,cap.s))}／${cap.s}${over?'・超額 '+(a.length-tot):''}${k==='canyon'&&a.length&&a.length<15?'・未滿 15':''}</span></div>${a.map((f,i)=>nm(f,i<cap.m?'':i<tot?'<span class="bd">候補</span> ':'<span class="bd d">超額</span> ')).join('')}</div>`}).join('')}</div></div>`).join('')}
- const a=fids.slice().sort((x,y)=>roleOf(m,x)-roleOf(m,y)||D.byF[y].power-D.byF[x].power),c0=a.filter(f=>roleOf(m,f)===0).length,c1=a.filter(f=>roleOf(m,f)===1).length,c2=a.length-c0-c1;
- const sum=`<div class="sub" style="margin-top:8px">正選 ${c0}${cap.m?'／'+cap.m*cap.legs:''}・候補 ${c1}${cap.s?'／'+cap.s*cap.legs:''}・未排定 ${c2}${cap.n&&a.length>cap.n?'<span style="color:var(--dg)">（超過 '+cap.n+' 人，需要幹部選拔）</span>':''}</div>`;
- if(k==='sfc'){const g={};a.forEach(f=>{const al=D.byF[f].al||'—';(g[al]=g[al]||[]).push(f)});return hint+sum+Object.keys(g).sort((x,y)=>g[y].length-g[x].length).map(al=>`<div style="margin-top:10px"><b>${esc(al)}</b> <span class="sub">${g[al].length} 人</span>${g[al].map(f=>nm(f,roleTag(m,f))).join('')}</div>`).join('')}
- return hint+sum+`<div style="margin-top:8px">${a.map(f=>nm(f,roleTag(m,f))).join('')}</div>`}
-async function seSet(ev,fid,v){const r=D.byF[fid],g=regOf(ev,fid)||{};if(!r)return;if(!canReg(ev,r))return toast('已截止，只有管理員（或自己聯盟的幹部）可以修改');
- let choice,note='';if(v==='out')choice='out';else if(INNER.includes(ev))choice=v;else{choice='in';note=g.note===v?'':v}
- const play=(choice==='out'||INNER.includes(ev))?'':(g.play||r.al||'');
- try{const j=await apiPost({action:'register',event:ev,fid,choice,play,note});if(!j.ok)throw new Error(ERR[j.error]||j.error||'失敗');(D.regs[ev]=D.regs[ev]||{})[fid]={choice,play,note,at:new Date().toLocaleString(),by:j.by||'cadre'};toast(r.name+'：'+(v==='out'?'已取消報名':INNER.includes(ev)?CHN[v]:(note||'未排定')))}catch(e){toast('修改失敗：'+e.message)}
- render();if(U.sh)renderSheet()}
-function noticeText(k,note){const m=D.regs[k]||{},fids=Object.keys(m).filter(f=>m[f].choice!=='out'&&D.byF[f]),dl=D.dls[k],role=f=>m[f].note==='正選'?'正選':m[f].note==='候補'?'候補':'未排定',tg=f=>m[f].play||D.byF[f].al||'無聯盟',g={};
- fids.forEach(f=>{(g[tg(f)]=g[tg(f)]||[]).push(f)});const cnt=r=>fids.filter(f=>role(f)===r).length;
- let t=`【${EVN[k]}】報名名單通知\n`;if(dl)t+=`報名截止：${fmtT(Date.parse(dl))}${closed(k)?'（已截止）':''}\n`;if(note&&note.trim())t+=note.trim()+'\n';
- t+=`共 ${fids.length} 人（正選 ${cnt('正選')}・候補 ${cnt('候補')}${cnt('未排定')?'・未排定 '+cnt('未排定'):''}）\n`;
- Object.keys(g).sort((a,b)=>g[b].length-g[a].length).forEach(al=>{const a=g[al].slice().sort((x,y)=>D.byF[y].power-D.byF[x].power);t+=`\n■ ${al}（${a.length} 人）\n`;['正選','候補','未排定'].forEach(r=>{const l=a.filter(f=>role(f)===r);if(l.length)t+=`${r}：${l.map(f=>D.byF[f].name).join('、')}\n`})});
- const mv=fids.filter(f=>tg(f)!==(D.byF[f].al||''));if(mv.length)t+=`\n需要先轉聯盟：${mv.map(f=>D.byF[f].name+'（'+(D.byF[f].al||'無聯盟')+'→'+tg(f)+'）').join('、')}\n`;
- t+=k==='frost'?'\n提醒：報名階段結束後才加入聯盟的人會失格，請在截止前先轉進目標聯盟。':k==='tal'?'\n提醒：名單在報名結束後鎖定，之後才加入聯盟的人不會進名單，請在截止前先轉進目標聯盟。':'';
- return t.trim()}
-function ntcSheet(){const s=U.sh;return`<div class="row sp"><b style="font-size:17px">${esc(EVN[s.ev])}・通知內容</b><button class="btn sm" data-close>✕</button></div><div class="sub">可以直接修改文字再複製。名單有變動時，按「依最新名單重新產生」。</div><input id="ntcN" autocomplete="off" placeholder="加一段說明（例如活動時間、集合地點，會放在名單前面）" value="${esc(s.note||'')}" style="width:100%"><textarea id="ntcT" style="min-height:320px;font-size:14px">${esc(s.text)}</textarea><div class="row"><button class="btn pri" data-a="ntc_copy">複製</button><button class="btn" data-a="ntc_share">分享</button><button class="btn" data-a="ntc_regen">依最新名單重新產生</button></div>`}
-const _ps3=playerSheet;playerSheet=function(fid){if(U.sh&&U.sh.kind==='ntc')return ntcSheet();return _ps3(fid)};
-document.addEventListener('click',e=>{const a=e.target.closest('[data-a]');if(!a)return;const k=a.dataset.a;
- if(k==='se_set')seSet(a.dataset.ev,a.dataset.fid,a.dataset.v);
- else if(k==='ntc')openSheet({kind:'ntc',ev:a.dataset.v,note:'',text:noticeText(a.dataset.v,'')});
- else if(k==='ntc_regen'){U.sh.note=($('#ntcN')||{}).value||'';U.sh.text=noticeText(U.sh.ev,U.sh.note);renderSheet()}
- else if(k==='ntc_copy')copyText(($('#ntcT')||{}).value||U.sh.text);
- else if(k==='ntc_share'){const t=($('#ntcT')||{}).value||U.sh.text;if(navigator.share)navigator.share({text:t}).catch(()=>{});else copyText(t)}});
+function load_(p) {
+  var date = p.date || Utilities.formatDate(new Date(), TZ, 'yyyy-MM-dd');
 
-/* ===== v4.6 玩家視窗改顯示迷宮關卡 ===== */
-function caveOf(r,c){const a=(c&&c!=='load'&&c!=='err'&&c.detail)||[];if(a.length){const l=a[a.length-1].lab;return{n:l.n,r:l.r}}return r.dt?{n:r.dt.lab,r:r.dt.labR}:null}
+  var tasks = [], tasksAll = [];
+  var tr = rows_('Tasks');
+  tr.sort(function (a, b) { return (Number(a[0]) || 999) - (Number(b[0]) || 999); });
+  for (var i = 0; i < tr.length; i++) {
+    if (!tr[i][1]) continue;
+    var task = { name: tr[i][1], days: tr[i][2] || '每天', stars: Number(tr[i][3]) || 0, treasure: Number(tr[i][5]) || 0,
+      type: String(tr[i][6] || '一般'), cond: String(tr[i][7] || ''), bonus: Number(tr[i][8]) || 0, on: yes_(tr[i][4]),
+      pre: String(tr[i][9] || ''), parent: yes_(tr[i][10]), time: String(tr[i][11] || ''), hid: String(tr[i][12] || '') };
+    if (task.type === '前置') { task.pre = task.cond; task.cond = ''; task.type = '一般'; }   // 舊版寫法
+    if (task.type === '家長確認') { task.parent = true; task.type = '一般'; }
+    task.type = OLD_TYPE[task.type] || task.type;
+    tasksAll.push(task);
+    if (task.on) tasks.push(task);
+  }
 
-/* ===== v4.7 名單一行顯示、名字過長時文字自動縮小 ===== */
-(function(){const s=document.createElement('style');s.textContent='.ln{display:flex;align-items:center;gap:8px;flex-wrap:nowrap;padding:4px 0;border-bottom:1px solid var(--bd)}.ln .fit{flex:1 1 auto;min-width:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}.ln .rt{flex:none}';document.head.appendChild(s)})();
-function fitNames(){document.querySelectorAll('.fit').forEach(el=>{el.style.fontSize='';let fs=parseFloat(getComputedStyle(el).fontSize)||15;while(el.scrollWidth>el.clientWidth+1&&fs>10){fs-=0.5;el.style.fontSize=fs+'px'}})}
-const _rd7=render;render=function(){_rd7();fitNames()};
-const _rs7=renderSheet;renderSheet=function(){_rs7();fitNames()};
-window.addEventListener('resize',fitNames);
+  var schedule = [];
+  var sr = rows_('Schedule');
+  for (i = 0; i < sr.length; i++) {
+    if (sr[i][0] === '') continue;
+    schedule.push({ period: sr[i][0], time: sr[i][1], d: [sr[i][2], sr[i][3], sr[i][4], sr[i][5], sr[i][6]] });
+  }
 
-/* ===== v4.8 佈景主題選單（所有人可用，目前有「靛紫」；之後新增主題只要在 PALS 加一列並補 CSS） ===== */
-const PALS=[['indigo','靛紫','目前的預設',['#5b4de0','#4f46e5','#e6e4ff','#f4f5fb']]];
-const PALN={};PALS.forEach(p=>{PALN[p[0]]=p[1]});
-U.pal=Store.get('pal','indigo');if(!PALN[U.pal])U.pal='indigo';
-(function(){const s=document.createElement('style');s.textContent='#top{background:var(--hd,linear-gradient(135deg,#4f46e5,#7c3aed))}';document.head.appendChild(s)})();
-function applyTheme(){const t=U.theme,dark=t==='dark'||(t==='auto'&&matchMedia('(prefers-color-scheme: dark)').matches),el=document.documentElement;el.setAttribute('data-theme',dark?'dark':'light');el.setAttribute('data-palette',U.pal)}
-function themeSheet(){const mode=(k,l)=>`<button class="btn ${U.theme===k?'on':''}" data-a="th_mode" data-v="${k}">${l}</button>`;
- return`<div class="row sp"><b style="font-size:17px">外觀</b><button class="btn sm" data-close>✕</button></div><div class="card"><b>佈景主題</b><div style="margin-top:8px">${PALS.map(([k,n,d,sw])=>`<div class="row sp" data-a="th_pal" data-v="${k}" style="padding:10px;border:${U.pal===k?'2px solid var(--ac)':'1px solid var(--bd)'};border-radius:12px;cursor:pointer;margin-bottom:8px"><span><b>${n}</b> <span class="sub">${d}</span>${U.pal===k?' <span class="bd a">使用中</span>':''}</span><span class="row" style="gap:4px;flex-wrap:nowrap">${sw.map(c=>`<span style="display:inline-block;width:20px;height:20px;border-radius:6px;background:${c};border:1px solid var(--bd)"></span>`).join('')}</span></div>`).join('')}</div><div class="sub">之後會有更多主題。你選的只會存在這台裝置，不會影響別人。</div></div><div class="card"><b>明暗模式</b><div class="row" style="margin-top:8px">${mode('auto','自動（跟著手機）')}${mode('light','淺色')}${mode('dark','深色')}</div></div>`}
-const _ps4=playerSheet;playerSheet=function(fid){if(U.sh&&U.sh.kind==='theme')return themeSheet();return _ps4(fid)};
-document.addEventListener('click',e=>{const a=e.target.closest('[data-a]');if(!a)return;const k=a.dataset.a;
- if(k==='th_mode'){U.theme=a.dataset.v;Store.set('theme',U.theme);render();renderSheet()}
- else if(k==='th_pal'){U.pal=a.dataset.v;Store.set('pal',U.pal);render();renderSheet()}});
+  var examSchedule = [];
+  var er = rows_('ExamSchedule');
+  for (i = 0; i < er.length; i++) {
+    if (er[i][0] && er[i][1] !== '' && er[i][2]) examSchedule.push({ date: er[i][0], period: String(er[i][1]), subj: er[i][2], note: er[i][3] });
+  }
 
-/* ===== v4.9 馬卡龍佈景主題（每組都有淺色與深色） ===== */
-const PD={
- berry:{n:'草莓牛奶',d:'粉嫩的草莓色',sw:['#f9a8c9','#d6457f','#ffdbe8','#fff3f6'],
-  l:{bg:'#fff3f6',s1:'#ffffff',s2:'#ffe6ee',bd:'#f6cfdb',t1:'#4a2133',t2:'#9a6176',ac:'#d6457f',acb:'#ffdbe8',btxt:'#ffffff',hd:'linear-gradient(135deg,#f9a8c9,#fcc9a8)',hdt:'#5a2340'},
-  d:{bg:'#231620',s1:'#2f1d2a',s2:'#3b2535',bd:'#55354a',t1:'#ffe8f0',t2:'#d9a3b8',ac:'#ff8fb7',acb:'#4f2a40',btxt:'#2a0f1c',hd:'linear-gradient(135deg,#8a3a62,#a8556b)',hdt:'#ffffff'}},
- mint:{n:'薄荷奶綠',d:'清爽的薄荷綠',sw:['#9be3c8','#1f9d72','#d2f3e4','#effbf6'],
-  l:{bg:'#effbf6',s1:'#ffffff',s2:'#dff5ea',bd:'#c4e8d6',t1:'#17382c',t2:'#5a8a76',ac:'#1f9d72',acb:'#d2f3e4',btxt:'#ffffff',hd:'linear-gradient(135deg,#9be3c8,#b9e8f0)',hdt:'#0f3d2e'},
-  d:{bg:'#10211c',s1:'#172c25',s2:'#1e382f',bd:'#2c4b40',t1:'#e2fbf0',t2:'#8fc2ad',ac:'#6ee7b7',acb:'#214a3b',btxt:'#0a2018',hd:'linear-gradient(135deg,#1d6b52,#237a7a)',hdt:'#ffffff'}},
- lav:{n:'薰衣草',d:'柔和的紫丁香',sw:['#c9b8f5','#7c5cd6','#e4dbff','#f6f2ff'],
-  l:{bg:'#f6f2ff',s1:'#ffffff',s2:'#ebe4fb',bd:'#d9ccf3',t1:'#2e2350',t2:'#7566a3',ac:'#7c5cd6',acb:'#e4dbff',btxt:'#ffffff',hd:'linear-gradient(135deg,#c9b8f5,#f3c4e6)',hdt:'#3a2a6b'},
-  d:{bg:'#18142a',s1:'#211b38',s2:'#2b2347',bd:'#403563',t1:'#eee9ff',t2:'#b3a6dd',ac:'#b79cff',acb:'#3a2f66',btxt:'#160f2d',hd:'linear-gradient(135deg,#5a3fa8,#8a45a0)',hdt:'#ffffff'}},
- lemon:{n:'檸檬奶油',d:'溫暖的奶油黃',sw:['#ffe28a','#b86e00','#ffecb0','#fffbe8'],
-  l:{bg:'#fffbe8',s1:'#ffffff',s2:'#fff2bf',bd:'#f2e3a2',t1:'#4a3b0f',t2:'#96803a',ac:'#b86e00',acb:'#ffecb0',btxt:'#ffffff',hd:'linear-gradient(135deg,#ffe28a,#ffc9a0)',hdt:'#5a3f00'},
-  d:{bg:'#231d0b',s1:'#2e2610',s2:'#3a3016',bd:'#574a24',t1:'#fff4cf',t2:'#d3bf7d',ac:'#ffd25e',acb:'#4d3f12',btxt:'#2a1f00',hd:'linear-gradient(135deg,#8a6a12,#9a5a2a)',hdt:'#ffffff'}},
- sky:{n:'天空藍莓',d:'輕盈的粉藍',sw:['#a7d3ff','#3b82d6','#d6e8ff','#eef6ff'],
-  l:{bg:'#eef6ff',s1:'#ffffff',s2:'#dcebff',bd:'#c3dcf8',t1:'#15305a',t2:'#5f81b5',ac:'#3b82d6',acb:'#d6e8ff',btxt:'#ffffff',hd:'linear-gradient(135deg,#a7d3ff,#d2c8ff)',hdt:'#15305a'},
-  d:{bg:'#0f1b2e',s1:'#162539',s2:'#1d3049',bd:'#2e4668',t1:'#e6f1ff',t2:'#93b4df',ac:'#7fb8ff',acb:'#25416a',btxt:'#08203d',hd:'linear-gradient(135deg,#2d5ea8,#5a4fb0)',hdt:'#ffffff'}},
- rainbow:{n:'彩虹馬卡龍',d:'六種顏色全部放進來',sw:['#ffb3c7','#d6336c','#fdffb6','#bdb2ff'],
-  l:{bg:'#fffaf5',s1:'#ffffff',s2:'#fdeee0',bd:'#f3dcc9',t1:'#40304a',t2:'#8d7596',ac:'#d6336c',acb:'#ffe0ea',btxt:'#ffffff',hd:'linear-gradient(90deg,#ffb3c7,#ffd6a5,#fdffb6,#caffbf,#9bf6ff,#bdb2ff)',hdt:'#4a3a5a'},
-  d:{bg:'#1b1626',s1:'#241d33',s2:'#2e2540',bd:'#443659',t1:'#f6eeff',t2:'#bba9d4',ac:'#ff8fb7',acb:'#4a2a45',btxt:'#26101c',hd:'linear-gradient(90deg,#8a3a62,#8a6a30,#7a8a30,#2f8a5a,#2a7a8a,#5a4aa8)',hdt:'#ffffff'}}};
-Object.keys(PD).forEach(k=>{PALS.push([k,PD[k].n,PD[k].d,PD[k].sw]);PALN[k]=PD[k].n});
-U.pal=Store.get('pal','indigo');if(!PALN[U.pal])U.pal='indigo';
-(function(){const css=v=>Object.keys(v).map(n=>'--'+n+':'+v[n]).join(';'),s=document.createElement('style');
- s.textContent=Object.keys(PD).map(k=>`html[data-palette=${k}]{${css(PD[k].l)}}html[data-palette=${k}][data-theme=dark]{${css(PD[k].d)}}`).join('')+'#top{color:var(--hdt,#fff)}#top .bd{color:var(--hdt,#fff)!important;background:rgba(255,255,255,.3)!important}';document.head.appendChild(s)})();
+  var reminders = [];
+  var rr = rows_('Reminders');
+  for (i = 0; i < rr.length; i++) {
+    if (rr[i][0] === '' && rr[i][3] === '') continue;
+    reminders.push({ kw: rr[i][0], items: rr[i][1], clothes: rr[i][2], date: rr[i][3] });
+  }
 
-/* ===== v4.9.1 修正：佈景主題沒有套用（原本的 applyTheme 排在後面，蓋掉了新版） ===== */
-applyTheme=function(){const t=U.theme,dark=t==='dark'||(t==='auto'&&matchMedia('(prefers-color-scheme: dark)').matches),el=document.documentElement;el.setAttribute('data-theme',dark?'dark':'light');el.setAttribute('data-palette',U.pal||'indigo')};
-applyTheme();
+  var config = { exams: [], holidays: [], goalName: '', goalAmount: 0, pin: '0000', pomoStars: 1, nightStart: 21, nightEnd: 6 };
+  var cr = rows_('Config');
+  for (i = 0; i < cr.length; i++) {
+    var cat = cr[i][0], item = cr[i][1], val = cr[i][2];
+    if (cat === '段考' && val) config.exams.push({ name: item, date: val });
+    else if (cat === '停課日' && val) config.holidays.push(val);
+    else if (item === '目標名稱') config.goalName = val;
+    else if (item === '目標金額') config.goalAmount = Number(val) || 0;
+    else if (item === '家長密碼') config.pin = ('0000' + String(val)).slice(-Math.max(4, String(val).length));
+    else if (item === '蕃茄鐘完成星數') config.pomoStars = Number(val) || 0;
+    else if (item === '夜間開始時間') config.nightStart = Number(val);
+    else if (item === '夜間結束時間') config.nightEnd = Number(val);
+  }
 
-/* ===== v5.0 日系／禪風／聖誕主題與動態效果（積雪、花瓣、聖誕樹） ===== */
-const du=s=>'url("data:image/svg+xml,'+encodeURIComponent(s)+'")';
-const PX={wa:{fx:'petal'},zen:{fx:''},xmas:{fx:'snow'}};
-Object.assign(PD,{
- wa:{n:'和風櫻',d:'藍染與櫻花瓣，淡淡的青海波，會飄花瓣',sw:['#2f4a6d','#b3405c','#f7dde4','#faf6f1'],
-  l:{bg:'#faf6f1',s1:'#ffffff',s2:'#f3ebe2',bd:'#e5d8c9',t1:'#2b2a33',t2:'#7b6f6a',ac:'#b3405c',acb:'#f7dde4',btxt:'#ffffff',hd:'linear-gradient(135deg,#2f4a6d,#4d6d94)',hdt:'#ffffff',fx:'#f6b3c6',fx2:'#f08aa6'},
-  d:{bg:'#15171f',s1:'#1d2029',s2:'#262a36',bd:'#383d4d',t1:'#f1ece6',t2:'#b4aaa4',ac:'#f08aa6',acb:'#4a2a37',btxt:'#2a0f18',hd:'linear-gradient(135deg,#1f3250,#35507a)',hdt:'#ffffff',fx:'#f4a9bf',fx2:'#ffd1de'}},
- zen:{n:'禪風',d:'和紙、墨色與苔綠，安靜的枯山水',sw:['#3b3b36','#5b6b4a','#e1e6d6','#f2efe8'],
-  l:{bg:'#f2efe8',s1:'#faf8f3',s2:'#e8e4d9',bd:'#d6d0c2',t1:'#2a2a26',t2:'#7a766a',ac:'#5b6b4a',acb:'#e1e6d6',btxt:'#ffffff',hd:'linear-gradient(135deg,#3b3b36,#55554d)',hdt:'#f2efe8'},
-  d:{bg:'#1a1a17',s1:'#232320',s2:'#2c2c28',bd:'#413f38',t1:'#ece8dc',t2:'#a8a393',ac:'#a7b88f',acb:'#394032',btxt:'#1a1f12',hd:'linear-gradient(135deg,#0f0f0d,#2b2b26)',hdt:'#ece8dc'}},
- xmas:{n:'聖誕雪夜',d:'聖誕紅配松綠，會下雪，還有聖誕樹',sw:['#b3202a','#1f7a4d','#fde1e1','#eef5fa'],
-  l:{bg:'#eef5fa',s1:'#ffffff',s2:'#e3eef6',bd:'#cadbe8',t1:'#1c2b2a',t2:'#5f7a78',ac:'#c1272d',acb:'#fde1e1',btxt:'#ffffff',hd:'linear-gradient(135deg,#b3202a,#1f7a4d)',hdt:'#ffffff',fx:'#9fc2de'},
-  d:{bg:'#0e1d17',s1:'#15281f',s2:'#1c3429',bd:'#2c4a3b',t1:'#f3f7f2',t2:'#a8c4b4',ac:'#ff6b6b',acb:'#4a2326',btxt:'#2a0c0c',hd:'linear-gradient(135deg,#8f1c25,#1b6b45)',hdt:'#ffffff',fx:'#ffffff'}}});
-['wa','zen','xmas'].forEach(k=>{PALS.push([k,PD[k].n,PD[k].d,PD[k].sw]);PALN[k]=PD[k].n});
-U.pal=Store.get('pal','indigo');if(!PALN[U.pal])U.pal='indigo';
-(function(){const css=v=>Object.keys(v).map(n=>'--'+n+':'+v[n]).join(';');
- const sei=c=>du(`<svg xmlns="http://www.w3.org/2000/svg" width="40" height="20" viewBox="0 0 40 20"><g fill="none" stroke="${c}" stroke-opacity=".09" stroke-width="1.2"><circle cx="0" cy="20" r="9"/><circle cx="0" cy="20" r="6"/><circle cx="0" cy="20" r="3"/><circle cx="40" cy="20" r="9"/><circle cx="40" cy="20" r="6"/><circle cx="40" cy="20" r="3"/><circle cx="20" cy="10" r="9"/><circle cx="20" cy="10" r="6"/><circle cx="20" cy="10" r="3"/></g></svg>`);
- const enso=c=>du(`<svg xmlns="http://www.w3.org/2000/svg" width="340" height="340" viewBox="0 0 340 340"><path d="M170 36A134 134 0 1 1 96 60" fill="none" stroke="${c}" stroke-opacity=".07" stroke-width="16" stroke-linecap="round"/></svg>`);
- const drip=c=>du(`<svg xmlns="http://www.w3.org/2000/svg" width="60" height="16" viewBox="0 0 60 16"><path d="M0 0H60V6Q54 15 46 6Q40 11 32 6Q24 14 16 6Q8 11 0 6Z" fill="${c}"/></svg>`);
- const trees=du(`<svg xmlns="http://www.w3.org/2000/svg" width="150" height="100" viewBox="0 0 150 100"><rect x="34" y="80" width="8" height="14" fill="#6b4226"/><polygon points="38,16 20,46 56,46" fill="#1f7a4d"/><polygon points="38,30 15,62 61,62" fill="#238a58"/><polygon points="38,46 10,80 66,80" fill="#2a9a63"/><polygon points="38,16 31,26 45,26" fill="#fff"/><polygon points="38,32 32,41 44,41" fill="#fff" opacity=".9"/><circle cx="38" cy="11" r="4" fill="#f7c948"/><circle cx="30" cy="52" r="2.6" fill="#e63946"/><circle cx="46" cy="66" r="2.6" fill="#f7c948"/><circle cx="25" cy="70" r="2.6" fill="#e63946"/><circle cx="50" cy="52" r="2.2" fill="#f7c948"/><rect x="108" y="84" width="6" height="10" fill="#6b4226"/><polygon points="111,40 97,62 125,62" fill="#1f7a4d"/><polygon points="111,52 94,76 128,76" fill="#2a9a63"/><polygon points="111,40 106,47 116,47" fill="#fff"/><circle cx="111" cy="36" r="3" fill="#f7c948"/><circle cx="105" cy="68" r="2" fill="#e63946"/><circle cx="117" cy="60" r="2" fill="#f7c948"/><path d="M0 100V92Q18 84 38 92T78 91T118 93T150 90V100Z" fill="#ffffff" opacity=".92"/></svg>`);
- let t=['wa','zen','xmas'].map(k=>`html[data-palette=${k}]{${css(PD[k].l)}}html[data-palette=${k}][data-theme=dark]{${css(PD[k].d)}}`).join('');
- const layer='body::before{content:"";position:fixed;z-index:-1;pointer-events:none;';
- t+=`html[data-palette=wa] ${layer}inset:0;background:${sei('#2f4a6d')} repeat}html[data-palette=wa][data-theme=dark] body::before{background:${sei('#9db8e6')} repeat}`;
- t+=`html[data-palette=zen] ${layer}inset:0;background:${enso('#2a2a26')} no-repeat right -70px bottom 70px/340px 340px,repeating-linear-gradient(180deg,rgba(60,58,48,.04) 0 1px,transparent 1px 18px)}html[data-palette=zen][data-theme=dark] body::before{background:${enso('#ece8dc')} no-repeat right -70px bottom 70px/340px 340px,repeating-linear-gradient(180deg,rgba(236,232,220,.04) 0 1px,transparent 1px 18px)}`;
- t+=`html[data-palette=xmas] ${layer}left:0;right:0;bottom:0;height:150px;background:${trees} repeat-x left bottom/auto 120px}html[data-palette=xmas] #top{position:relative}html[data-palette=xmas] #top::after{content:"";position:absolute;left:0;right:0;bottom:-13px;height:16px;background:${drip('#ffffff')} repeat-x left top/60px 16px;pointer-events:none;z-index:2}html[data-palette=xmas][data-theme=dark] #top::after{background-image:${drip('#dbe8f3')}}`;
- const s=document.createElement('style');s.textContent=t;document.head.appendChild(s)})();
-const FX={on:Store.get('fx',true),raf:0,c:null,t:'',p:[],col:'#fff',col2:'#fff',rz:null};
-function fxStop(){cancelAnimationFrame(FX.raf);FX.raf=0;if(FX.rz){window.removeEventListener('resize',FX.rz);FX.rz=null}if(FX.c){FX.c.remove();FX.c=null}FX.t='';FX.p=[]}
-function fxSync(){const px=PX[U.pal],want=!!(px&&px.fx&&FX.on&&!matchMedia('(prefers-reduced-motion: reduce)').matches);
- if(!want){if(FX.c)fxStop();return}
- const cs=getComputedStyle(document.documentElement);FX.col=cs.getPropertyValue('--fx').trim()||'#ffffff';FX.col2=cs.getPropertyValue('--fx2').trim()||FX.col;
- if(FX.c&&FX.t===px.fx)return;fxStop();FX.t=px.fx;
- const c=document.createElement('canvas');c.style.cssText='position:fixed;left:0;top:0;width:100%;height:100%;z-index:40;pointer-events:none';document.body.appendChild(c);FX.c=c;const ctx=c.getContext('2d');
- FX.rz=()=>{c.width=innerWidth;c.height=innerHeight};FX.rz();window.addEventListener('resize',FX.rz);
- const snow=px.fx==='snow',n=snow?(innerWidth<500?55:110):28;
- FX.p=Array.from({length:n},()=>({x:Math.random()*c.width,y:Math.random()*c.height,r:snow?1+Math.random()*2.6:2+Math.random()*2.2,v:snow?.4+Math.random()*1:.5+Math.random()*.8,w:Math.random()*6.28,s:.005+Math.random()*.02,a:Math.random()*6.28,alt:Math.random()<.5}));
- const loop=()=>{ctx.clearRect(0,0,c.width,c.height);
-  FX.p.forEach(p=>{p.w+=p.s;p.y+=p.v;p.x+=Math.sin(p.w)*(snow?.5:.9)+(snow?0:.3);if(p.y>c.height+10){p.y=-10;p.x=Math.random()*c.width}if(p.x>c.width+10)p.x=-10;if(p.x<-10)p.x=c.width+10;
-   if(snow){ctx.globalAlpha=.9;ctx.fillStyle=FX.col;ctx.beginPath();ctx.arc(p.x,p.y,p.r,0,6.283);ctx.fill()}
-   else{p.a+=.02;ctx.save();ctx.translate(p.x,p.y);ctx.rotate(p.a);ctx.globalAlpha=.85;ctx.fillStyle=p.alt?FX.col2:FX.col;ctx.beginPath();ctx.ellipse(0,0,p.r*2.2,p.r*1.2,0,0,6.283);ctx.fill();ctx.restore()}});
-  FX.raf=requestAnimationFrame(loop)};loop()}
-const _rd11=render;render=function(){_rd11();fxSync()};
-function themeSheet(){const mode=(k,l)=>`<button class="btn ${U.theme===k?'on':''}" data-a="th_mode" data-v="${k}">${l}</button>`,px=PX[U.pal]||{};
- return`<div class="row sp"><b style="font-size:17px">外觀</b><button class="btn sm" data-close>✕</button></div><div class="card"><b>佈景主題</b><div style="margin-top:8px">${PALS.map(([k,n,d,sw])=>`<div class="row sp" data-a="th_pal" data-v="${k}" style="padding:10px;border:${U.pal===k?'2px solid var(--ac)':'1px solid var(--bd)'};border-radius:12px;cursor:pointer;margin-bottom:8px"><span style="min-width:0"><b>${n}</b>${U.pal===k?' <span class="bd a">使用中</span>':''}<div class="sub">${d}</div></span><span class="row" style="gap:4px;flex-wrap:nowrap">${sw.map(c=>`<span style="display:inline-block;width:20px;height:20px;border-radius:6px;background:${c};border:1px solid var(--bd)"></span>`).join('')}</span></div>`).join('')}</div><div class="sub">你選的只會存在這台裝置，不會影響別人。</div></div>${px.fx?`<div class="card"><b>動態效果</b><div class="sub">${px.fx==='snow'?'畫面會下雪':px.fx==='leaf'?'畫面會飄楓葉':'畫面會飄櫻花瓣'}。關掉可以省電，手機設定了「減少動態效果」時會自動關閉。</div><div class="row" style="margin-top:8px"><button class="btn ${FX.on?'on':''}" data-a="th_fx" data-v="1">開</button><button class="btn ${FX.on?'':'on'}" data-a="th_fx" data-v="0">關</button></div></div>`:''}<div class="card"><b>明暗模式</b><div class="row" style="margin-top:8px">${mode('auto','自動（跟著手機）')}${mode('light','淺色')}${mode('dark','深色')}</div></div>`}
-document.addEventListener('click',e=>{const a=e.target.closest('[data-a]');if(a&&a.dataset.a==='th_fx'){FX.on=a.dataset.v==='1';Store.set('fx',FX.on);fxSync();renderSheet()}});
+  var rewards = [];
+  var wr = rows_('Rewards');
+  for (i = 0; i < wr.length; i++) {
+    if (wr[i][0] && yes_(wr[i][4])) {
+      rewards.push({ name: wr[i][0], stars: Number(wr[i][1]) || 0, money: Number(wr[i][2]) || 0, top: yes_(wr[i][3]) });
+    }
+  }
 
-/* ===== v5.1 秋天飄楓主題 ===== */
-PX.maple={fx:'leaf'};
-PD.maple={n:'楓紅秋色',d:'楓紅與金黃，會飄楓葉，底部有落葉堆',sw:['#c2410c','#b8431f','#fbdcc8','#fbf4ea'],
- l:{bg:'#fbf4ea',s1:'#fffdf9',s2:'#f6e7d3',bd:'#ead5ba',t1:'#3a2418',t2:'#8a6a50',ac:'#b8431f',acb:'#fbdcc8',btxt:'#ffffff',hd:'linear-gradient(135deg,#c2410c,#d99a1d)',hdt:'#ffffff',fx:'#c8452a',fx2:'#e38b1f',fx3:'#d9a520'},
- d:{bg:'#1d1410',s1:'#281c16',s2:'#33241c',bd:'#4f3a2c',t1:'#f8eadb',t2:'#c9ab92',ac:'#ff9a62',acb:'#4d2c1c',btxt:'#2b1206',hd:'linear-gradient(135deg,#8a2e12,#9a6a14)',hdt:'#ffffff',fx:'#e0613a',fx2:'#f0a030',fx3:'#f2c94c'}};
-PALS.push(['maple',PD.maple.n,PD.maple.d,PD.maple.sw]);PALN.maple=PD.maple.n;
-U.pal=Store.get('pal','indigo');if(!PALN[U.pal])U.pal='indigo';
-(function(){const css=v=>Object.keys(v).map(n=>'--'+n+':'+v[n]).join(';');
- const LP='M0,-1 L0.18,-0.62 L0.5,-0.7 L0.42,-0.3 L0.8,-0.38 L0.62,-0.05 L0.95,0.1 L0.45,0.3 L0.5,0.55 L0.12,0.45 L0.1,0.9 L-0.1,0.9 L-0.12,0.45 L-0.5,0.55 L-0.45,0.3 L-0.95,0.1 L-0.62,-0.05 L-0.8,-0.38 L-0.42,-0.3 L-0.5,-0.7 L-0.18,-0.62 Z';
- const leaves=du(`<svg xmlns="http://www.w3.org/2000/svg" width="160" height="100" viewBox="0 0 160 100"><path d="M0 100V84Q16 70 34 82T70 80T108 84T146 78T160 82V100Z" fill="#a8341a" opacity=".92"/><path d="M0 100V90Q20 78 42 90T84 88T124 91T160 88V100Z" fill="#d9701c"/><g transform="translate(30 74) rotate(-20) scale(11)"><path d="${LP}" fill="#c8452a"/></g><g transform="translate(88 76) rotate(25) scale(9)"><path d="${LP}" fill="#e3a21f"/></g><g transform="translate(130 72) rotate(-8) scale(10)"><path d="${LP}" fill="#d9531f"/></g><g transform="translate(60 88) rotate(40) scale(7)"><path d="${LP}" fill="#f2c94c"/></g></svg>`);
- const s=document.createElement('style');s.textContent=`html[data-palette=maple]{${css(PD.maple.l)}}html[data-palette=maple][data-theme=dark]{${css(PD.maple.d)}}html[data-palette=maple] body::before{content:"";position:fixed;left:0;right:0;bottom:0;height:130px;background:${leaves} repeat-x left bottom/auto 100px;z-index:-1;pointer-events:none}`;document.head.appendChild(s)})();
-const MAPLE=new Path2D('M0,-1 L0.18,-0.62 L0.5,-0.7 L0.42,-0.3 L0.8,-0.38 L0.62,-0.05 L0.95,0.1 L0.45,0.3 L0.5,0.55 L0.12,0.45 L0.1,0.9 L-0.1,0.9 L-0.12,0.45 L-0.5,0.55 L-0.45,0.3 L-0.95,0.1 L-0.62,-0.05 L-0.8,-0.38 L-0.42,-0.3 L-0.5,-0.7 L-0.18,-0.62 Z');
-function fxSync(){const px=PX[U.pal],want=!!(px&&px.fx&&FX.on&&!matchMedia('(prefers-reduced-motion: reduce)').matches);
- if(!want){if(FX.c)fxStop();return}
- const cs=getComputedStyle(document.documentElement);FX.col=cs.getPropertyValue('--fx').trim()||'#ffffff';FX.col2=cs.getPropertyValue('--fx2').trim()||FX.col;FX.col3=cs.getPropertyValue('--fx3').trim()||FX.col2;
- if(FX.c&&FX.t===px.fx)return;fxStop();FX.t=px.fx;
- const c=document.createElement('canvas');c.style.cssText='position:fixed;left:0;top:0;width:100%;height:100%;z-index:40;pointer-events:none';document.body.appendChild(c);FX.c=c;const ctx=c.getContext('2d');
- FX.rz=()=>{c.width=innerWidth;c.height=innerHeight};FX.rz();window.addEventListener('resize',FX.rz);
- const snow=px.fx==='snow',leaf=px.fx==='leaf',n=snow?(innerWidth<500?55:110):leaf?(innerWidth<500?18:30):28,R=Math.random;
- FX.p=Array.from({length:n},()=>({x:R()*c.width,y:R()*c.height,r:snow?1+R()*2.6:leaf?7+R()*7:2+R()*2.2,v:snow?.4+R():leaf?.7+R()*.9:.5+R()*.8,w:R()*6.28,s:.005+R()*.02,a:R()*6.28,fl:R()*6.28,ci:Math.floor(R()*3),alt:R()<.5}));
- const loop=()=>{ctx.clearRect(0,0,c.width,c.height);
-  FX.p.forEach(p=>{p.w+=p.s;p.y+=p.v;p.x+=Math.sin(p.w)*(snow?.5:leaf?1.1:.9)+(snow?0:.3);if(p.y>c.height+20){p.y=-20;p.x=R()*c.width}if(p.x>c.width+20)p.x=-20;if(p.x<-20)p.x=c.width+20;
-   if(snow){ctx.globalAlpha=.9;ctx.fillStyle=FX.col;ctx.beginPath();ctx.arc(p.x,p.y,p.r,0,6.283);ctx.fill()}
-   else if(leaf){p.a+=.015;p.fl+=.03;ctx.save();ctx.translate(p.x,p.y);ctx.rotate(p.a);ctx.scale(p.r*(.55+.45*Math.abs(Math.cos(p.fl))),p.r);ctx.globalAlpha=.88;ctx.fillStyle=[FX.col,FX.col2,FX.col3][p.ci];ctx.fill(MAPLE);ctx.restore()}
-   else{p.a+=.02;ctx.save();ctx.translate(p.x,p.y);ctx.rotate(p.a);ctx.globalAlpha=.85;ctx.fillStyle=p.alt?FX.col2:FX.col;ctx.beginPath();ctx.ellipse(0,0,p.r*2.2,p.r*1.2,0,0,6.283);ctx.fill();ctx.restore()}});
-  FX.raf=requestAnimationFrame(loop)};loop()}
+  ensureLedgerIds_();                              // 家長手動新增的列補上 id，iPad 才能修正
+  var balance = 0, recent = [], ledger = [];
+  var lr = rows_('Ledger');
+  for (i = 0; i < lr.length; i++) {
+    var amt = Number(lr[i][4]) || 0;
+    if (!amt) continue;
+    var isOut = lr[i][2] === '支出';
+    balance += isOut ? -amt : amt;
+    var row = { id: lr[i][0], date: lr[i][1], type: isOut ? '支出' : '收入', desc: lr[i][3], amt: amt, src: lr[i][5] };
+    recent.push(row);
+    ledger.push(row);
+  }
+  recent = recent.slice(-5).reverse();
+  ledger = ledger.slice(-500);
 
-/* ===== 畫面 ===== */
-function applyTheme(){const t=U.theme,dark=t==='dark'||(t==='auto'&&matchMedia('(prefers-color-scheme: dark)').matches);document.documentElement.setAttribute('data-theme',dark?'dark':'light')}
-const TABS=[['players','全玩家'],['signups','活動報名'],['lists','活動名單'],['admin','後台設定']];
-function render(){applyTheme();
- $('#top').innerHTML=`<b>2611王國</b><span class="grow"></span>${AU?`<span class="bd" style="background:rgba(255,255,255,.22);color:#fff">${isAdmin()?'管理員':'幹部 '+esc(AU.al)}</span>`:''}<button class="btn sm" data-a="theme">外觀・${PALN[U.pal]||'靛紫'}</button>`;
- $('#nav').innerHTML=TABS.map(([k,l])=>`<button class="${U.tab===k?'on':''}" data-a="nav" data-v="${k}">${l}</button>`).join('');
- const pg={players:pgPlayers,signups:pgSignups,lists:pgLists,admin:pgAdmin}[U.tab]||pgPlayers;$('#main').innerHTML=pg();
- const box=$('#tw');if(box){box.onscroll=()=>{if(!P.raf)P.raf=requestAnimationFrame(()=>{P.raf=0;drawRows()})};drawRows()}}
+  var starTotal = 0, taskNet = {}, dayNet = {};
+  var st = rows_('StarLog');
+  var prefix = date + '|', since = Utilities.formatDate(new Date(new Date().getTime() - 40 * 86400000), TZ, 'yyyy-MM-dd');
+  for (i = 0; i < st.length; i++) {
+    starTotal += Number(st[i][2]) || 0;
+    var type = String(st[i][4]), ref = String(st[i][5]);
+    if (type !== 'task' && type !== 'untask') continue;
+    var sgn = type === 'task' ? 1 : -1;
+    if (ref.indexOf(prefix) === 0) {
+      var tn = ref.slice(prefix.length);
+      taskNet[tn] = (taskNet[tn] || 0) + sgn;
+    }
+    if (ref.slice(0, 10) >= since) dayNet[ref] = (dayNet[ref] || 0) + sgn;
+  }
+  var taskDays = {};                                // 最近 40 天，每個任務完成的日期（算連續天數用）
+  for (var key in dayNet) {
+    if (!dayNet.hasOwnProperty(key) || dayNet[key] <= 0) continue;
+    var nm = key.slice(11);
+    (taskDays[nm] = taskDays[nm] || []).push(key.slice(0, 10));
+  }
 
-/* ===== 動作 ===== */
-async function doReg(fid,ev,choice){const r=D.byF[fid];if(!r)return;if(!canReg(ev,r))return toast('報名已截止，只有幹部可以修改');
- let play='';if(choice!=='out'&&(ev==='tal'||ev==='frost'))play=(U.tg[ev]||'').trim()||(regOf(ev,fid)||{}).play||r.al;
- try{const j=await apiPost({action:'register',event:ev,fid,choice,play,note:''});if(!j.ok)throw new Error(ERR[j.error]||j.error||'失敗');
-  (D.regs[ev]=D.regs[ev]||{})[fid]={choice,play,note:'',at:new Date().toLocaleString(),by:j.by||'self'};
-  toast((choice==='out'?'已取消：':'已送出：')+r.name+' → '+EVN[ev]+((choice==='1'||choice==='2')?'・'+CHN[choice]:''))}catch(e){toast('送出失敗：'+e.message)}
- renderSheet();drawRows();if(U.tab==='signups')render()}
-async function doLogin(body,pin){try{const j=await apiPost({action:'login'},body);if(!j.ok)throw new Error(ERR[j.error]||j.error||'登入失敗');
-  AU=j.role==='admin'?{role:'admin',pin,name:'管理員',al:'*'}:{role:'cadre',fid:body.fid,code:body.code,name:j.name,al:j.al};Store.set('auth',AU);toast('登入成功：'+(AU.name||''));D.detTried=false;render();loadDetail()}catch(e){toast(e.message)}}
-async function dlSave(group,iso){const g=DLG.find(x=>x[0]===group);try{const j=await apiPost({action:'setDeadline',events:g[2],deadline:iso});if(!j.ok)throw new Error(ERR[j.error]||j.error||'失敗');g[2].forEach(e=>{D.dls[e]=iso});toast(iso?'已設定截止：'+fmtT(Date.parse(iso)):'已重新開放報名')}catch(e){toast('失敗：'+e.message)}render()}
-async function act(a,el){const v=el.dataset.v;
- switch(a){
- case'nav':U.tab=v;U.colsOpen=U.colsOpen;render();window.scrollTo(0,0);break;
- case'theme':openSheet({kind:'theme'});break;
- case'reload':D.stLoaded=false;D.card={};render();Promise.all([loadState(),loadRegs(),loadAcc()]);break;
- case'colsT':U.colsOpen=!U.colsOpen;render();break;
- case'colTog':P.cols=P.cols.includes(v)?P.cols.filter(x=>x!==v):P.cols.concat(v);Store.set('cols',P.cols);render();break;
- case'hmenu':openSheet({kind:'menu',k:v});break;
- case'sort':{const[k,d]=v.split('|');P.sort={k,dir:+d};closeSheet();render()}break;
- case'fApply':{const k=v,c=colOf(k);if(c.t==='n'){const a1=($('#fmin').value||'').trim(),b1=($('#fmax').value||'').trim(),mn=a1===''||isNaN(+a1)?null:+a1,mx=b1===''||isNaN(+b1)?null:+b1;if(mn==null&&mx==null)delete P.filt[k];else P.filt[k]={min:mn,max:mx}}
-   else if(k==='name'){const t=($('#ftext').value||'').trim();if(t)P.filt[k]={text:t};else delete P.filt[k]}
-   else{const all=uniq(c).map(x=>x[0]);if(U.pend.size>=all.length)delete P.filt[k];else P.filt[k]={vals:[...U.pend]}}closeSheet();render()}break;
- case'fClear':delete P.filt[v];closeSheet();render();break;
- case'fClearAll':P.filt={};render();break;
- case'fAll':document.querySelectorAll('#fl input[data-ck]').forEach(i=>{i.checked=true;U.pend.add(i.dataset.ck)});break;
- case'fNone':document.querySelectorAll('#fl input[data-ck]').forEach(i=>{i.checked=false;U.pend.delete(i.dataset.ck)});break;
- case'jump':jump(v);break;
- case'openPl':openSheet({kind:'player',fid:v,tab:'reg'});break;
- case'shTab':U.sh.tab=v;if(v==='hist')loadCard(U.sh.fid);renderSheet();break;
- case'cardRetry':delete D.card[U.sh.fid];loadCard(U.sh.fid);renderSheet();break;
- case'dm':U.dm=v;renderSheet();break;
- case'reg':doReg(U.sh.fid,el.dataset.ev,v);break;
- case'sgT':U.sg[v]=!U.sg[v];render();break;
- case'copyEv':copyText(evText(v));break;
- case'bindOpen':U.sh.bind={pick:'',main:'self'};renderSheet();break;
- case'bindCancel':U.sh.bind=null;renderSheet();break;
- case'bindPick':U.sh.bind.pick=v;renderSheet();break;
- case'bindMain':U.sh.bind.main=v;renderSheet();break;
- case'bindGo':{const b=U.sh.bind,me=U.sh.fid;if(!b.pick)return toast('請先選另一個帳號');try{const j=await apiPost({action:'accBind',fids:[me,b.pick],main:b.main==='self'?me:b.pick});if(!j.ok)throw new Error(ERR[j.error]||j.error||'失敗');toast('已綁定');U.sh.bind=null;await loadAcc()}catch(e){toast('綁定失敗：'+e.message)}renderSheet()}break;
- case'unbind':{try{const j=await apiPost({action:'accUnbind',fid:v});if(!j.ok)throw new Error(ERR[j.error]||j.error||'失敗');toast('已解除綁定');await loadAcc()}catch(e){toast('失敗：'+e.message)}renderSheet()}break;
- case'login':{const fid=U.lg&&U.lg.fid,code=($('#lgc')||{}).value||'';if(!fid)return toast('請先輸入名字並點選');if(!code)return toast('請輸入幹部密碼');doLogin({fid,code});}break;
- case'loginAdmin':{const pin=($('#lgp')||{}).value||'';if(!pin)return toast('請輸入管理員 PIN');doLogin({pin},pin)}break;
- case'logout':AU=null;Store.del('auth');U.lg=null;D.detTried=false;D.rows.forEach(r=>{delete r.dt});render();break;
- case'dlSet':{const t=($('#dl_'+v)||{}).value;if(!t)return toast('請先選擇日期時間');dlSave(v,new Date(t).toISOString())}break;
- case'dlNow':dlSave(v,new Date().toISOString());break;
- case'dlClear':dlSave(v,'');break;
- case'clrGo':{const evs=Object.keys(U.clr).filter(k=>U.clr[k]);if(!evs.length)return toast('請先勾選要清除的活動');if(!U.clrArm){U.clrArm=true;render();toast('再按一次才會清除');setTimeout(()=>{if(U.clrArm){U.clrArm=false;render()}},5000);break}
-   U.clrArm=false;try{const j=await apiPost({action:'clearRegs',events:evs});if(!j.ok)throw new Error(ERR[j.error]||j.error||'失敗');toast('已封存並清除 '+j.rows+' 筆報名');U.clr={};await loadRegs()}catch(e){toast('清除失敗：'+e.message)}render()}break;
- case'impFill':U.impText=DEF_ACC;U.impRes=null;render();break;
- case'impCheck':{const text=($('#imp')||{}).value||U.impText||'';U.impText=text;const ok=[],bad=[];
-   text.split(/\n/).forEach(line=>{const m=line.match(/主\s*[：:]\s*([^/／]+?)\s*[\/／]\s*小\s*[：:]\s*(.+)$/);if(!m)return;const mn=m[1].trim(),alts=m[2].split(/[、,，]/).map(s=>s.trim()).filter(Boolean),mr=findByName(mn),fids=[];
-    if(mr)fids.push(mr.fid);else bad.push(mn);alts.forEach(x=>{const r=findByName(x);if(r){if(!fids.includes(r.fid))fids.push(r.fid)}else bad.push(x)});if(mr&&fids.length>=2)ok.push({main:mr.fid,fids,label:mn+' ← '+alts.join('、')})});
-   U.impRes={ok,bad};render()}break;
- case'impGo':{const r=U.impRes;if(!r||!r.ok.length)return;try{const j=await apiPost({action:'accImport',groups:r.ok.map(g=>({fids:g.fids,main:g.main}))});if(!j.ok)throw new Error(ERR[j.error]||j.error||'失敗');toast('已匯入 '+j.n+' 組');U.impRes=null;await loadAcc()}catch(e){toast('匯入失敗：'+e.message)}render()}break;
- case'cfgSave':{CFG={url:($('#cfu').value||'').trim(),token:($('#cft').value||'').trim()};Store.set('cfg',CFG);toast('已儲存，重新載入資料');D.stLoaded=false;render();Promise.all([loadState(),loadRegs(),loadAcc()])}break;
- case'copyLink':copyText(shareLink());break;
- case'verCheck':{U.ver='檢查中…';render();try{const t=await (await fetch(location.href.split('#')[0].split('?')[0],{cache:'no-store'})).text(),m=t.match(/APP_VERSION='([^']+)'/);U.ver=m?(m[1]===APP_VERSION?'已經是最新版（'+APP_VERSION+'）':'有新版本 '+m[1]+'，請重新整理頁面'):'無法判斷版本'}catch(e){U.ver='檢查失敗：'+e.message}render()}break;
- }}
-document.addEventListener('click',e=>{const t=e.target;
- if(t.closest('[data-close]')){closeSheet();return}
- const a=t.closest('[data-a]');
- if(a){const k=a.dataset.a;if(k==='jump'||k==='openPl'||k==='bindPick'||k==='lgPick'){}
-  if(k==='cfgReset'){Store.del('cfg');CFG={url:DEFC.url||'',token:DEFC.token||''};D.stErr='';D.stLoaded=false;render();loadState();loadRegs();loadAcc();return}if(k==='lgMode'){U.lgMode=a.dataset.v;render();return}if(k==='lgPick'){U.lg={fid:a.dataset.v};render();return}
-  act(k,a);return}
- const tr=t.closest('tr[data-fid]');if(tr)openSheet({kind:'player',fid:tr.dataset.fid,tab:'reg'})});
-document.addEventListener('input',e=>{const t=e.target,id=t.id;
- if(id==='qs'){const l=suggest(t.value);$('#sugq').innerHTML=nz(t.value)?sugHtml(l,'jump'):''}
- else if(id==='fsq'){const q=nz(t.value);document.querySelectorAll('#fl .fi').forEach(el=>{el.style.display=!q||el.dataset.t.includes(q)?'flex':'none'})}
- else if(id==='bq'){$('#bsug').innerHTML=nz(t.value)?sugHtml(suggest(t.value,r=>r.fid!==U.sh.fid),'bindPick'):''}
- else if(id==='lgq'){$('#lgsug').innerHTML=nz(t.value)?sugHtml(suggest(t.value,elig),'lgPick'):''}
- else if(id==='imp'){U.impText=t.value}
- else if(t.dataset.tg){U.tg[t.dataset.tg]=t.value}});
-document.addEventListener('change',e=>{const t=e.target;if(t.id==='lgsel'&&t.value){U.lg={fid:t.value};render();return}if(t.dataset.ck!==undefined){if(t.checked)U.pend.add(t.dataset.ck);else U.pend.delete(t.dataset.ck)}if(t.dataset.clr){U.clr[t.dataset.clr]=t.checked}});
-document.addEventListener('keydown',e=>{if(e.key==='Enter'&&e.target.id==='qs'){const l=suggest(e.target.value);if(l.length)jump(l[0].fid)}});
-try{matchMedia('(prefers-color-scheme: dark)').addEventListener('change',()=>{if(U.theme==='auto')applyTheme()})}catch(e){}
-(async function init(){render();if(!CFG.url){D.stErr='NOURL';D.stLoaded=true;render();return}await Promise.all([loadState(),loadRegs(),loadAcc()])})();
-</script>
-</body>
-</html>
+  return {
+    ok: true, serverTime: now_(), date: date,
+    shop: shop_(), specials: specials_(), quizzes: quizzes_(), mail: mail_(), wishes: wishes_(), tasks: tasks, tasksAll: tasksAll, taskDays: taskDays, schedule: schedule, examSchedule: examSchedule, reminders: reminders, config: config, rewards: rewards,
+    ledgerBalance: balance, ledgerRecent: recent, ledger: ledger, starTotal: starTotal, taskNet: taskNet
+  };
+}
+
+/* ===================== 寫入 iPad 送來的紀錄 ===================== */
+
+function push_(p) {
+  var ev = JSON.parse(p.ev || '[]');
+  var acked = [];
+  var lock = LockService.getScriptLock();
+  lock.waitLock(15000);
+  try {
+    var ss = SpreadsheetApp.getActiveSpreadsheet();
+    var ledger = ss.getSheetByName('Ledger');
+    var stars = ss.getSheetByName('StarLog');
+    if (!ledger || !stars) throw new Error('找不到 Ledger 或 StarLog 分頁，請先執行 setup');
+    var seenL = idSet_(ledger), seenS = idSet_(stars);
+    for (var i = 0; i < ev.length; i++) {
+      var e = ev[i];
+      if (!e || !e.id) continue;
+      if (e.kind === 'ledger') {
+        if (!seenL[e.id]) {
+          ledger.appendRow([e.id, e.date, e.type === '支出' ? '支出' : '收入', e.desc, Number(e.amt) || 0, e.src || 'iPad']);
+          seenL[e.id] = 1;
+        }
+      } else if (e.kind === 'ledgerFix') {
+        fixLedger_(ledger, e);                     // 修正或刪除；做兩次結果一樣，不怕重送
+      } else if (e.kind === 'star') {
+        if (!seenS[e.id]) {
+          stars.appendRow([e.id, e.time, Number(e.n) || 0, e.why, e.type, e.ref || '']);
+          seenS[e.id] = 1;
+        }
+      } else if (e.kind === 'quiz') {
+        var qz = sheet_('Quiz');
+        if (!idSet_(qz)[e.id]) qz.appendRow([e.id, e.time, e.subject, Number(e.score) || 0, Number(e.full) || 100, Number(e.dia) || 0, e.gemName || '', e.gem || '']);
+      } else if (e.kind === 'mail') {
+        var ml = sheet_('Mail');
+        if (!idSet_(ml)[e.id]) ml.appendRow([e.id, e.at, e.from, e.to === 'parent' ? '爸媽' : '小布丁', e.title || '', e.body || '', '未讀', e.logo || '']);
+      } else if (e.kind === 'wish') {
+        var ws = sheet_('Wish'), wr = findRow_(ws, e.wid);
+        var wv = [e.wid, e.at || '', e.name || '', Number(e.price) || 0, Number(e.kid) || 0, Number(e.sponsor) || 0,
+          { wish: '等爸媽回覆', ok: '存錢中', done: '已實現', no: '先不要' }[e.status] || '等爸媽回覆', e.reply || '', e.note || '', e.icon || '', e.doneAt || ''];
+        if (wr) ws.getRange(wr, 1, 1, wv.length).setValues([wv]); else ws.appendRow(wv);
+      } else if (e.kind === 'mailRead' || e.kind === 'mailDel') {
+        var mr = sheet_('Mail'), row = findRow_(mr, e.mid);
+        if (row) mr.getRange(row, 7).setValue(e.kind === 'mailDel' ? '刪除' : '已讀');
+      } else {
+        continue;
+      }
+      acked.push(e.id);
+    }
+  } finally {
+    lock.releaseLock();
+  }
+  return { ok: true, acked: acked };
+}
+
+/* ===================== 家長在 iPad 上管理任務 ===================== */
+
+function addTask_(p) {
+  if (!p.name) return { ok: false, error: '缺少任務名稱' };
+  var sh = SpreadsheetApp.getActiveSpreadsheet().getSheetByName('Tasks');
+  var lock = LockService.getScriptLock();
+  lock.waitLock(10000);
+  try {
+    var last = sh.getLastRow(), order = 0;
+    if (last > 1) {
+      var v = sh.getRange(2, 1, last - 1, 2).getValues();
+      for (var i = 0; i < v.length; i++) {
+        order = Math.max(order, Number(v[i][0]) || 0);
+        if (String(v[i][1]) === p.name) return { ok: true, duplicate: true };   // 同名任務不重複新增
+      }
+    }
+    sh.appendRow([order + 1].concat(taskRow_(p, '是')));
+  } finally {
+    lock.releaseLock();
+  }
+  return { ok: true };
+}
+
+function taskRow_(p, on) {
+  return [p.name, p.days || '每天', Number(p.stars) || 0, on, Number(p.treasure) || '', p.type || '一般', p.cond || '',
+    Number(p.bonus) || 0, p.pre || '', p.parent === '1' ? '是' : '否', p.time || '', p.hid === '1' ? '是' : (p.hid === '0' ? '否' : '')];
+}
+
+function editTask_(p) {
+  var sh = SpreadsheetApp.getActiveSpreadsheet().getSheetByName('Tasks'), last = sh.getLastRow();
+  if (!p.orig || !p.name || last < 2) return { ok: false, error: '缺少任務名稱' };
+  var lock = LockService.getScriptLock();
+  lock.waitLock(10000);
+  try {
+    var v = sh.getRange(2, 2, last - 1, 4).getValues();
+    for (var i = 0; i < v.length; i++) {
+      if (String(v[i][0]) !== p.orig) continue;
+      sh.getRange(i + 2, 2, 1, 12).setValues([taskRow_(p, v[i][3] || '是')]);
+      if (p.orig !== p.name) {                     // 改名時，把「解鎖條件」指向舊名字的任務一起更新
+        var pre = sh.getRange(2, 10, last - 1, 1).getValues();
+        for (var k = 0; k < pre.length; k++) if (String(pre[k][0]) === p.orig) sh.getRange(k + 2, 10).setValue(p.name);
+      }
+      return { ok: true };
+    }
+  } finally {
+    lock.releaseLock();
+  }
+  return { ok: false, error: '找不到任務：' + p.orig };
+}
+
+function toggleTask_(p) {
+  var sh = SpreadsheetApp.getActiveSpreadsheet().getSheetByName('Tasks'), last = sh.getLastRow();
+  if (last < 2) return { ok: false, error: '找不到任務' };
+  var v = sh.getRange(2, 2, last - 1, 1).getValues();
+  for (var i = 0; i < v.length; i++) {
+    if (String(v[i][0]) === p.name) { sh.getRange(i + 2, 5).setValue(p.on === '1' ? '是' : '否'); return { ok: true }; }
+  }
+  return { ok: false, error: '找不到任務：' + p.name };
+}
+
+/* ===================== 商店 ===================== */
+
+function shop_() {
+  var out = {}, r = rows_('Shop');
+  for (var i = 0; i < r.length; i++) if (r[i][0]) out[r[i][0]] = { price: Number(r[i][2]) || 0, on: yes_(r[i][3]) };
+  return out;
+}
+
+function setShop_(p) {
+  var ss = SpreadsheetApp.getActiveSpreadsheet(), sh = ss.getSheetByName('Shop');
+  if (!sh) { setup(); sh = ss.getSheetByName('Shop'); }
+  var row = findRow_(sh, p.id), vals = [[p.id, p.name || '', Number(p.price) || 0, p.on === '1' ? '是' : '否']];
+  if (row) sh.getRange(row, 1, 1, 4).setValues(vals);
+  else sh.appendRow(vals[0]);
+  return { ok: true };
+}
+
+/* ===================== 特殊任務 ===================== */
+
+function specials_() {
+  var out = [], r = rows_('Special');
+  for (var i = 0; i < r.length; i++) {
+    if (!r[i][0] || r[i][12] === '封存') continue;
+    var tiers = [], tp = String(r[i][10] || '').split(/[,，]/);
+    for (var k = 0; k < tp.length; k++) { var m = tp[k].split(/[:：]/); if (m.length === 2) tiers.push([Number(m[0]) || 0, Number(m[1]) || 0]); }
+    var scores = {};
+    try { scores = r[i][13] ? JSON.parse(r[i][13]) : {}; } catch (e) {}
+    out.push({ id: r[i][0], name: r[i][1], kind: r[i][2] || '其他', date: r[i][3], subjects: String(r[i][4] || '').split(/[、,，]/).filter(function (x) { return x; }),
+      mode: { '自動': 'auto', '區段': 'tier', '通過': 'pass' }[r[i][5]] || 'auto', min: Number(r[i][6]) || 0, full: Number(r[i][7]) || 100,
+      lo: Number(r[i][8]) || 0, hi: Number(r[i][9]) || 0, tiers: tiers, per: r[i][11] === '平均' ? 'avg' : 'each',
+      status: r[i][12] === '已完成' ? 'done' : 'open', scores: scores, earned: Number(r[i][14]) || 0, bonus: Number(r[i][15]) || 0 });
+  }
+  return out;
+}
+
+function saveSpecial_(p) {
+  var ss = SpreadsheetApp.getActiveSpreadsheet(), sh = ss.getSheetByName('Special');
+  if (!sh) { setup(); sh = ss.getSheetByName('Special'); }
+  var lock = LockService.getScriptLock();
+  lock.waitLock(10000);
+  try {
+    var vals = [p.id, p.name, p.kind, p.date, p.subjects, { auto: '自動', tier: '區段', pass: '通過' }[p.mode] || '自動',
+      Number(p.min) || 0, Number(p.full) || 100, Number(p.lo) || 0, Number(p.hi) || 0, p.tiers || '', p.per === 'avg' ? '平均' : '每科',
+      { done: '已完成', open: '進行中', archive: '封存' }[p.status] || '進行中', p.scores || '', Number(p.earned) || 0, Number(p.bonus) || 0];
+    var row = findRow_(sh, p.id);
+    if (row) sh.getRange(row, 1, 1, vals.length).setValues([vals]);
+    else sh.appendRow(vals);
+  } finally {
+    lock.releaseLock();
+  }
+  return { ok: true };
+}
+
+/* ===================== 記帳修正 ===================== */
+
+function ensureLedgerIds_() {
+  var sh = SpreadsheetApp.getActiveSpreadsheet().getSheetByName('Ledger');
+  if (!sh || sh.getLastRow() < 2) return;
+  var lock = LockService.getScriptLock();
+  lock.waitLock(10000);
+  try {
+    var n = sh.getLastRow() - 1, v = sh.getRange(2, 1, n, 5).getValues();
+    for (var i = 0; i < n; i++) {
+      if (v[i][0] === '' && v[i][4] !== '') sh.getRange(i + 2, 1).setValue('P' + Utilities.getUuid().slice(0, 8));
+    }
+  } finally {
+    lock.releaseLock();
+  }
+}
+
+function fixLedger_(sh, e) {
+  var row = findRow_(sh, e.target);
+  if (!row) return;
+  if (e.op === 'delete') { sh.deleteRow(row); return; }
+  sh.getRange(row, 3, 1, 3).setValues([[e.type === '支出' ? '支出' : '收入', e.desc, Number(e.amt) || 0]]);
+  var src = String(sh.getRange(row, 6).getValue());
+  if (src.indexOf('已更正') < 0) sh.getRange(row, 6).setValue(src + '（已更正）');
+}
+
+/* ===================== 小工具 ===================== */
+
+function now_() { return Utilities.formatDate(new Date(), TZ, 'yyyy-MM-dd HH:mm:ss'); }
+
+function yes_(v) {
+  var s = String(v).replace(/\s/g, '').toLowerCase();
+  return s === '是' || s === 'y' || s === 'yes' || s === 'true' || s === 'v' || s === '1' || s === 'o';
+}
+
+function cell_(v) {
+  if (v instanceof Date) {
+    return v.getFullYear() < 1901
+      ? Utilities.formatDate(v, TZ, 'HH:mm')
+      : Utilities.formatDate(v, TZ, 'yyyy-MM-dd');
+  }
+  return v === null || v === undefined ? '' : (typeof v === 'number' ? v : String(v).replace(/^\s+|\s+$/g, ''));
+}
+
+function rows_(name) {
+  var sh = SpreadsheetApp.getActiveSpreadsheet().getSheetByName(name);
+  if (!sh || sh.getLastRow() < 2) return [];
+  var v = sh.getRange(2, 1, sh.getLastRow() - 1, sh.getLastColumn()).getValues();
+  for (var i = 0; i < v.length; i++) {
+    for (var j = 0; j < v[i].length; j++) {
+      var c = cell_(v[i][j]);
+      v[i][j] = (j === 0 || typeof c !== 'number') ? String(c) : c;
+    }
+    while (v[i].length < 16) v[i].push('');
+  }
+  return v;
+}
+
+function findRow_(sh, id) {
+  var last = sh.getLastRow();
+  if (!id || last < 2) return 0;
+  var ids = sh.getRange(2, 1, last - 1, 1).getValues();
+  for (var i = 0; i < ids.length; i++) if (String(ids[i][0]) === String(id)) return i + 2;
+  return 0;
+}
+
+/* ===================== 收藏雲端備份 ===================== */
+function saveState_(p) {
+  var json = String(p.state || '');
+  if (!json) return { ok: false, error: '沒有資料' };
+  try { JSON.parse(json); } catch (e) { return { ok: false, error: '資料格式不正確' }; }
+  var sh = sheet_('Backup'), parts = [], i;
+  for (i = 0; i < 4; i++) parts.push(json.slice(i * 45000, (i + 1) * 45000));
+  if (json.length > 180000) return { ok: false, error: '資料太大' };
+  var lock = LockService.getScriptLock();
+  lock.waitLock(10000);
+  try {
+    var t = Utilities.formatDate(new Date(), TZ, 'yyyy-MM-dd HH:mm:ss');
+    sh.insertRowBefore(2);
+    sh.getRange(2, 1, 1, 3 + parts.length).setValues([[t, String(p.dev || ''), json.length].concat(parts)]);
+    if (sh.getLastRow() > 21) sh.deleteRows(22, sh.getLastRow() - 21);
+    return { ok: true, time: t };
+  } finally {
+    lock.releaseLock();
+  }
+}
+function loadState_(p) {
+  var sh = SpreadsheetApp.getActiveSpreadsheet().getSheetByName('Backup');
+  if (!sh || sh.getLastRow() < 2) return { ok: true, state: '', time: '' };
+  var v = sh.getRange(2, 1, 1, 7).getValues()[0];
+  return { ok: true, time: v[0] instanceof Date ? Utilities.formatDate(v[0], TZ, 'yyyy-MM-dd HH:mm:ss') : String(v[0]), dev: String(v[1]),
+    state: String(v[3] || '') + String(v[4] || '') + String(v[5] || '') + String(v[6] || '') };
+}
+
+/* 找不到分頁就自動建立（新功能不用先執行 setup） */
+function sheet_(name) {
+  var ss = SpreadsheetApp.getActiveSpreadsheet();
+  return ss.getSheetByName(name) || makeSheet_(ss, name);
+}
+function wishes_() {
+  var sh = SpreadsheetApp.getActiveSpreadsheet().getSheetByName('Wish'), out = [];
+  if (!sh || sh.getLastRow() < 2) return out;
+  var v = sh.getRange(2, 1, sh.getLastRow() - 1, 11).getValues(), ST = { '等爸媽回覆': 'wish', '存錢中': 'ok', '已實現': 'done', '先不要': 'no' };
+  for (var i = 0; i < v.length; i++) {
+    if (!v[i][0] || !v[i][2]) continue;
+    out.push({ id: String(v[i][0]), at: stamp_(v[i][1]), name: String(v[i][2]), price: Number(v[i][3]) || 0, kid: Number(v[i][4]) || 0, sponsor: Number(v[i][5]) || 0,
+      status: ST[String(v[i][6])] || 'wish', reply: String(v[i][7] || ''), note: String(v[i][8] || ''), icon: String(v[i][9] || ''), doneAt: stamp_(v[i][10]) });
+  }
+  return out;
+}
+function quizzes_() {
+  var sh = SpreadsheetApp.getActiveSpreadsheet().getSheetByName('Quiz'), out = [];
+  if (!sh || sh.getLastRow() < 2) return out;
+  var v = sh.getRange(2, 1, sh.getLastRow() - 1, 8).getValues();
+  for (var i = Math.max(0, v.length - 300); i < v.length; i++) {
+    if (v[i][2] === '' || v[i][3] === '') continue;
+    out.push({ id: String(v[i][0] || ('QR' + (i + 2))), time: stamp_(v[i][1]), subject: String(v[i][2]), score: Number(v[i][3]) || 0, full: Number(v[i][4]) || 100,
+      dia: Number(v[i][5]) || 0, gem: String(v[i][7] || '') });
+  }
+  return out;
+}
+function stamp_(v) {
+  if (v instanceof Date) return Utilities.formatDate(v, TZ, 'yyyy-MM-dd HH:mm');
+  var s = String(v || '').replace(/^\s+|\s+$/g, '').replace(/\//g, '-');
+  var m = /^(\d{4})-(\d{1,2})-(\d{1,2})(?:\s+(\d{1,2}):(\d{2}))?/.exec(s);
+  if (!m) return s;
+  function p2(x) { return ('0' + x).slice(-2); }
+  return m[1] + '-' + p2(m[2]) + '-' + p2(m[3]) + ' ' + (m[4] ? p2(m[4]) + ':' + m[5] : '00:00');
+}
+/* 信箱：補上空白的編號與投遞時間（家長直接在試算表寫信時） */
+function mail_() {
+  var sh = SpreadsheetApp.getActiveSpreadsheet().getSheetByName('Mail'), out = [];
+  if (!sh || sh.getLastRow() < 2) return out;
+  var n = sh.getLastRow() - 1, v = sh.getRange(2, 1, n, 8).getValues(), changed = false;
+  for (var i = 0; i < n; i++) {
+    if (v[i][5] === '' && v[i][4] === '') continue;
+    if (v[i][0] === '') { v[i][0] = 'M' + new Date().getTime().toString(36) + i; changed = true; }
+    if (v[i][1] === '') { v[i][1] = Utilities.formatDate(new Date(), TZ, 'yyyy-MM-dd HH:mm'); changed = true; }
+  }
+  if (changed) sh.getRange(2, 1, n, 2).setValues(v.map(function (r) { return [r[0], r[1]]; }));
+  for (i = Math.max(0, n - 200); i < n; i++) {
+    if ((v[i][5] === '' && v[i][4] === '') || v[i][6] === '刪除') continue;
+    var to = String(v[i][3] || '');
+    out.push({ id: String(v[i][0]), at: stamp_(v[i][1]), from: String(v[i][2] || '怪盜基德的父母'), to: to === '爸媽' || to === '爸爸媽媽' || to === '父母' ? 'parent' : 'kid',
+      title: String(v[i][4] || '預告函'), body: String(v[i][5] || ''), status: String(v[i][6] || '未讀') === '已讀' ? '已讀' : '未讀', logo: String(v[i][7] || '') });
+  }
+  return out;
+}
+/* 一鍵升級：補上新欄位與新分頁（更新程式後執行一次） */
+function upgrade() {
+  upgradeTasks();
+  var ss = SpreadsheetApp.getActiveSpreadsheet(), sp = ss.getSheetByName('Special');
+  if (sp) sp.getRange(1, 1, 1, SHEETS.Special.head.length).setValues([SHEETS.Special.head]).setFontWeight('bold').setBackground('#e8f0fe');
+  sheet_('Quiz'); sheet_('Wish'); sheet_('Backup'); var ml = sheet_('Mail');
+  ml.getRange(1, 1, 1, SHEETS.Mail.head.length).setValues([SHEETS.Mail.head]).setFontWeight('bold').setBackground('#e8f0fe');
+  try { SpreadsheetApp.getUi().alert('升級完成！已補上「時間」「進步加碼」欄位，以及 Quiz（平常考）、Mail（信箱）、Wish（許願池）、Backup（收藏備份）分頁。'); } catch (e) {}
+}
+function idSet_(sh) {
+  var set = {};
+  var last = sh.getLastRow();
+  if (last < 2) return set;
+  var ids = sh.getRange(2, 1, last - 1, 1).getValues();
+  for (var i = 0; i < ids.length; i++) if (ids[i][0] !== '') set[String(ids[i][0])] = 1;
+  return set;
+}
