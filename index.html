@@ -72,7 +72,7 @@ textarea{width:100%;min-height:120px}
 <script src="config.js"></script>
 <script>
 'use strict';
-const APP_VERSION='6.0.0';
+const APP_VERSION='7.0.0';
 const $=s=>document.querySelector(s);
 const esc=s=>String(s==null?'':s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 const nz=s=>String(s==null?'':s).normalize('NFKC').toLowerCase().replace(/[\s\p{P}\p{S}]+/gu,'');
@@ -511,7 +511,7 @@ function histHtml(r){const c=D.card[r.fid];if(!c||c==='load')return'<div class="
  if(isStaff())h+='<div class="card"><h3>出席紀錄</h3><div class="sub">之後的版本開放：賽後總結完成後，這裡會顯示出席率與缺席次數，只有幹部看得到。</div></div>';
  return h}
 function playerSheet(fid){const r=D.byF[fid];if(!r)return'';const tab=U.sh.tab||'reg';if(!D.card[fid])loadCard(fid);const cv=caveOf(r,D.card[fid]);
- return`<div class="row sp"><div><b style="font-size:18px">${esc(r.name)}</b><div class="sub">${esc(r.al||'無聯盟')} · ${esc(r.rk||'')} · FID ${esc(r.fid)}</div></div><button class="btn sm" data-close>✕</button></div><div class="grid g4"><div class="mt"><div class="sub">戰力</div><div class="v">${fmtP(r.power)}</div></div><div class="mt"><div class="sub">7日增</div><div class="v" style="font-size:15px">${dlt(r.d7)}</div></div><div class="mt"><div class="sub">迷宮</div><div class="v" style="font-size:17px">${cv&&cv.n?'第 '+cv.n.toLocaleString()+' 關':'—'}</div>${cv&&cv.n?`<div class="sub">${cv.r!=null?'#'+cv.r:'100+'}</div>`:''}</div></div>${accHtml(r)}<div class="row"><button class="btn ${tab==='reg'?'on':''}" data-a="shTab" data-v="reg">報名</button><button class="btn ${tab==='hist'?'on':''}" data-a="shTab" data-v="hist">歷史紀錄</button></div>${tab==='hist'?histHtml(r):regPanel(r)}`}
+ return`<div class="row sp"><div><b style="font-size:18px">${esc(r.name)}</b><div class="sub">${esc(r.al||'無聯盟')} · ${esc(r.rk||'')} · FID ${esc(r.fid)}</div></div><button class="btn sm" data-close>✕</button></div><div class="grid g4"><div class="mt"><div class="sub">戰力</div><div class="v">${fmtP(r.power)}</div></div><div class="mt"><div class="sub">7日增</div><div class="v" style="font-size:15px">${dlt(r.d7)}</div></div><div class="mt"><div class="sub">迷宮</div><div class="v" style="font-size:17px">${cv&&cv.n?'第 '+cv.n.toLocaleString()+' 關':'—'}</div>${cv&&cv.n?`<div class="sub">${cv.r!=null?'#'+cv.r:'100+'}</div>`:''}</div></div>${accHtml(r)}<div class="row"><button class="btn ${tab==='reg'?'on':''}" data-a="shTab" data-v="reg">報名</button><button class="btn ${tab==='hist'?'on':''}" data-a="shTab" data-v="hist">歷史紀錄</button></div>${tab==='hist'?histHtml(r):zRegPanel(r)}`}
 
 /* ===== v4.5 名單直接編輯（正選／候補／取消）、一鍵產生通知 ===== */
 const seBtns=(k,f,m)=>{if(!isStaff())return'';const b=(v,l,on)=>`<button class="btn sm ${on?'on':''}" style="min-height:28px;padding:2px 8px" data-a="se_set" data-ev="${k}" data-fid="${f}" data-v="${v}">${l}</button>`;
@@ -852,6 +852,168 @@ async function wxAct(k,a){const v=a.dataset.v,pl=W.plan;
  case'wx_newround':wSnap('新一輪前');pl.manual={foundry:{},canyon:{}};pl.date=todayStr();wChanged();render();toast('已開始新的一輪，規則都保留');break;
  }}
 document.addEventListener('click',e=>{const a=e.target.closest('[data-a]');if(!a)return;const k=a.dataset.a;if(k.slice(0,3)==='wx_')wxAct(k,a)});
+
+/* ===== v6.1 全玩家：批次勾選報名／取消報名（先決定聯盟範圍） ===== */
+(function(){const s=document.createElement('style');s.textContent='.pt tr.bsel td{background:var(--acb)}';document.head.appendChild(s)})();
+const BM={on:false,scope:null,allArm:false,tmp:[],sel:new Set(),n:60,f:{ev:'tal',lg:'1',target:'',role:'none',n:60,excl16:true,force:false},busy:false,arm:false,mode:'reg',prog:'',err:''};
+const bmReady=()=>BM.scope==='ALL'||(Array.isArray(BM.scope)&&BM.scope.length>0);
+const bmInScope=r=>BM.scope==='ALL'||(Array.isArray(BM.scope)&&BM.scope.includes(r.al));
+function passF(r){if(BM.on&&bmReady()&&!bmInScope(r))return false;for(const k in P.filt){const c=colOf(k),f=P.filt[k];if(!c)continue;const v=c.v(r);
+ if(f.vals){const arr=Array.isArray(v)?v:[v];if(!arr.some(x=>f.vals.includes(String(x==null?'':x))))return false}
+ else if(f.text!=null){if(!nz(v).includes(nz(f.text)))return false}
+ else{if(v==null)return false;const x=v/(c.u||1);if(f.min!=null&&x<f.min)return false;if(f.max!=null&&x>f.max)return false}}return true}
+function rowHtml(r){const bm=BM.on&&bmReady(),sel=bm&&BM.sel.has(r.fid),ck=bm?`<input type="checkbox" ${sel?'checked':''} style="width:18px;height:18px;margin-right:8px;vertical-align:middle;pointer-events:none"> `:'';return`<tr data-fid="${r.fid}" class="${P.hl===r.fid?'hl ':''}${sel?'bsel':''}"><td class="nm">${ck}${esc(r.name)}</td>${P.act.map(c=>`<td>${c.d(r)}</td>`).join('')}</tr>`}
+function bmDist(){const d={};BM.sel.forEach(f=>{const r=D.byF[f];if(r){const a=r.al||'無聯盟';d[a]=(d[a]||0)+1}});return d}
+function bmToolbarHtml(){if(!BM.on||!bmReady()||!BM.sel.size)return'';const d=bmDist();return`<div style="position:fixed;left:8px;right:8px;bottom:92px;z-index:35;background:var(--s1);border:1px solid var(--ac);border-radius:14px;padding:8px 10px;box-shadow:0 4px 18px rgba(0,0,0,.25)"><div class="row sp"><b>已選 ${BM.sel.size} 人</b><span class="sub">${Object.keys(d).map(a=>esc(a)+' '+d[a]).join('・')}</span></div><div class="row" style="margin-top:6px;gap:6px"><button class="btn sm pri" data-a="bm_open" data-v="reg">批次報名…</button><button class="btn sm" data-a="bm_open" data-v="cancel">批次取消報名</button><button class="btn sm" data-a="bm_none">取消選取</button></div></div>`}
+function bmRefresh(){drawRows();const t=$('#bmtb');if(t)t.innerHTML=bmToolbarHtml();const c=$('#bmcnt');if(c)c.textContent='已選 '+BM.sel.size+' 人'}
+function bmToggle(f){if(BM.sel.has(f))BM.sel.delete(f);else BM.sel.add(f);bmRefresh()}
+function bmClean(){const b=BM.sel.size;BM.sel=new Set([...BM.sel].filter(f=>D.byF[f]&&bmInScope(D.byF[f])));if(b!==BM.sel.size)toast('清掉了 '+(b-BM.sel.size)+' 個不在範圍內的人')}
+function bmScopeUi(){return`<div class="row" style="margin-top:8px">${BM.tmp.length?BM.tmp.map(a=>`<span class="bd a" style="padding:4px 10px;font-size:13px">${esc(a)} <a data-a="bm_delAl" data-v="${esc(a)}" style="cursor:pointer">✕</a></span>`).join(''):'<span class="sub">還沒選聯盟</span>'}</div><input id="bmq" autocomplete="off" placeholder="輸入聯盟簡稱的幾個字" style="width:100%;margin-top:8px"><div id="bmqsug"></div><div class="row" style="margin-top:8px"><select id="bmsel" style="flex:1"><option value="">從聯盟名單選擇…</option>${alList().map(([a,n])=>`<option value="${esc(a)}">${esc(a)}（${n} 人）</option>`).join('')}</select><button class="btn" data-a="bm_sp">jQt・aQt 特區</button></div><div class="row" style="margin-top:8px"><button class="btn pri" data-a="bm_applyScope">套用這些聯盟</button><button class="btn" data-a="bm_allarm">全王國…</button></div>`}
+function bmCardHtml(){if(!isStaff()){if(BM.on){BM.on=false;BM.sel=new Set()}return''}
+ if(!BM.on)return`<div class="card"><div class="row sp"><div><b>批次選取</b><div class="sub">勾選多位玩家，一次幫他們報名或取消報名。只有幹部和管理員看得到。</div></div><button class="btn pri" data-a="bm_on">開啟批次模式</button></div></div>`;
+ const cad=isCadre()&&!isAdmin();let h=`<div class="card" style="border-color:var(--ac)"><div class="row sp"><b>批次模式已開啟</b><button class="btn sm" data-a="bm_off">關閉批次模式</button></div>`;
+ if(!bmReady())return h+`<div class="sub" style="margin-top:6px">先決定要幫哪些聯盟報名。決定後，表格只會顯示這些聯盟的人，其他聯盟的人勾選不到。</div>${BM.allArm?`<div class="card" style="margin-top:8px;border-color:var(--wn)"><b>這會是全王國所有玩家</b><div class="sub">確定要用全王國當範圍嗎？</div><div class="row" style="margin-top:8px"><button class="btn pri" data-a="bm_allok">確定，使用全王國</button><button class="btn" data-a="bm_allno">取消</button></div></div>`:bmScopeUi()}</div>`;
+ return h+`<div class="sub" style="margin-top:6px">聯盟範圍：<b>${BM.scope==='ALL'?'全王國':esc(BM.scope.join('、'))}</b>${cad?'（只能是你的聯盟）':' <a data-a="bm_scope" style="cursor:pointer;color:var(--ac)">更改</a>'}</div><div class="sub" style="margin-top:6px">點表格的列就能勾選。批次模式下點列不會開玩家視窗，要看玩家資料請先關閉批次模式。</div><div class="row" style="margin-top:8px;gap:6px"><button class="btn sm" data-a="bm_all">全選目前結果（${P.view.length}）</button><span class="row" style="gap:4px"><button class="btn sm" data-a="bm_top">選前</button><input id="bmn" type="number" value="${BM.n}" min="1" max="500" style="width:70px"><span class="sub">名</span></span><button class="btn sm" data-a="bm_inv">反選</button><button class="btn sm" data-a="bm_none">全部取消</button></div><div class="sub" style="margin-top:8px"><b id="bmcnt">已選 ${BM.sel.size} 人</b>。「選前 N 名」依表格目前的排序，先用欄位排序（例如迷宮由高到低）再選。</div></div>`}
+const _pgP=pgPlayers;pgPlayers=function(){const h=_pgP();if(!D.stLoaded||D.stErr)return h;return bmCardHtml()+h+`<div id="bmtb">${bmToolbarHtml()}</div>`};
+function bmPlan(){const f=BM.f,ev=f.ev,cancel=BM.mode==='cancel',isLeg=INNER.includes(ev),kd=ev==='tal'||ev==='frost',order=P.view.filter(r=>BM.sel.has(r.fid)).map(r=>r.fid);BM.sel.forEach(x=>{if(!order.includes(x))order.push(x)});
+ const skip={furn:0,closed:0,declined:0,already:0,noreg:0},todo=[];
+ order.forEach(fid=>{const r=D.byF[fid];if(!r)return;const g=regOf(ev,fid);if(!canReg(ev,r)){skip.closed++;return}
+  if(cancel){if(!g||g.choice==='out'){skip.noreg++;return}todo.push({r,choice:'out'});return}
+  if(f.excl16&&r.furn&&r.furn<16){skip.furn++;return}if(g&&g.choice==='out'&&!f.force){skip.declined++;return}todo.push({r,choice:isLeg?f.lg:'in'})});
+ todo.forEach((x,i)=>{x.note=(cancel||!kd)?'':f.role==='none'?'':f.role==='sub'?'候補':f.role==='main'?'正選':(i<f.n?'正選':'候補')});
+ const list=[],dist={};todo.forEach(x=>{const g=regOf(ev,x.r.fid);x.play=(cancel||!kd)?'':(f.target.trim()||(g&&g.play)||x.r.al||'');if(!cancel&&g&&g.choice===x.choice&&(g.note||'')===(x.note||'')){skip.already++;return}list.push(x);const a=x.r.al||'無聯盟';dist[a]=(dist[a]||0)+1});
+ return{ev,cancel,list,skip,dist}}
+function bmSheet(){const f=BM.f,cancel=BM.mode==='cancel',ev=f.ev,isLeg=INNER.includes(ev),kd=ev==='tal'||ev==='frost',p=bmPlan(),sk=p.skip;
+ let h=`<div class="row sp"><b style="font-size:17px">${cancel?'批次取消報名':'批次報名'}（${BM.sel.size} 人）</b><button class="btn sm" data-close>✕</button></div><div class="sub">聯盟範圍：<b>${BM.scope==='ALL'?'全王國':esc((BM.scope||[]).join('、'))}</b></div><div class="card"><b>活動</b><div class="row" style="margin-top:8px">${EV.map(([k,l])=>`<button class="btn sm ${ev===k?'on':''}" data-a="bm_f" data-k="ev" data-v="${k}">${l}</button>`).join('')}</div></div>`;
+ if(!cancel){
+  if(isLeg)h+=`<div class="card"><b>軍團</b><div class="row" style="margin-top:8px">${['1','2'].map(v=>`<button class="btn lgbtn l${v} ${f.lg===v?'on':''}" data-a="bm_f" data-k="lg" data-v="${v}">${CHN[v]}</button>`).join('')}</div></div>`;
+  if(kd)h+=`<div class="card"><b>目標聯盟</b><div class="sub">空白＝各自目前的聯盟。跨聯盟集結時，統一填要加入的聯盟。已經報名的人不會更新目標聯盟。</div><input id="bmt" value="${esc(f.target)}" placeholder="聯盟簡稱" style="width:100%;margin-top:6px"></div><div class="card"><b>正選／候補</b><div class="row" style="margin-top:8px">${[['none','不指定'],['main','全部正選'],['sub','全部候補'],['split','前 N 名正選，其餘候補']].map(([k,l])=>`<button class="btn sm ${f.role===k?'on':''}" data-a="bm_f" data-k="role" data-v="${k}">${l}</button>`).join('')}</div>${f.role==='split'?`<div class="row" style="margin-top:8px"><span class="sub">正選人數</span><input id="bmn2" type="number" value="${f.n}" min="0" max="300" style="width:80px"><span class="sub">（依表格目前的順序）</span></div>`:''}</div>`;
+  h+=`<div class="card"><label class="row" style="gap:8px"><input type="checkbox" data-bmchk="excl16" ${f.excl16?'checked':''} style="width:20px;height:20px"><span>排除熔爐不到 16 級的人</span></label><label class="row" style="gap:8px;margin-top:6px"><input type="checkbox" data-bmchk="force" ${f.force?'checked':''} style="width:20px;height:20px"><span>連自己選了「不參加」的人也一起報名（會蓋掉他的決定）</span></label></div>`}
+ h+=`<div class="card"><b>預覽</b><div class="sub" style="margin-top:4px">將${cancel?'取消':'報名'} <b>${p.list.length}</b> 人${p.list.length?'（'+Object.keys(p.dist).map(a=>esc(a)+' '+p.dist[a]).join('、')+'）':''}。跳過：${[sk.already?'已經報名 '+sk.already+' 人':'',sk.declined?'自己選不參加 '+sk.declined+' 人':'',sk.furn?'熔爐不足 '+sk.furn+' 人':'',sk.closed?'已截止、沒有權限 '+sk.closed+' 人':'',sk.noreg?'沒有報名可取消 '+sk.noreg+' 人':''].filter(Boolean).join('、')||'沒有'}。</div></div>${BM.err?`<div class="card" style="border-color:var(--dg)"><b>有問題</b><div class="sub" style="margin-top:4px">${esc(BM.err)}</div></div>`:''}<div class="row"><button id="bmgo" class="btn ${BM.arm?'pri':''}" data-a="bm_go" style="min-height:50px;flex:1" ${BM.busy||!p.list.length?'disabled':''}>${BM.busy?esc(BM.prog||'處理中…'):!p.list.length?'沒有需要處理的人':BM.arm?'再按一次確認':(cancel?'確認，取消這些人的報名':'確認，幫他們報名')+'（'+p.list.length+' 人）'}</button></div>`;
+ return h}
+const _ps7=playerSheet;playerSheet=function(fid){if(U.sh&&U.sh.kind==='bm')return bmSheet();return _ps7(fid)};
+async function bmSeq(p){let ok=0,fail=0,last='',done=0;const items=p.list.slice();
+ const one=async x=>{try{const j=await apiPost({action:'register',event:p.ev,fid:x.r.fid,choice:x.choice,play:x.play||'',note:x.note||''});if(j.ok)ok++;else{fail++;last=ERR[j.error]||j.error}}catch(e){fail++;last=e.message}done++;BM.prog='處理中 '+done+'／'+items.length;const b=$('#bmgo');if(b)b.textContent=BM.prog};
+ for(let i=0;i<items.length;i+=3)await Promise.all(items.slice(i,i+3).map(one));return{ok,fail,last}}
+async function bmGo(){const p=bmPlan();if(!p.list.length)return;BM.busy=true;BM.err='';BM.prog='處理中…';renderSheet();let ok=0,fail=0,last='';
+ try{
+  if(!p.cancel){const roles={};p.list.forEach(x=>{if(x.note)roles[x.r.fid]=x.note});let unknown=false;
+   for(let i=0;i<p.list.length&&!unknown;i+=250){const ch=p.list.slice(i,i+250);let j;try{j=await apiPost({action:'regMany',event:p.ev,choice:ch[0].choice,fids:ch.map(x=>x.r.fid),roles,play:BM.f.target.trim(),force:BM.f.force})}catch(e){j={ok:false,net:e.message}}
+    if(j.ok)ok+=j.n;else if(j.error==='unknown_action')unknown=true;else{fail+=ch.length;last=j.net||ERR[j.error]||j.error}}
+   if(unknown){toast('Apps Script 還沒更新，改用慢速方式逐一處理');const r=await bmSeq(p);ok=r.ok;fail=r.fail;last=r.last}}
+  else{const r=await bmSeq(p);ok=r.ok;fail=r.fail;last=r.last}
+  await loadRegs()}catch(e){fail=p.list.length;last=e.message}
+ BM.busy=false;BM.arm=false;
+ if(fail){BM.err='成功 '+ok+' 人，失敗 '+fail+' 人（'+(last||'未知原因')+'）';toast('完成，但有 '+fail+' 人失敗')}else{BM.err='';BM.sel=new Set();closeSheet();toast((p.cancel?'已取消 ':'已完成：新增或更新 ')+ok+' 人的報名')}
+ render();if(U.sh)renderSheet()}
+function bmAct(k,a){const v=a.dataset.v,cad=isCadre()&&!isAdmin();
+ switch(k){
+ case'bm_on':BM.on=true;BM.sel=new Set();BM.allArm=false;BM.tmp=[];BM.scope=cad?[AU.al]:null;render();break;
+ case'bm_off':BM.on=false;BM.sel=new Set();BM.scope=null;BM.allArm=false;render();break;
+ case'bm_addAl':if(!BM.tmp.includes(v))BM.tmp.push(v);render();break;
+ case'bm_delAl':BM.tmp=BM.tmp.filter(x=>x!==v);render();break;
+ case'bm_sp':BM.tmp=['jQt','aQt'];render();break;
+ case'bm_applyScope':if(!BM.tmp.length)return toast('請先選聯盟');BM.scope=BM.tmp.slice();bmClean();render();break;
+ case'bm_allarm':BM.allArm=true;render();break;
+ case'bm_allno':BM.allArm=false;render();break;
+ case'bm_allok':BM.scope='ALL';BM.allArm=false;bmClean();render();break;
+ case'bm_scope':BM.tmp=Array.isArray(BM.scope)?BM.scope.slice():[];BM.scope=null;render();break;
+ case'bm_all':BM.sel=new Set(P.view.map(r=>r.fid));bmRefresh();toast('已選 '+BM.sel.size+' 人');break;
+ case'bm_top':{const n=Math.max(1,Math.floor(+($('#bmn')||{}).value||BM.n));BM.n=n;BM.sel=new Set(P.view.slice(0,n).map(r=>r.fid));bmRefresh();toast('已選前 '+BM.sel.size+' 名')}break;
+ case'bm_inv':P.view.forEach(r=>{if(BM.sel.has(r.fid))BM.sel.delete(r.fid);else BM.sel.add(r.fid)});bmRefresh();break;
+ case'bm_none':BM.sel=new Set();bmRefresh();break;
+ case'bm_open':BM.mode=v;BM.arm=false;BM.err='';openSheet({kind:'bm'});break;
+ case'bm_f':BM.f[a.dataset.k]=v;BM.arm=false;renderSheet();break;
+ case'bm_go':{if(BM.busy)break;if(!BM.arm){BM.arm=true;renderSheet();toast('再按一次才會送出');setTimeout(()=>{if(BM.arm){BM.arm=false;if(U.sh&&U.sh.kind==='bm')renderSheet()}},6000);break}BM.arm=false;bmGo()}break;
+ }}
+document.addEventListener('click',e=>{if(!BM.on||!bmReady())return;const tr=e.target.closest('tr[data-fid]');if(!tr||e.target.closest('[data-a]'))return;e.stopPropagation();bmToggle(tr.dataset.fid)},true);
+document.addEventListener('click',e=>{const a=e.target.closest('[data-a]');if(!a)return;const k=a.dataset.a;if(k.slice(0,3)==='bm_')bmAct(k,a)});
+document.addEventListener('input',e=>{const t=e.target;if(t.id==='bmq'){const q=nz(t.value),l=alList().filter(([x])=>nz(x).includes(q)).slice(0,8);$('#bmqsug').innerHTML=q?(l.length?`<div class="sug">${l.map(([x,n])=>`<div class="sg" data-a="bm_addAl" data-v="${esc(x)}"><b>${esc(x)}</b><span class="sub">${n} 人</span></div>`).join('')}</div>`:'<div class="sub" style="padding:8px 2px">找不到這個聯盟</div>'):''}});
+document.addEventListener('change',e=>{const t=e.target;
+ if(t.id==='bmsel'&&t.value){if(!BM.tmp.includes(t.value))BM.tmp.push(t.value);render();return}
+ if(t.id==='bmt'){BM.f.target=t.value.trim();BM.arm=false;renderSheet();return}
+ if(t.id==='bmn2'){const n=Math.max(0,Math.floor(+t.value||0));BM.f.n=n;BM.arm=false;renderSheet();return}
+ if(t.dataset.bmchk){BM.f[t.dataset.bmchk]=t.checked;BM.arm=false;renderSheet()}});
+
+/* ===== v7.0 特區：報名選特區、特區管理、各特區截止時間、分隊以特區為單位 ===== */
+const Z={list:[],zmap:{},at:0,busy:false,seen:null,sig:'',draft:{},dz:null,dd:null,arm:''};
+Object.assign(ERR,{zone_required:'請先選特區',zone_not_found:'找不到這個特區（可能被刪除了）',forbidden_zone:'只有建立這個特區的幹部或管理員可以修改',forbidden_zone_al:'幹部只能建立包含自己聯盟的特區',zone_in_use:'已經有人用這個特區報名，沒辦法刪除'});
+const zById=id=>Z.list.find(z=>z.id===id);
+const zOfAl=al=>{const z=Z.list.find(x=>x.als.includes(al));return z?z.id:''};
+const zOfReg=(ev,fid)=>{const m=(Z.zmap[ev]||{})[fid];if(m)return m;const r=D.byF[fid];return r?zOfAl(r.al):''};
+const zName=id=>{const z=zById(id);return z?z.name:'未分類'};
+const zDl=(ev,zid)=>{const g=(D.dls&&D.dls[ev])||'';if(ev==='sfc'||!zid)return g;const z=zById(zid),k=ev==='tal'?'tal':ev==='frost'?'frost':'inner';return(z&&z.dl&&z.dl[k])||g};
+const zClosed=(ev,zid)=>{const d=zDl(ev,zid);return !!d&&!isNaN(Date.parse(d))&&Date.now()>Date.parse(d)};
+const zDlTxt=d=>d&&!isNaN(Date.parse(d))?fmtT(Date.parse(d)):'未設定';
+const zCanEdit=z=>isAdmin()||(isCadre()&&!!z.fid&&z.fid===AU.fid);
+const zCanDl=z=>isAdmin()||(isCadre()&&z.als.includes(AU.al));
+function zErr(j){const e=j.error;if(e==='zone_conflict')return'你已經用「'+(j.zone||'另一個特區')+'」報名了'+EVN[j.event]+'。兵工廠和峽谷要在同一個特區，請先取消'+EVN[j.event]+'的報名再換。';if(e==='al_in_other_zone')return j.al+' 已經在「'+(j.zone||'另一個特區')+'」，一個聯盟只能在一個特區。';return ERR[e]||e||'失敗'}
+async function zRefresh(){if(Z.busy)return;Z.busy=true;try{const j=await apiGet({action:'zones'});if(j&&j.zones){const sig=JSON.stringify([j.zones,j.zmap]),ch=sig!==Z.sig;Z.sig=sig;Z.list=j.zones;Z.zmap=j.zmap||{};if(ch)render()}}catch(e){}Z.at=Date.now();Z.busy=false}
+const _rd12=render;render=function(){_rd12();if(!Z.busy&&(Date.now()-Z.at>45000||Z.seen!==D.regs)){Z.seen=D.regs;zRefresh()}};
+function zLocked(ev,fid){if(!INNER.includes(ev))return'';const o=INNER.find(x=>x!==ev),g=regOf(o,fid);return g&&(g.choice==='1'||g.choice==='2')?zOfReg(o,fid):''}
+function zDraft(ev,fid){const k=ev+'|'+fid;if(!Z.draft[k]){const g=regOf(ev,fid)||{},r=D.byF[fid];let z=(g.choice&&g.choice!=='out')?zOfReg(ev,fid):'';if(!z)z=zLocked(ev,fid);if(!z&&r)z=zOfAl(r.al);if(!z&&Z.list[0])z=Z.list[0].id;Z.draft[k]={zone:z,target:g.play||''}}return Z.draft[k]}
+const zOpts=(r,zid)=>{const own=zOfAl(r.al);return Z.list.slice().sort((a,b)=>(b.id===own)-(a.id===own)).map(z=>`<option value="${esc(z.id)}" ${z.id===zid?'selected':''}>${esc(z.name)}${z.als.includes(r.al)?'':'（需要轉聯盟）'}</option>`).join('')};
+const zAlOpts=z=>{const first=z?z.als:[],rest=alList().map(x=>x[0]).filter(a=>!first.includes(a));return first.concat(rest).map(a=>`<option value="${esc(a)}"></option>`).join('')};
+function zRegPanel(r){if(!Z.list.length)return regPanel(r);const me=r.fid;
+ return EV.map(([k,l])=>{const g=regOf(k,me)||{},ch=g.choice||'',on=ch&&ch!=='out',isLeg=INNER.includes(k),kd=k==='tal'||k==='frost',zoned=k!=='sfc',d=zDraft(k,me),lk=zLocked(k,me),zid=zoned?(lk||d.zone):'',cl=zClosed(k,zid),can=!cl||isAdmin()||(isCadre()&&isLeg&&r.al===AU.al),z=zById(zid),dl=zDl(k,zid),rz=on&&zoned?zOfReg(k,me):'';
+  const btn=(v,t,cls)=>`<button class="btn ${cls||''} ${ch===v?(cls?'on':'pri'):''}" ${can?'':'disabled'} data-a="z_reg" data-ev="${k}" data-fid="${me}" data-v="${v}">${t}</button>`;
+  return`<div class="card"><div class="row sp"><b>${l}</b><span class="row" style="gap:6px">${on?`<span class="bd a">已參加${rz?'・'+esc(zName(rz)):''}${isLeg?'・'+CHN[ch]:''}${g.note?'・'+esc(g.note):''}</span>`:ch==='out'?'<span class="bd">不參加</span>':''}${cl?'<span class="bd w">已截止</span>':dl?`<span class="bd">截止 ${zDlTxt(dl)}</span>`:''}</span></div>${zoned?`<div style="margin-top:8px"><div class="sub">特區</div>${lk?`<div><b>${esc(zName(lk))}</b> <span class="sub">（兵工廠和峽谷要在同一個特區。要換特區，請先取消另一個活動的報名）</span></div>`:`<select data-zsel="${k}|${me}" style="width:100%;margin-top:4px">${zOpts(r,zid)}</select>`}${z&&r.al&&!z.als.includes(r.al)?`<div class="sub" style="color:var(--wn);margin-top:4px">${esc(r.al)} 不在這個特區，活動前要先轉進特區裡的聯盟。</div>`:''}${zoned&&!zOfAl(r.al)?'<div class="sub" style="margin-top:4px">你目前的聯盟還沒有特區，可以請聯盟的 R4／R5 到「活動報名」頁建立。</div>':''}</div>`:''}${kd?`<div style="margin-top:8px"><div class="sub">目標聯盟（空白＝你目前的聯盟。可輸入關鍵字搜尋，或按輸入框的箭頭從選單選）</div><input data-zt="${k}|${me}" list="zl-${k}" value="${esc(d.target)}" placeholder="聯盟簡稱" autocomplete="off" style="width:100%;margin-top:4px"><datalist id="zl-${k}">${zAlOpts(z)}</datalist></div>`:''}<div class="row" style="margin-top:10px">${isLeg?btn('1','軍團一','lgbtn l1')+btn('2','軍團二','lgbtn l2'):btn('in','參加')}${btn('out','不參加')}</div>${can?'':'<div class="sub" style="margin-top:6px">已經截止，只有幹部可以修改。</div>'}</div>`}).join('')}
+async function zReg(ev,fid,v){const r=D.byF[fid];if(!r)return;const d=zDraft(ev,fid),isLeg=INNER.includes(ev),zoned=ev!=='sfc',lk=zLocked(ev,fid),zid=zoned?(lk||d.zone):'';
+ if(zoned&&v!=='out'&&!zid)return toast('請先選特區');const play=(ev==='tal'||ev==='frost')&&v!=='out'?d.target:'';
+ try{const j=await apiPost({action:'register',event:ev,fid,choice:v,play,note:'',zone:zid});if(!j.ok)throw new Error(zErr(j));(D.regs[ev]=D.regs[ev]||{})[fid]={choice:v,play,note:'',at:new Date().toLocaleString(),by:j.by||'self',zone:zid};(Z.zmap[ev]=Z.zmap[ev]||{})[fid]=zid;Z.at=0;toast(v==='out'?'已改成不參加':'已報名：'+EVN[ev]+(zoned?'・'+zName(zid):''))}catch(e){toast(e.message)}
+ render();if(U.sh)renderSheet()}
+function zDlLine(z){return'兵工廠・峽谷：'+zDlTxt(z.dl.inner||(D.dls&&D.dls.foundry)||'')+'　雪域：'+zDlTxt(z.dl.tal||(D.dls&&D.dls.tal)||'')+'　霜龍：'+zDlTxt(z.dl.frost||(D.dls&&D.dls.frost)||'')}
+function zoneCardHtml(){const stf=isStaff();if(!Z.list.length)return`<div class="card"><h3>特區</h3><div class="sub">特區資料還沒有載入。如果一直沒有出現，請確認 Apps Script 已經更新並重新部署。</div></div>`;
+ return`<div class="card"><div class="row sp"><h3 style="margin:0">特區</h3>${stf?'<button class="btn sm pri" data-a="z_new">新增特區</button>':''}</div><div class="sub" style="margin-top:4px">特區是一群聯盟組成的活動單位。兵工廠、峽谷、雪域、霜龍報名時要選特區；兵工廠和峽谷必須報同一個特區。一個聯盟只能在一個特區。</div>${Z.list.map(z=>`<div style="padding:8px 0;border-top:1px solid var(--bd)"><div class="row sp"><b>${esc(z.name)}</b><span class="row" style="gap:6px">${zCanDl(z)?`<button class="btn sm" data-a="z_dl" data-v="${esc(z.id)}">截止時間</button>`:''}${zCanEdit(z)?`<button class="btn sm" data-a="z_edit" data-v="${esc(z.id)}">編輯</button>`:''}</span></div><div class="row" style="gap:6px;margin-top:4px">${z.als.map(a=>`<span class="bd">${esc(a)}</span>`).join('')}</div><div class="sub" style="margin-top:4px">${zDlLine(z)}</div></div>`).join('')}</div>`}
+try{const _pgS2=pgSignups;pgSignups=function(){const h=_pgS2();return(D.stLoaded&&!D.stErr)?zoneCardHtml()+h:h}}catch(e){console.warn('pgSignups 無法加上特區卡片',e)}
+const _sgZ=sgBody;sgBody=function(k,fids,m){if(k==='sfc'||!fids.length||!Z.list.length)return _sgZ(k,fids,m);
+ const g={};fids.forEach(f=>{const z=zOfReg(k,f)||'';(g[z]=g[z]||[]).push(f)});const order=Z.list.map(z=>z.id).filter(id=>g[id]).concat(g['']?['']:[]);
+ return order.map((id,i)=>{let h=_sgZ(k,g[id],m);if(i>0)h=h.replace(/<div class="sub" style="margin-top:8px">(右邊的[^<]*)<\/div>/,'');const z=zById(id),cl=zClosed(k,id),d=zDl(k,id);
+  return`<div style="margin-top:14px;padding-top:8px;border-top:2px solid var(--bd)"><div class="row sp"><b>${esc(z?z.name:'未分類')}</b><span class="row" style="gap:6px"><span class="bd">${g[id].length} 人</span>${cl?'<span class="bd w">已截止</span>':d?`<span class="bd a">截止 ${zDlTxt(d)}</span>`:'<span class="bd">未設截止</span>'}</span></div>${h}</div>`}).join('')};
+function zEditSheet(){const d=Z.dz,own=d.id?zById(d.id):null;
+ return`<div class="row sp"><b style="font-size:17px">${d.id?'編輯特區':'新增特區'}</b><button class="btn sm" data-close>✕</button></div><div class="card"><b>名稱</b><input id="zn" value="${esc(d.name)}" maxlength="20" placeholder="例如：XXX 特區" autocomplete="off" style="width:100%;margin-top:6px"></div><div class="card"><b>包含的聯盟</b><div class="sub">一個聯盟只能在一個特區。</div><div class="row" style="margin-top:6px">${d.als.length?d.als.map(a=>`<span class="bd a" style="padding:4px 10px;font-size:13px">${esc(a)} <a data-a="z_delAl" data-v="${esc(a)}" style="cursor:pointer">✕</a></span>`).join(''):'<span class="sub">還沒選聯盟</span>'}</div><input id="zq" autocomplete="off" placeholder="輸入聯盟簡稱的幾個字" style="width:100%;margin-top:8px"><div id="zqsug"></div><div class="row" style="margin-top:8px"><select id="zsel" style="flex:1"><option value="">從聯盟名單選擇…</option>${alList().map(([a,n])=>`<option value="${esc(a)}">${esc(a)}（${n} 人）${zOfAl(a)&&zOfAl(a)!==d.id?'・已在其他特區':''}</option>`).join('')}</select></div></div><div class="row"><button class="btn pri" data-a="z_save" style="flex:1;min-height:46px">儲存</button>${own&&zCanEdit(own)?`<button class="btn ${Z.arm==='del'?'pri':''}" data-a="z_del">${Z.arm==='del'?'再按一次確認刪除':'刪除特區'}</button>`:''}</div>`}
+const zLocalIn=iso=>{if(!iso||isNaN(Date.parse(iso)))return'';const t=new Date(iso),p=n=>String(n).padStart(2,'0');return t.getFullYear()+'-'+p(t.getMonth()+1)+'-'+p(t.getDate())+'T'+p(t.getHours())+':'+p(t.getMinutes())};
+function zDlSheet(){const z=zById(Z.dd);if(!z)return'';
+ return`<div class="row sp"><b style="font-size:17px">${esc(z.name)}・截止時間</b><button class="btn sm" data-close>✕</button></div><div class="sub">這個特區自己的截止時間。留空＝使用管理員設定的預設截止時間。兵工廠和峽谷在遊戲中同時截止，所以共用一個。</div><div class="card"><b>兵工廠・峽谷</b><input id="zdi" type="datetime-local" value="${zLocalIn(z.dl.inner)}" style="width:100%;margin-top:6px"></div><div class="card"><b>雪域兵器聯賽</b><input id="zdt" type="datetime-local" value="${zLocalIn(z.dl.tal)}" style="width:100%;margin-top:6px"></div><div class="card"><b>霜龍霸主</b><input id="zdf" type="datetime-local" value="${zLocalIn(z.dl.frost)}" style="width:100%;margin-top:6px"></div><div class="row"><button class="btn pri" data-a="z_dlsave" style="flex:1;min-height:46px">儲存</button></div>`}
+const _ps8=playerSheet;playerSheet=function(fid){const k=U.sh&&U.sh.kind;if(k==='zedit')return zEditSheet();if(k==='zdl')return zDlSheet();return _ps8(fid)};
+async function zAct(k,a){const v=a.dataset.v;
+ switch(k){
+ case'z_reg':zReg(a.dataset.ev,a.dataset.fid,v);break;
+ case'z_new':Z.dz={id:'',name:'',als:isAdmin()?[]:[AU.al]};Z.arm='';openSheet({kind:'zedit'});break;
+ case'z_edit':{const z=zById(v);if(!z)break;Z.dz={id:z.id,name:z.name,als:z.als.slice()};Z.arm='';openSheet({kind:'zedit'})}break;
+ case'z_addAl':if(!Z.dz.als.includes(v)){const o=Z.list.find(x=>x.id!==Z.dz.id&&x.als.includes(v));if(o)return toast(v+' 已經在「'+o.name+'」，一個聯盟只能在一個特區');Z.dz.als.push(v)}renderSheet();break;
+ case'z_delAl':Z.dz.als=Z.dz.als.filter(x=>x!==v);renderSheet();break;
+ case'z_save':{const nm=(($('#zn')||{}).value||Z.dz.name||'').trim();Z.dz.name=nm;if(!nm)return toast('請輸入特區名稱');if(!Z.dz.als.length)return toast('請至少選一個聯盟');
+  try{const j=await apiPost({action:'zoneSave',id:Z.dz.id,name:nm,als:Z.dz.als});if(!j.ok)throw new Error(zErr(j));toast('已儲存特區');closeSheet();Z.at=0;await zRefresh();render()}catch(e){toast('儲存失敗：'+e.message)}}break;
+ case'z_del':{if(Z.arm!=='del'){Z.arm='del';renderSheet();setTimeout(()=>{if(Z.arm==='del'){Z.arm='';if(U.sh&&U.sh.kind==='zedit')renderSheet()}},5000);return}Z.arm='';
+  try{const j=await apiPost({action:'zoneDelete',id:Z.dz.id});if(!j.ok)throw new Error(zErr(j));toast('已刪除特區');closeSheet();Z.at=0;await zRefresh();render()}catch(e){toast('刪除失敗：'+e.message);renderSheet()}}break;
+ case'z_dl':Z.dd=v;openSheet({kind:'zdl'});break;
+ case'z_dlsave':{const cv=id=>{const x=(($(id)||{}).value||'').trim();return x?new Date(x).toISOString():''};
+  try{const j=await apiPost({action:'zoneDeadline',zone:Z.dd,inner:cv('#zdi'),tal:cv('#zdt'),frost:cv('#zdf')});if(!j.ok)throw new Error(zErr(j));toast('已儲存截止時間');closeSheet();Z.at=0;await zRefresh();render()}catch(e){toast('儲存失敗：'+e.message)}}break;
+ }}
+document.addEventListener('click',e=>{const a=e.target.closest('[data-a]');if(!a)return;const k=a.dataset.a;if(k.slice(0,2)==='z_')zAct(k,a)});
+document.addEventListener('input',e=>{const t=e.target;if(t.id==='zn'&&Z.dz){Z.dz.name=t.value;return}
+ if(t.id==='zq'){const q=nz(t.value),l=alList().filter(([x])=>nz(x).includes(q)).slice(0,8);$('#zqsug').innerHTML=q?(l.length?`<div class="sug">${l.map(([x,n])=>`<div class="sg" data-a="z_addAl" data-v="${esc(x)}"><b>${esc(x)}</b><span class="sub">${n} 人</span></div>`).join('')}</div>`:'<div class="sub" style="padding:8px 2px">找不到這個聯盟</div>'):''}});
+document.addEventListener('change',e=>{const t=e.target;
+ if(t.id==='zsel'&&t.value&&Z.dz){const v=t.value,o=Z.list.find(x=>x.id!==Z.dz.id&&x.als.includes(v));if(o){toast(v+' 已經在「'+o.name+'」，一個聯盟只能在一個特區');t.value='';return}if(!Z.dz.als.includes(v))Z.dz.als.push(v);renderSheet();return}
+ if(t.dataset.zsel){const[ev,fid]=t.dataset.zsel.split('|');zDraft(ev,fid).zone=t.value;renderSheet();return}
+ if(t.dataset.zt){const[ev,fid]=t.dataset.zt.split('|'),v=t.value.trim();if(v&&!alList().some(x=>x[0]===v)){toast('找不到「'+v+'」這個聯盟，請從選單選擇');t.value=zDraft(ev,fid).target;return}zDraft(ev,fid).target=v}});
+/* 活動名單：以特區當範圍，報名這個特區的人都會進名單，人在別的聯盟會標示需要轉聯盟 */
+function wFix(p){p.manual=p.manual||{};p.teams=p.teams||{};INNER.forEach(ev=>{p.manual[ev]=p.manual[ev]||{};p.teams[ev]=p.teams[ev]||[];p.als.forEach(a=>[1,2].forEach(lg=>{if(!p.teams[ev].some(t=>t.id===a+'|'+lg))p.teams[ev].push({id:a+'|'+lg,al:a,lg,time:lg===1?'22:00':'20:00',on:false})}))});p.rules=p.rules||{locks:{},only:{},groups:[]};p.rules.locks=p.rules.locks||{};p.rules.only=p.rules.only||{};p.rules.groups=p.rules.groups||[];p.rep=p.rep||{power:true};p.hist=p.hist||[];p.opt=Object.assign({src:'vote',lg1:'bal',cross:'prefer',bal:'bar',head:5,tail:5,min:15,main:30,dur:60,grp:true},p.opt||{});if(!p.evs||!p.evs.length)p.evs=['foundry'];if(W.zone)p.zone=W.zone}
+function wpool(pl,ev){const m=D.regs[ev]||{};return Object.keys(m).filter(f=>{const g=m[f],r=D.byF[f];return r&&(g.choice==='1'||g.choice==='2')&&(pl.zone?zOfReg(ev,f)===pl.zone:pl.als.includes(r.al))}).map(f=>({r:D.byF[f],vote:m[f].choice}))}
+function wFixedAl(pl){const A={};if(pl.evs.length<2)return A;const m1=D.regs[pl.evs[0]]||{},m2=D.regs[pl.evs[1]]||{},rg=(m,f)=>m[f]&&(m[f].choice==='1'||m[f].choice==='2'),o=pl.opt,R=pl.rules,sum={};pl.als.forEach(a=>{sum[a]=0});
+ D.rows.filter(r=>(pl.zone?zOfReg(pl.evs[0],r.fid)===pl.zone:pl.als.includes(r.al))&&rg(m1,r.fid)&&rg(m2,r.fid)).sort((a,b)=>b.power-a.power).forEach(r=>{const lk=R.locks[r.fid],on=R.only[r.fid];let a;if(lk&&lk.indexOf('|')>0)a=lk.split('|')[0];else if(on&&pl.als.includes(on))a=on;else if(o.cross==='strict'&&pl.als.includes(r.al))a=r.al;else{const s=pl.als.slice().sort((x,y)=>sum[x]-sum[y]);a=s[0];if(o.cross==='prefer'&&pl.als.includes(r.al)&&r.al!==a&&sum[r.al]<=sum[a]+r.power*.6)a=r.al}if(sum[a]===undefined)sum[a]=0;A[r.fid]=a;sum[a]+=r.power});return A}
+function wDefZone(){const z=isCadre()&&!isAdmin()?Z.list.find(x=>x.als.includes(AU.al)):Z.list[0];return z?z.id:''}
+function zCounts(ev,zid){const m=D.regs[ev]||{},z=zById(zid),o={n:0,inZone:{},outside:0};Object.keys(m).forEach(f=>{const g=m[f];if(!(g.choice==='1'||g.choice==='2')||zOfReg(ev,f)!==zid)return;o.n++;const r=D.byF[f];if(r&&z&&z.als.includes(r.al))o.inZone[r.al]=(o.inZone[r.al]||0)+1;else o.outside++});return o}
+function wHomeHtml(){if(!Z.list.length)return`<div class="card"><h3>活動名單（聯盟內活動分隊）</h3><div class="sub">特區資料還沒有載入。如果一直沒有出現，請確認 Apps Script 已經更新並重新部署。</div></div>${pubHtml()}`;
+ const cad=isCadre()&&!isAdmin(),zs=Z.list.filter(z=>!cad||z.als.includes(AU.al));
+ if(!zs.length)return`<div class="card"><h3>活動名單（聯盟內活動分隊）</h3><div class="sub">你的聯盟還沒有特區。請到「活動報名」頁建立一個包含你們聯盟的特區。</div></div>${pubHtml()}`;
+ if(!W.zone||!zs.some(z=>z.id===W.zone)){W.zone=zs[0].id;W.home=false}const zn=zById(W.zone);W.als=zn.als.slice();if(!W.home){W.home=true;wHomeLoad()}
+ const cards=INNER.map(ev=>{const c=zCounts(ev,W.zone),lk=W.locked[ev],zid=W.zone,cl=zClosed(ev,zid),dl=zDl(ev,zid),st=lk?`<span class="bd a">已公布・${esc(lk.label)}</span>`:W.draft?'<span class="bd">有草稿</span>':'<span class="bd w">還沒開始</span>';
+  return`<div class="card"><div class="row sp"><b style="font-size:17px">${EVN[ev]}</b><span class="row" style="gap:6px">${st}${cl?'<span class="bd w">已截止</span>':dl?`<span class="bd a">截止 ${zDlTxt(dl)}</span>`:''}</span></div><div class="row" style="margin-top:8px;gap:6px">${zn.als.map(a=>`<span class="bd">${esc(a)} ${c.inZone[a]||0} 人</span>`).join('')}${c.outside?`<span class="bd a">其他聯盟 ${c.outside} 人</span>`:''}<span class="sub">共 ${c.n} 人報名</span></div><div class="row" style="margin-top:10px"><button class="btn pri" data-a="w_open" data-v="${ev}" style="min-height:46px">進入分隊</button></div></div>`}).join('');
+ return`<div class="card"><h3>活動名單（聯盟內活動分隊）</h3><div class="sub">選特區，點活動進入分隊。名單是報名這個特區的所有人；人目前在別的聯盟，會標示需要先轉聯盟。兩個活動可以一起分，同一個人兩場會在同一個聯盟。</div><div class="row" style="margin-top:10px">${zs.map(z=>`<button class="btn ${W.zone===z.id?'on':''}" data-a="w_zone" data-v="${esc(z.id)}">${esc(z.name)}</button>`).join('')}</div></div>${cards}${pubHtml()}`}
+document.addEventListener('click',e=>{const a=e.target.closest('[data-a]');if(a&&a.dataset.a==='w_zone'){W.zone=a.dataset.v;W.home=false;render()}});
+const _wtt=wTabTeam;wTabTeam=function(pl){const h=_wtt(pl),zn=zById(pl.zone||W.zone),card=`<div class="card"><h3>特區</h3><div class="sub">這份分隊的範圍是「${esc(zn?zn.name:'')}」，名單是報名這個特區的人。要換特區，請按左上角「返回」再選。</div></div>`;return h.replace(/<div class="card"><h3>聯盟範圍<\/h3>[\s\S]*?<\/div><\/div>\s*<div class="card"><h3>要分隊的活動/,card+'<div class="card"><h3>要分隊的活動')};
 
 /* ===== 畫面 ===== */
 function applyTheme(){const t=U.theme,dark=t==='dark'||(t==='auto'&&matchMedia('(prefers-color-scheme: dark)').matches);document.documentElement.setAttribute('data-theme',dark?'dark':'light')}
