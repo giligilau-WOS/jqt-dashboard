@@ -1015,6 +1015,21 @@ function wHomeHtml(){if(!Z.list.length)return`<div class="card"><h3>活動名單
 document.addEventListener('click',e=>{const a=e.target.closest('[data-a]');if(a&&a.dataset.a==='w_zone'){W.zone=a.dataset.v;W.home=false;render()}});
 const _wtt=wTabTeam;wTabTeam=function(pl){const h=_wtt(pl),zn=zById(pl.zone||W.zone),card=`<div class="card"><h3>特區</h3><div class="sub">這份分隊的範圍是「${esc(zn?zn.name:'')}」，名單是報名這個特區的人。要換特區，請按左上角「返回」再選。</div></div>`;return h.replace(/<div class="card"><h3>聯盟範圍<\/h3>[\s\S]*?<\/div><\/div>\s*<div class="card"><h3>要分隊的活動/,card+'<div class="card"><h3>要分隊的活動')};
 
+/* ===== 全玩家：遊戲 ID 欄位 ===== */
+(function(){
+ try{
+  const tpl=COLS.find(c=>c.k==='al')||COLS[1]||COLS[0];
+  const lk=tpl&&Object.keys(tpl).find(k=>typeof tpl[k]==='string'&&tpl[k].indexOf('聯盟')>=0);
+  if(!tpl||!lk)throw new Error('找不到欄位範本');
+  if(!COLS.some(c=>c.k==='fid')){
+   COLS.push(Object.assign({},tpl,{k:'fid',[lk]:'遊戲 ID',v:r=>r.fid,d:r=>'<span style="font-variant-numeric:tabular-nums">'+esc(r.fid)+'</span>'}));
+  }
+ }catch(e){
+  console.warn('遊戲 ID 欄位無法加入，改成顯示在名字後面',e);
+  const _rhFid=rowHtml;
+  rowHtml=function(r){return _rhFid(r).replace('</td>',' <span class="sub" style="font-size:11px">'+esc(r.fid)+'</span></td>')};
+ }
+})(); 
 /* ===== 畫面 ===== */
 function applyTheme(){const t=U.theme,dark=t==='dark'||(t==='auto'&&matchMedia('(prefers-color-scheme: dark)').matches);document.documentElement.setAttribute('data-theme',dark?'dark':'light')}
 const TABS=[['players','全玩家'],['signups','活動報名'],['lists','活動名單'],['admin','後台設定']];
