@@ -1030,7 +1030,42 @@ const _wtt=wTabTeam;wTabTeam=function(pl){const h=_wtt(pl),zn=zById(pl.zone||W.z
   rowHtml=function(r){return _rhFid(r).replace('</td>',' <span class="sub" style="font-size:11px">'+esc(r.fid)+'</span></td>')};
  }
 })(); 
-/* ===== 畫面 ===== */
+/* ===== v7.1 兌換碼：網站通知、幹部確認、自動檢查 ===== */
+const GC={list:[],meta:null,ok:false,at:0,busy:false,open:Store.get('gcOpen',true),seen:Store.get('gcSeen',[]),how:false,inp:'',note:''};
+Object.assign(ERR,{bad_code:'兌換碼只能是英文和數字（3 到 30 個字）'});
+const GC_URL='https://wos-giftcode.centurygame.com/';
+const gcList=s=>GC.list.filter(c=>c.st===s);
+async function gcLoad(){if(GC.busy||!CFG.url)return;GC.busy=true;try{const j=await apiGet({action:'codes'});if(j&&Array.isArray(j.codes)){GC.list=j.codes;GC.meta=j.meta||null;GC.ok=true}}catch(e){}GC.at=Date.now();GC.busy=false;gcDraw()}
+function gcNotice(){const a=gcList('active');return`🎁【兌換碼】\n${a.map(c=>c.code+(c.note?'（'+c.note+'）':'')).join('\n')}\n\n▍Android\n遊戲內點左上角頭像 → 設定 → 禮包碼 → 輸入後兌換\n\n▍iOS\n1. 遊戲內點左上角頭像，複製你的玩家 ID\n2. 開啟官方兌換頁：${GC_URL}\n3. 輸入玩家 ID 登入 → 輸入兌換碼 → 完成驗證 → 確認\n4. 回遊戲到信箱領取\n\n大小寫要完全一樣。找不到自己的 ID，可以到 ${location.origin+location.pathname} 的「全玩家」搜尋名字。`}
+function gcHtml(){const stf=isStaff(),a=gcList('active'),p=stf?gcList('pending'):[];
+ if(!GC.ok)return stf&&GC.at?'<div class="card"><b>兌換碼</b><div class="sub">讀不到兌換碼資料。請確認 Apps Script 已加入 GiftCodes 檔案並重新部署。</div></div>':'';
+ if(!a.length&&!stf)return'';
+ const unseen=a.filter(c=>!GC.seen.includes(c.code)),open=GC.open||unseen.length>0,mono='font-family:ui-monospace,Menlo,Consolas,monospace;font-size:17px';
+ if(!open)return`<div class="card" style="padding:8px 12px"><div class="row sp"><span>🎁 ${a.length?'目前有 '+a.length+' 個兌換碼':'兌換碼管理'}${p.length?' <span class="bd w">待確認 '+p.length+'</span>':''}</span><button class="btn sm" data-a="gc_open">展開</button></div></div>`;
+ let h=`<div class="card" style="border-color:var(--ac)"><div class="row sp"><b>🎁 兌換碼</b><span class="row" style="gap:6px"><button class="btn sm ${GC.how?'on':''}" data-a="gc_how">怎麼兌換</button><button class="btn sm" data-a="gc_fold">收合</button></span></div><div style="margin-top:8px">`;
+ h+=a.length?a.map(c=>`<div class="row sp" style="padding:8px 0;border-top:1px solid var(--bd)"><span><b style="${mono}">${esc(c.code)}</b>${unseen.includes(c)?' <span class="bd a">新</span>':''}${c.note?`<div class="sub">${esc(c.note)}</div>`:''}</span><span class="row" style="gap:6px;flex-wrap:nowrap"><button class="btn sm pri" data-a="gc_copy" data-v="${esc(c.code)}">複製</button>${stf?`<button class="btn sm" data-a="gc_set" data-v="${esc(c.code)}" data-s="expired">已過期</button>`:''}</span></div>`).join(''):'<div class="sub">目前沒有公開的兌換碼。</div>';
+ h+='</div>';
+ if(GC.how)h+=`<div class="sub" style="padding-top:8px;border-top:1px solid var(--bd)"><b>Android：</b>遊戲內點左上角頭像 → 設定 → 禮包碼，輸入後兌換。<br><b>iOS：</b>遊戲內點頭像複製玩家 ID，到 <a href="${GC_URL}" target="_blank" rel="noopener" style="color:var(--ac)">官方兌換頁</a> 輸入玩家 ID 登入，再輸入兌換碼、完成驗證後確認，回遊戲信箱領取。<br>大小寫要完全一樣。找不到自己的 ID，可以在「全玩家」搜尋名字，點進去就看得到。</div>`;
+ if(stf){h+=`<div style="margin-top:10px;padding-top:8px;border-top:2px solid var(--bd)"><b>幹部管理</b>`;
+  if(p.length)h+=`<div class="sub" style="margin:4px 0">自動檢查找到 ${p.length} 個可能的新兌換碼。請先自己試一次，確認能用再公開。</div>`+p.map(c=>`<div class="row sp" style="padding:6px 0;border-top:1px solid var(--bd)"><span><b style="${mono}">${esc(c.code)}</b><div class="sub">${esc(c.src)}・${esc(String(c.found).slice(5,16))}${c.note?'・'+esc(c.note):''}</div></span><span class="row" style="gap:6px;flex-wrap:nowrap"><button class="btn sm" data-a="gc_copy" data-v="${esc(c.code)}">複製</button><button class="btn sm pri" data-a="gc_set" data-v="${esc(c.code)}" data-s="active">公開</button><button class="btn sm" data-a="gc_set" data-v="${esc(c.code)}" data-s="rejected">不採用</button></span></div>`).join('');
+  h+=`<div class="row" style="margin-top:8px"><input id="gcin" autocomplete="off" autocapitalize="off" placeholder="手動新增兌換碼" value="${esc(GC.inp)}" style="flex:1;min-width:120px"><input id="gcnote" autocomplete="off" placeholder="備註（例如期限）" value="${esc(GC.note)}" style="flex:1;min-width:120px"><button class="btn sm pri" data-a="gc_add">新增並公開</button></div><div class="row" style="margin-top:8px"><button class="btn sm" data-a="gc_ntc" ${a.length?'':'disabled'}>複製 LINE 通知</button><button class="btn sm" data-a="gc_check">立即檢查新碼</button></div>`;
+  const mt=GC.meta;h+=`<div class="sub" style="margin-top:6px">${mt?'上次自動檢查：'+esc(mt.at)+(mt.log||[]).map(l=>'<br>'+esc(l)).join(''):'還沒有自動檢查的紀錄'}</div></div>`}
+ return h+'</div>'}
+function gcDraw(){const m=$('#main');if(!m)return;let el=$('#gcbar');const h=gcHtml();if(!h){if(el)el.remove();return}if(!el){el=document.createElement('div');el.id='gcbar';m.insertBefore(el,m.firstChild)}el.innerHTML=h}
+const _rdG=render;render=function(){_rdG();gcDraw();if(!GC.busy&&Date.now()-GC.at>600000)gcLoad()};
+async function gcPost(body,msg){try{const j=await apiPost(body);if(!j.ok)throw new Error(ERR[j.error]||j.error||'失敗');toast(typeof msg==='function'?msg(j):msg);await gcLoad();return true}catch(e){toast('失敗：'+e.message);return false}}
+document.addEventListener('click',async e=>{const a=e.target.closest('[data-a]');if(!a)return;const k=a.dataset.a,v=a.dataset.v,s=a.dataset.s;if(k.slice(0,3)!=='gc_')return;
+ if(k==='gc_open'){GC.open=true;Store.set('gcOpen',true);gcDraw()}
+ else if(k==='gc_fold'){GC.open=false;GC.seen=gcList('active').map(c=>c.code);Store.set('gcOpen',false);Store.set('gcSeen',GC.seen);gcDraw()}
+ else if(k==='gc_how'){GC.how=!GC.how;gcDraw()}
+ else if(k==='gc_copy')copyText(v);
+ else if(k==='gc_ntc')copyText(gcNotice());
+ else if(k==='gc_set')gcPost({action:'codeSet',code:v,status:s},s==='active'?'已公開：'+v:s==='expired'?'已標成過期：'+v:'已略過：'+v);
+ else if(k==='gc_add'){const c=(($('#gcin')||{}).value||'').trim(),n=(($('#gcnote')||{}).value||'').trim();if(!/^[A-Za-z0-9]{3,30}$/.test(c))return toast(ERR.bad_code);if(await gcPost({action:'codeSet',code:c,status:'active',note:n},'已新增並公開：'+c)){GC.inp='';GC.note='';gcDraw()}}
+ else if(k==='gc_check'){toast('檢查中，請稍等…');gcPost({action:'codeCheck'},j=>'檢查完成，新增待確認 '+(j.added||0)+' 個')}});
+document.addEventListener('input',e=>{const t=e.target;if(t.id==='gcin')GC.inp=t.value;else if(t.id==='gcnote')GC.note=t.value});
+gcLoad();
+ /* ===== 畫面 ===== */
 function applyTheme(){const t=U.theme,dark=t==='dark'||(t==='auto'&&matchMedia('(prefers-color-scheme: dark)').matches);document.documentElement.setAttribute('data-theme',dark?'dark':'light')}
 const TABS=[['players','全玩家'],['signups','活動報名'],['lists','活動名單'],['admin','後台設定']];
 function render(){applyTheme();
