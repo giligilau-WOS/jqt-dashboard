@@ -13,6 +13,9 @@
 ```bash
 node tools/check.mjs
 node tools/smoke.mjs
+node tools/prop.mjs
+node tools/e2e.mjs
+node tools/workbench.mjs
 ```
 
 有任何 ❌ 就是 [Important]。以下清單只查**和這次 diff 有關**的列。

@@ -12,7 +12,7 @@
 | 後端 | Google Apps Script（綁定試算表，**不在這個 repo**） | `Code.gs`（主程式）、`Plans.gs`（分隊、特區、報名、入口）、`GiftCodes.gs`（兌換碼） |
 | 資料庫 | Google 試算表 | 各工作表見下方 |
 | 資料來源 | whiteoutstats.com API | 第三方粉絲站，Bearer 金鑰，非官方 |
-| 驗證工具 | `tools/check.mjs`、`tools/smoke.mjs` | 見「驗證與測試」 |
+| 驗證工具 | `tools/*.mjs` | 見「驗證與測試」 |
 
 目前網頁版本：`APP_VERSION='7.0.0'`。repo 裡的 `index.html` 已含「遊戲 ID 欄位」與「v7.1 兌換碼」補丁，但版本號仍是 7.0.0（貼 v7.1 時沒改版本號）；下一次修改時直接升到新版本即可。使用者尚未回報 v7.1 的部署與測試結果。
 
@@ -144,14 +144,17 @@ POST 用 `Content-Type: text/plain`（避免 CORS 預檢）。
 
 完整流程寫在 `.claude/skills/verify/SKILL.md`（`/verify`）；審查規則在 `REVIEW.md`。重點：
 
-1. **沒驗證不 commit。** 改 `index.html` 後依序執行，兩者都要通過：
+1. **沒驗證不 commit。** 改 `index.html` 後依序執行，全部都要通過：
    ```bash
-   node tools/check.mjs   # 語法、重複 const、新增同名 function、補丁位置、版本號、寫死的秘密
-   node tools/smoke.mjs   # iPhone 尺寸開頁、四個分頁走一遍、零 JS 錯誤、截圖
+   node tools/check.mjs       # 語法、重複 const、新增同名 function、補丁位置、版本號、寫死的秘密（1 秒）
+   node tools/smoke.mjs       # iPhone 尺寸開頁、四個分頁走一遍、零 JS 錯誤、截圖
+   node tools/prop.mjs        # 屬性測試：分隊、一鍵／批次報名、截止與權限，各 600 組隨機輸入
+   node tools/e2e.mjs         # 端到端：全玩家、報名＋特區、截止、幹部／管理員登入與權限（31 項）
+   node tools/workbench.mjs   # 分隊工作台：所有按鈕點一遍，零 JS 錯誤、人數守恆
    ```
-   沒有 npm、沒有建置；兩支腳本只用 Node 與環境內建的 Playwright。
-2. **冒煙測試不碰正式資料**：`smoke.mjs` 攔截所有 Apps Script 連線，POST 一律拒絕。驗證時**絕對不可**對 `config.js` 裡的正式網址送 POST（會改到全王國的報名）。
-3. **邏輯要用屬性測試**：改到分隊（槓鈴、軍團、互斥群組）、正選／候補名額、截止時間判斷、權限範圍、特區對應這類純邏輯時，在暫存目錄寫一支 Node 腳本，把函數從 `index.html` 抽出來，用自建隨機產生器跑 ≥500 組輸入，至少驗證：
+   沒有 npm、沒有建置；腳本只用 Node 與環境內建的 Playwright。`prop.mjs` 可加參數 `[次數] [亂數種子]` 跑更多（例：`node tools/prop.mjs 3000 777`）。
+2. **測試不碰正式資料**：所有腳本都攔截 Apps Script 連線；`e2e.mjs`、`workbench.mjs` 用 `tools/fake-backend.mjs`（記憶體裡的假後端，測試帳密是假的 `test-admin`／`test-cadre`）。驗證時**絕對不可**對 `config.js` 裡的正式網址送 POST（會改到全王國的報名）。後端回傳格式改了，`fake-backend.mjs` 要一起改。
+3. **改到純邏輯要擴充屬性測試**：改到分隊（槓鈴、軍團、互斥群組）、正選／候補名額、截止時間判斷、權限範圍、特區對應時，在 `tools/prop.mjs` 加上對應的屬性（新功能就新增一段），至少驗證：
    - 不變量：每人最多出現在一隊；正選數不超過名額；兵工廠與峽谷同一特區；幹部動不到別聯盟的人。
    - 冪等：一鍵報名跑兩次＝跑一次；`choice:'out'` 的人不會被加回來。
    - 往返：存檔後讀回的分隊計畫與規則完全相同。
@@ -159,7 +162,8 @@ POST 用 `Content-Type: text/plain`（避免 CORS 預檢）。
 5. **Apps Script 不在 repo**，無法在這裡執行：交付時寫清楚「在編輯器先執行哪個函數、看紀錄裡哪一行」，並提醒重新部署成新版本。
 6. **使用者的回報是第一手驗證**：瀏覽器自動化抓不到 iPhone Safari 的實際手感（固定表頭、動態效果、捲動），這些要請使用者實測。
 7. **禁止欺騙驗證器**：不放寬檢查、不加 `sleep` 掩蓋問題、不為了過關改 `tools/dup-functions-baseline.txt` 或 `REVIEW.md`。同一個錯誤修 3 輪仍失敗就停下，回報證據與試過的三個方向。
-8. **抓到漏網之魚就變成規則**：能從 diff 機械判斷的，加進 `tools/check.mjs`；寫程式常犯的，在本檔加一行禁令；特定模組的陷阱，加一列到 `REVIEW.md`。
+8. **測試本身也要能抓錯**：新增屬性或流程時，在暫存目錄的副本故意改壞對應程式，確認測試會失敗後再提交。
+9. **抓到漏網之魚就變成規則**：能從 diff 機械判斷的，加進 `tools/check.mjs`；行為上的錯誤，加進 `tools/prop.mjs` 或 `tools/e2e.mjs`；寫程式常犯的，在本檔加一行禁令；特定模組的陷阱，加一列到 `REVIEW.md`。
 
 ### 交付給使用者的測試清單
 
