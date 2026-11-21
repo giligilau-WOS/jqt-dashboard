@@ -5,6 +5,9 @@
 <meta name="viewport" content="width=device-width,initial-scale=1">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-title" content="2611王國">
+<link rel="icon" type="image/png" sizes="32x32" href="icons/favicon-32.png">
+<link rel="icon" type="image/png" sizes="192x192" href="icons/icon-192.png">
+<link rel="apple-touch-icon" href="icons/apple-touch-icon.png">
 <title>2611王國</title>
 <style>
 :root{--bg:#f4f5fb;--s1:#fff;--s2:#eef0f8;--bd:#dfe2ef;--t1:#1b1f3a;--t2:#5d6485;--ac:#4f46e5;--acb:#e6e4ff;--ok:#15803d;--dg:#dc2626;--dgb:#fde8e8;--wn:#9a5b00;--wnb:#fff1d0;--btxt:#fff;--l0:120,126,145;--l1:124,58,237;--l2:13,148,136}
@@ -72,7 +75,7 @@ textarea{width:100%;min-height:120px}
 <script src="config.js"></script>
 <script>
 'use strict';
-const APP_VERSION='7.0.0';
+const APP_VERSION='7.1.1';
 const $=s=>document.querySelector(s);
 const esc=s=>String(s==null?'':s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 const nz=s=>String(s==null?'':s).normalize('NFKC').toLowerCase().replace(/[\s\p{P}\p{S}]+/gu,'');
