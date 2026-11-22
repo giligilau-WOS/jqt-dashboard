@@ -1,14 +1,15 @@
-/* worldmap.js — 2611 王國戰情室 v8.3.0：王國大地圖 / 棋盤排位＋熊陣圖層＋測距 / Google Earth 3D 自由斜視 */
+/* worldmap.js — 2611 王國戰情室 v8.3.1：王國大地圖 / 棋盤排位＋熊陣圖層＋測距 / Google Earth 3D 自由斜視（官方方位校正） */
 (function(){
 'use strict';
 
 const WORLD=1200, CENTER=600, R_CORE=48, R_FERTILE=150, R_TUNDRA=300;
 const SIM_KEY='k2611_map_sim_v2';
+// 官方 4 座太陽城砲台座標（2×2；正北 N = +X,+Y → (1199,1199)，正東 E = +X,-Y → (1199,0)）
 const TURRETS=[
-  {id:'tur_n',kind:'turret',name:'北砲台',x:585,y:615,size:2,color:'#ef4444'},
-  {id:'tur_e',kind:'turret',name:'東砲台',x:615,y:615,size:2,color:'#ef4444'},
-  {id:'tur_s',kind:'turret',name:'南砲台',x:615,y:585,size:2,color:'#ef4444'},
-  {id:'tur_w',kind:'turret',name:'西砲台',x:585,y:585,size:2,color:'#ef4444'}
+  {id:'tur_n',kind:'turret',name:'北砲台',x:604,y:604,size:2,color:'#ef4444'},
+  {id:'tur_e',kind:'turret',name:'東砲台',x:604,y:594,size:2,color:'#ef4444'},
+  {id:'tur_s',kind:'turret',name:'南砲台',x:594,y:594,size:2,color:'#ef4444'},
+  {id:'tur_w',kind:'turret',name:'西砲台',x:594,y:604,size:2,color:'#ef4444'}
 ];
 const FAC_COLORS={
   castle:'#f59e0b',turret:'#ef4444',sh:'#b91c1c',ft:'#7c3aed',
@@ -43,7 +44,7 @@ const RAW_FACS=[
 ];
 const WORLD_FACS=[
   {id:'castle',kind:'castle',name:'🏰 太陽城',x:597,y:597,cx:600,cy:600,size:6,color:FAC_COLORS.castle},
-  ...TURRETS.map(t=>({...t,cx:t.x,cy:t.y})),
+  ...TURRETS.map(t=>({...t,cx:t.x+t.size/2,cy:t.y+t.size/2})),
   ...RAW_FACS.map((a,i)=>({id:'wf_'+i,kind:a[0],name:a[1],x:a[2],y:a[3],cx:a[2]+a[4]/2,cy:a[3]+a[4]/2,size:a[4],color:FAC_COLORS[a[0]]||'#64748b'}))
 ];
 
@@ -178,7 +179,7 @@ const M={
   // Mode 3: Google Earth 3D Orbit Camera
   sv:{
     tx:771, ty:729,     // 地面焦點 (target)
-    yaw:0,              // 水平方位角 (rad, 0 = 看向北方 +Y)
+    yaw:0,              // 水平方位角 (rad, 0 = 看向官方正北 +X,+Y → 北砲台方向)
     pitch:36*Math.PI/180, // 上下斜視俯仰角 (12° 貼地街景 ~ 85° 衛星俯瞰)
     dist:32,            // 焦點距離 (8 格貼近 ~ 260 格衛星高空)
     gesture:'orbit',    // 'orbit' (左右旋轉+上下調仰角) | 'pan' (單指地面滑行)
@@ -200,6 +201,47 @@ const M={
 function app(){return window.K2611_APP||{}}
 function isDark(){return document.documentElement.getAttribute('data-theme')==='dark'}
 function clamp(v,a,b){return Math.max(a,Math.min(b,v))}
+// 官方地理方位轉換：正北 N = (+X,+Y)/√2（北砲台），正東 E = (+X,-Y)/√2（東砲台）
+const INV_SQRT2=Math.SQRT1_2;
+function wToGeo(wx,wy){return{e:(wx-wy)*INV_SQRT2,n:(wx+wy)*INV_SQRT2}}
+function geoToW(e,n){return{x:(e+n)*INV_SQRT2,y:(n-e)*INV_SQRT2}}
+function geoBearingFromCastle(x,y){
+  const dx=x-CENTER, dy=y-CENTER;
+  if(Math.hypot(dx,dy)<1)return'王城正中';
+  const g=wToGeo(dx,dy);
+  const deg=((Math.round(Math.atan2(g.e,g.n)*180/Math.PI)%360)+360)%360;
+  const dirs=['正北','東北','正東','東南','正南','西南','正西','西北'];
+  return `${dirs[Math.round(deg/45)%8]} ${deg}°`;
+}
+function drawCompassRose(ctx,cx,cy,r,northAngleRad,dark){
+  ctx.save();
+  ctx.translate(cx,cy);
+  ctx.beginPath();ctx.arc(0,0,r,0,Math.PI*2);
+  ctx.fillStyle=dark?'rgba(9,19,35,.8)':'rgba(255,255,255,.92)';ctx.fill();
+  ctx.strokeStyle=dark?'rgba(148,185,220,.45)':'rgba(37,99,235,.35)';ctx.lineWidth=1.4;ctx.stroke();
+  ctx.save();
+  ctx.rotate(northAngleRad);
+  const tip=Math.max(6,r-11.5);
+  // 紅北針
+  ctx.fillStyle='#ef4444';
+  ctx.beginPath();ctx.moveTo(0,-tip);ctx.lineTo(3.6,0);ctx.lineTo(-3.6,0);ctx.closePath();ctx.fill();
+  // 灰南針
+  ctx.fillStyle=dark?'#64748b':'#94a3b8';
+  ctx.beginPath();ctx.moveTo(0,tip);ctx.lineTo(3.6,0);ctx.lineTo(-3.6,0);ctx.closePath();ctx.fill();
+  // 中心點
+  ctx.fillStyle=dark?'#f8fafc':'#0f172a';
+  ctx.beginPath();ctx.arc(0,0,2,0,Math.PI*2);ctx.fill();
+  ctx.restore();
+  // 在「正北／正南」外圈標上「北」「南」（保持字體水平且不壓到指針）
+  const lr=r-5.8;
+  ctx.font='900 9px -apple-system,sans-serif';ctx.textAlign='center';ctx.textBaseline='middle';
+  ctx.fillStyle='#ef4444';
+  ctx.fillText('北',Math.sin(northAngleRad)*lr,-Math.cos(northAngleRad)*lr);
+  ctx.font='700 8px -apple-system,sans-serif';
+  ctx.fillStyle=dark?'#94a3b8':'#64748b';
+  ctx.fillText('南',-Math.sin(northAngleRad)*lr,Math.cos(northAngleRad)*lr);
+  ctx.restore();
+}
 function zoneOf(x,y){
   const r=Math.max(Math.abs(x-CENTER),Math.abs(y-CENTER));
   if(r<=R_CORE)return{k:'core',l:'王城紅地',c:'#ef4444'};
@@ -457,7 +499,7 @@ function getMeasureTargets(wd){
   });
   // 3. 太陽城 + 砲台 + 要塞 + 堡壘 + 距離 jQt 最近的 8 座工程站
   const refH=wd.hives.find(x=>x.al==='jQt')||{x:CENTER,y:CENTER};
-  WORLD_FACS.filter(f=>f.kind==='castle'||f.kind==='sh'||f.kind==='ft').forEach(f=>{
+  WORLD_FACS.filter(f=>f.kind==='castle'||f.kind==='turret'||f.kind==='sh'||f.kind==='ft').forEach(f=>{
     out.push({key:f.id,label:f.name,x:f.cx,y:f.cy});
   });
   WORLD_FACS.filter(f=>f.kind.startsWith('fc_'))
@@ -656,8 +698,8 @@ function renderMapControls(wd){
     <div class="mp-pills">
       <button class="btn sm ${M.showFacs?'pri':''}" data-mp="togFacs">🏛️ 官方設施</button>
       <button class="btn sm ${M.showMarks?'pri':''}" data-mp="togMarks">🚩 聯盟地標 (${getAllianceLandmarks().length})</button>
-      <button class="btn sm ${M.proj==='iso'?'pri':''}" data-mp="proj" data-v="iso">💎 等距視角</button>
-      <button class="btn sm ${M.proj==='flat'?'pri':''}" data-mp="proj" data-v="flat">🧭 正北平面</button>
+      <button class="btn sm ${M.proj==='iso'?'pri':''}" data-mp="proj" data-v="iso">🧭 遊戲正北</button>
+      <button class="btn sm ${M.proj==='flat'?'pri':''}" data-mp="proj" data-v="flat">📐 座標格線</button>
       <select id="mpAlSel" style="flex:none;min-height:36px;padding:4px 10px;font-size:13px;border-radius:12px">
         <option value="all" ${M.alFilter==='all'?'selected':''}>全部聯盟</option>
         <option value="ours" ${M.alFilter==='ours'?'selected':''}>僅 jQt + aQt</option>
@@ -820,10 +862,11 @@ function renderMapPlaceCard(wd){
       const z=zoneOf(f.cx,f.cy), dC=Math.hypot(f.cx-CENTER,f.cy-CENTER);
       const jH=wd.hives.find(x=>x.al==='jQt');
       const dJ=jH?Math.hypot(f.cx-jH.x,f.cy-jH.y):null;
+      const br=geoBearingFromCastle(f.cx,f.cy);
       return`<div class="card tight" style="border-color:${f.color}">
         <div class="row sp">
           <div><b style="font-size:16px">${esc(f.name)}</b> <span class="bd">${f.size}×${f.size}</span>
-          <div class="sub tnum" style="margin-top:2px">座標 <b>X:${f.x} · Y:${f.y}</b>（${z.l}）· 距太陽城 ${dC.toFixed(0)} 格${dJ!=null?' · 距 jQt '+dJ.toFixed(0)+' 格（約 '+fmtSec(marchSec(dJ))+'）':''}</div></div>
+          <div class="sub tnum" style="margin-top:2px">座標 <b>X:${f.x} · Y:${f.y}</b>（${z.l}）· 太陽城 ${br} ${dC.toFixed(0)} 格${dJ!=null?' · 距 jQt '+dJ.toFixed(0)+' 格（約 '+fmtSec(marchSec(dJ))+'）':''}</div></div>
           <button class="btn sm" data-mp="clearSel">✕</button>
         </div>
         <div class="row" style="margin-top:8px;gap:6px">
@@ -835,9 +878,9 @@ function renderMapPlaceCard(wd){
   }
   const p=M.selFid&&wd.byFid[M.selFid];
   if(!p){
-    return`<div class="card tight"><div class="sub">💡 <b>提示：</b>已標註全王國 95 座官方設施（太陽城／4砲台／4要塞／12堡壘／74工程站）與聯盟自訂地標；開「📏 測距」可點任兩座設施測距離與所需旗幟數。</div></div>`;
+    return`<div class="card tight"><div class="sub">💡 <b>提示：</b>已依官方座標校正正北（北砲台 604,604 朝上、東砲台朝右、南砲台朝下、西砲台朝左），並標註全王國 95 座官方設施與聯盟地標；開「📏 測距」可點任兩點測距離。</div></div>`;
   }
-  const z=zoneOf(p.x,p.y), dCastle=Math.hypot(p.x-CENTER,p.y-CENTER);
+  const z=zoneOf(p.x,p.y), dCastle=Math.hypot(p.x-CENTER,p.y-CENTER), brP=geoBearingFromCastle(p.x,p.y);
   const shTxt=p.shield&&A.fmtLeft?A.fmtLeft(p.shield):'';
   const bnTxt=p.burn&&A.fmtLeft?A.fmtLeft(p.burn):'';
   const av=p.avatar?`<img src="${esc(p.avatar)}" alt="" referrerpolicy="no-referrer" style="width:44px;height:44px;border-radius:14px;object-fit:cover;flex:none">`:`<div style="width:44px;height:44px;border-radius:14px;background:${alColor(p.al)};color:#fff;display:flex;align-items:center;justify-content:center;font-weight:900;font-size:17px;flex:none">${esc(p.name.slice(0,1))}</div>`;
@@ -845,7 +888,7 @@ function renderMapPlaceCard(wd){
     <div class="row sp">
       <div class="row" style="gap:10px;flex-wrap:nowrap;min-width:0">${av}<div style="min-width:0">
         <b style="font-size:16px">${esc(p.name)}</b> <span class="bd a">${esc(p.al||'無聯盟')}</span> ${p.rk?`<span class="bd">${esc(p.rk)}</span>`:''}
-        <div class="sub tnum" style="margin-top:2px">座標 <b>X:${p.x} · Y:${p.y}</b>（${z.l}）· 距太陽城 ${dCastle.toFixed(0)} 格</div>
+        <div class="sub tnum" style="margin-top:2px">座標 <b>X:${p.x} · Y:${p.y}</b>（${z.l}）· 太陽城 ${brP} ${dCastle.toFixed(0)} 格</div>
       </div></div>
       <button class="btn sm" data-mp="clearSel">✕</button>
     </div>
@@ -966,27 +1009,55 @@ function drawWorldMap(ctx,w,h,wd){
 
   // 官方 95 座固定設施（太陽城、砲台、要塞、堡壘、工程站）
   if(M.showFacs){
+    const castPt=mapWorldToScreen(CENTER,CENTER,w,h);
     for(const f of WORLD_FACS){
       const isMajor=f.kind==='castle'||f.kind==='sh'||f.kind==='ft';
       if(!isMajor&&f.kind!=='turret'&&s<1.1)continue;
-      if(f.kind==='turret'&&s<1.5)continue;
+      if(f.kind==='turret'&&s<1.1)continue;
       const pt=mapWorldToScreen(f.cx,f.cy,w,h);
       if(pt.x<-50||pt.x>w+50||pt.y<-50||pt.y>h+50)continue;
       const sel=M.selFacId===f.id;
       if(s>=3.5){
         drawPolyBox(f.x,f.y,f.size,f.color,sel?'#facc15':'#fff',null,sel?3:1.4);
       }else{
-        const r=f.kind==='castle'?Math.max(6,s*3):isMajor?Math.max(4.5,s*2.2):Math.max(3,s*1.4);
+        const r=f.kind==='castle'?Math.max(6,s*3):f.kind==='turret'?Math.max(3.6,s*1.5):isMajor?Math.max(4.5,s*2.2):Math.max(3,s*1.4);
         ctx.fillStyle=f.color;ctx.strokeStyle=sel?'#facc15':'#fff';ctx.lineWidth=sel?2.5:1.2;
         ctx.beginPath();ctx.arc(pt.x,pt.y,r,0,Math.PI*2);ctx.fill();ctx.stroke();
       }
-      if((f.kind==='castle'&&s>=0.6)||(isMajor&&s>=1.2)||(!isMajor&&s>=3.8)||sel){
-        ctx.font=(sel?'800 ':'700 ')+'11px -apple-system,sans-serif';
-        ctx.textAlign='center';
-        ctx.fillStyle=sel?'#facc15':(dark?'#e2e8f0':'#0f172a');
-        ctx.fillText(f.name,pt.x,pt.y-Math.max(8,s*f.size*0.42));
+      if((f.kind==='castle'&&s>=0.6)||(f.kind==='turret'&&s>=2.2)||(isMajor&&s>=1.2)||(!isMajor&&f.kind!=='turret'&&s>=3.8)||sel){
+        ctx.font=(sel||f.kind==='turret'?'800 ':'700 ')+'11px -apple-system,sans-serif';
+        ctx.fillStyle=sel?'#facc15':f.kind==='turret'?(dark?'#fca5a5':'#b91c1c'):(dark?'#e2e8f0':'#0f172a');
+        if(f.kind==='turret'){
+          const vx=pt.x-castPt.x, vy=pt.y-castPt.y, vl=Math.hypot(vx,vy)||1;
+          const ox=(vx/vl)*26, oy=(vy/vl)*18;
+          ctx.textAlign='center';
+          ctx.fillText(f.name,pt.x+ox,pt.y+oy+4);
+        }else{
+          ctx.textAlign='center';
+          ctx.fillText(f.name,pt.x,pt.y-Math.max(8,s*f.size*0.42));
+        }
       }
     }
+  }
+
+  // 全王國四方位地標（縮小時顯示北／東／南／西四頂點，與遊戲正北完全對齊）
+  if(s<1.25){
+    ctx.save();ctx.font='800 11.5px -apple-system,sans-serif';ctx.textAlign='center';ctx.textBaseline='middle';
+    const cardinals=[
+      {x:WORLD,y:WORLD,t:'北 N',c:'#ef4444'},
+      {x:WORLD,y:0,t:'東 E',c:dark?'#93c5fd':'#1d4ed8'},
+      {x:0,y:0,t:'南 S',c:dark?'#cbd5e1':'#475569'},
+      {x:0,y:WORLD,t:'西 W',c:dark?'#93c5fd':'#1d4ed8'}
+    ];
+    cardinals.forEach(cd=>{
+      const p=mapWorldToScreen(cd.x,cd.y,w,h);
+      const px=clamp(p.x,26,w-26), py=clamp(p.y,48,h-20);
+      const tw=ctx.measureText(cd.t).width+12;
+      ctx.fillStyle=dark?'rgba(9,19,35,.82)':'rgba(255,255,255,.9)';
+      ctx.beginPath();if(ctx.roundRect)ctx.roundRect(px-tw/2,py-10,tw,20,8);else ctx.rect(px-tw/2,py-10,tw,20);ctx.fill();
+      ctx.fillStyle=cd.c;ctx.fillText(cd.t,px,py+0.5);
+    });
+    ctx.restore();
   }
 
   // 各聯盟自訂地標（旗幟 7x7 領地 + 熊陷阱 + 總部）同步繪製在大地圖！
@@ -1057,26 +1128,37 @@ function drawWorldMap(ctx,w,h,wd){
     }
   }
 
-  // 遠景聯盟聚落標籤
+  // 遠景聯盟聚落標籤（主力盟優先並自動避讓重疊，避免小盟蓋掉 jQt／AAA）
   if(s<9){
     ctx.save();ctx.font='800 12px -apple-system,sans-serif';ctx.textAlign='center';
+    const hiveBoxes=[];
+    const overlap=(x,y,bw,bh)=>hiveBoxes.some(b=>x<b.x+b.w+2&&x+bw+2>b.x&&y<b.y+b.h+2&&y+bh+2>b.y);
     wd.hives.slice(0,10).forEach(hv=>{
       if(hv.clusterCount<3)return;
       if(M.alFilter==='ours'&&hv.al!=='jQt'&&hv.al!=='aQt')return;
       if(M.alFilter!=='all'&&M.alFilter!=='ours'&&hv.al!==M.alFilter)return;
       const pt=mapWorldToScreen(hv.x,hv.y,w,h);
       if(pt.x<-50||pt.x>w+50||pt.y<-30||pt.y>h+30)return;
-      const txt=`${hv.al} · ${hv.count}人`, tw=ctx.measureText(txt).width+14;
+      const txt=`${hv.al} · ${hv.count}人`, tw=ctx.measureText(txt).width+14, th=21;
+      const bx=clamp(pt.x-tw/2,6,w-tw-6);
+      let by=pt.y-24;
+      for(const off of [0,-23,23,-46,46]){
+        if(!overlap(bx,pt.y-24+off,tw,th)){by=pt.y-24+off;break}
+      }
+      hiveBoxes.push({x:bx,y:by,w:tw,h:th});
       ctx.fillStyle=alColor(hv.al);
-      ctx.beginPath();if(ctx.roundRect)ctx.roundRect(pt.x-tw/2,pt.y-24,tw,21,10);else ctx.rect(pt.x-tw/2,pt.y-24,tw,21);ctx.fill();
+      ctx.beginPath();if(ctx.roundRect)ctx.roundRect(bx,by,tw,th,10);else ctx.rect(bx,by,tw,th);ctx.fill();
       ctx.strokeStyle='#fff';ctx.lineWidth=1.5;ctx.stroke();
-      ctx.fillStyle='#fff';ctx.fillText(txt,pt.x,pt.y-9.5);
+      ctx.fillStyle='#fff';ctx.fillText(txt,bx+tw/2,by+14.5);
     });
     ctx.restore();
   }
 
   // 測距線覆蓋層
   drawMeasureOverlay(ctx,w,h,(x,y)=>mapWorldToScreen(x,y,w,h));
+
+  // 右上角指南針（遊戲正北模式朝正上方 0°，座標格線模式朝右上 45°）
+  drawCompassRose(ctx,w-32,32,21,M.proj==='iso'?0:Math.PI/4,dark);
 
   const hud=document.getElementById('mpHudCoord');
   if(hud&&!M.measure.on){
@@ -1264,6 +1346,9 @@ function drawBoard(ctx,w,h){
 
   // 6. 測距線覆蓋層
   drawMeasureOverlay(ctx,w,h,(x,y)=>boardWorldToScreen(x,y,w,h));
+
+  // 7. 右上角指南針（棋盤以 X→、Y↑ 排列，官方正北朝右上 45°）
+  drawCompassRose(ctx,w-32,32,21,Math.PI/4,dark);
 }
 
 /* ===== Mode 3：Google Earth 風格真 3D 軌道自由斜視引擎 ===== */
@@ -1307,21 +1392,25 @@ function drawStreetView(ctx,w,h,wd,now){
   const sinY=Math.sin(sv.yaw), cosY=Math.cos(sv.yaw);
   const sinP=Math.sin(sv.pitch), cosP=Math.cos(sv.pitch);
 
-  // Google Earth 球面軌道相機位置：盯著地面焦點 (tx, ty, 0)
-  const camX=sv.tx-sinY*cosP*sv.dist;
-  const camY=sv.ty-cosY*cosP*sv.dist;
+  // Google Earth 球面軌道相機位置（依官方正北 N = +X,+Y、正東 E = +X,-Y 校準）
+  const tGeo=wToGeo(sv.tx,sv.ty);
+  const camE=tGeo.e-sinY*cosP*sv.dist;
+  const camN=tGeo.n-cosY*cosP*sv.dist;
+  const camW=geoToW(camE,camN);
+  const camX=camW.x, camY=camW.y;
   const camZ=Math.max(1.8,sinP*sv.dist);
   const focal=Math.min(w,h)*1.05;
 
   // 真 3D 旋轉矩陣投影（支援 12° 貼地街景到 85° 衛星鳥瞰，零畸變！）
-  // 相機基底向量：
+  // 在官方地理平面 (east, north, z) 上：
   //   right = (cosY, -sinY, 0)
   //   fwd   = (sinY*cosP, cosY*cosP, -sinP)
   //   up    = (sinY*sinP, cosY*sinP,  cosP)
   function proj3(wx,wy,wz){
-    const dx=wx-camX, dy=wy-camY, dz=wz-camZ;
-    const rx=dx*cosY-dy*sinY;
-    const hy=dx*sinY+dy*cosY; // 水平前方分量
+    const g=wToGeo(wx,wy);
+    const de=g.e-camE, dn=g.n-camN, dz=wz-camZ;
+    const rx=de*cosY-dn*sinY;
+    const hy=de*sinY+dn*cosY; // 水平前方分量（yaw=0 朝官方正北）
     const cz=hy*cosP-dz*sinP; // 相機深度
     if(cz<=0.6)return null;
     const cy=hy*sinP+dz*cosP; // 相機上方分量
@@ -1496,14 +1585,14 @@ function drawStreetView(ctx,w,h,wd,now){
         ctx.fillText('🔥',pTop.sx,pTop.sy-4-Math.sin(now*0.01)*2.5);
       }
     }else{
-      // 官方設施（要塞／堡壘／工程站）或聯盟總部
+      // 官方設施（砲台／要塞／堡壘／工程站）或聯盟總部
       box=drawBox3D(o.x,o.y,o.size*0.9,o.h,o.color,dark?'#334155':'#64748b',dark?'#475569':'#94a3b8','#ffffff',isSel);
     }
     ctx.restore();
 
     if(box){
       sv.hitBoxes.push({key:o.key,x:box.minX-4,y:box.minY-18,w:box.maxX-box.minX+8,h:box.maxY-box.minY+22});
-      const showLbl=isSel||o.kind==='castle'||o.kind==='trap1'||o.kind==='trap2'||o.kind==='hq'||o.kind==='hq2'||o.kind==='sh'||o.kind==='ft'||dTarget<Math.max(18,sv.dist*0.75);
+      const showLbl=isSel||o.kind==='castle'||o.kind==='turret'||o.kind==='trap1'||o.kind==='trap2'||o.kind==='hq'||o.kind==='hq2'||o.kind==='sh'||o.kind==='ft'||dTarget<Math.max(18,sv.dist*0.75);
       if(showLbl){
         labelCands.push({o,cz,sx:(box.minX+box.maxX)/2,ly:clamp(box.minY-20,44,h-84),isSel});
       }
@@ -1539,7 +1628,7 @@ function drawStreetView(ctx,w,h,wd,now){
     });
   }
 
-  // 6. 右下角同步迷你雷達
+  // 6. 右下角同步迷你雷達（已依官方正北校準：上北、右東、下南、左西）
   const mr=44, mx=w-mr-10, my=h-mr-10;
   ctx.save();
   ctx.beginPath();ctx.arc(mx,my,mr,0,Math.PI*2);
@@ -1551,13 +1640,17 @@ function drawStreetView(ctx,w,h,wd,now){
   ctx.beginPath();ctx.moveTo(mx,my);ctx.arc(mx,my,mr,ang-0.55,ang+0.55);ctx.closePath();ctx.fill();
   const rSpan=Math.max(45,sv.dist*1.4), rScale=mr/rSpan;
   objs.forEach(o=>{
-    const dx=o.x-sv.tx, dy=o.y-sv.ty;
-    if(Math.abs(dx)>rSpan||Math.abs(dy)>rSpan)return;
+    const g=wToGeo(o.x-sv.tx,o.y-sv.ty);
+    if(Math.abs(g.e)>rSpan||Math.abs(g.n)>rSpan)return;
     ctx.fillStyle=o.color;
-    ctx.beginPath();ctx.arc(mx+dx*rScale,my-dy*rScale,o.kind==='city'?2.2:3.5,0,Math.PI*2);ctx.fill();
+    ctx.beginPath();ctx.arc(mx+g.e*rScale,my-g.n*rScale,o.kind==='city'?2.2:3.5,0,Math.PI*2);ctx.fill();
   });
   ctx.fillStyle='#facc15';ctx.strokeStyle='#0f172a';ctx.lineWidth=1.3;
   ctx.beginPath();ctx.arc(mx,my,3.8,0,Math.PI*2);ctx.fill();ctx.stroke();
+  ctx.font='800 8.5px -apple-system,sans-serif';ctx.textAlign='center';ctx.textBaseline='middle';
+  ctx.fillStyle='#ef4444';ctx.fillText('北',mx,my-mr+7);
+  ctx.fillStyle=dark?'#94a3b8':'#64748b';
+  ctx.fillText('南',mx,my+mr-7);ctx.fillText('東',mx+mr-7,my);ctx.fillText('西',mx-mr+7,my);
   ctx.restore();
 
   // 更新頂部羅盤＋仰角＋座標
@@ -1588,14 +1681,18 @@ function tick(ts){
     if(p>=1)M.flyAnim=null;
   }
 
-  // Google Earth 四向巡航移動（方向自動對齊目前視角）
+  // Google Earth 四向巡航移動（依官方正北地理基底轉換回世界座標）
   if(M.mode==='street'&&M.sv.holdDir){
     const spd=Math.max(10,M.sv.dist*0.55)*dt;
     const sY=Math.sin(M.sv.yaw), cY=Math.cos(M.sv.yaw);
-    if(M.sv.holdDir==='fwd'){M.sv.tx=clamp(M.sv.tx+sY*spd,0,WORLD);M.sv.ty=clamp(M.sv.ty+cY*spd,0,WORLD)}
-    else if(M.sv.holdDir==='back'){M.sv.tx=clamp(M.sv.tx-sY*spd,0,WORLD);M.sv.ty=clamp(M.sv.ty-cY*spd,0,WORLD)}
-    else if(M.sv.holdDir==='left'){M.sv.tx=clamp(M.sv.tx-cY*spd,0,WORLD);M.sv.ty=clamp(M.sv.ty+sY*spd,0,WORLD)}
-    else if(M.sv.holdDir==='right'){M.sv.tx=clamp(M.sv.tx+cY*spd,0,WORLD);M.sv.ty=clamp(M.sv.ty-sY*spd,0,WORLD)}
+    let me=0, mn=0;
+    if(M.sv.holdDir==='fwd'){me=sY*spd;mn=cY*spd}
+    else if(M.sv.holdDir==='back'){me=-sY*spd;mn=-cY*spd}
+    else if(M.sv.holdDir==='left'){me=-cY*spd;mn=sY*spd}
+    else if(M.sv.holdDir==='right'){me=cY*spd;mn=-sY*spd}
+    const dw=geoToW(me,mn);
+    M.sv.tx=clamp(M.sv.tx+dw.x,0,WORLD);
+    M.sv.ty=clamp(M.sv.ty+dw.y,0,WORLD);
   }
 
   const cv=document.getElementById('mpCanvas');
@@ -1722,12 +1819,13 @@ function bindCanvas(cv){
         M.sv.yaw=sv0.yaw-(dx/(cv.clientWidth||360))*Math.PI*1.35;
         M.sv.pitch=clamp(sv0.pitch+(dy/(cv.clientHeight||440))*Math.PI*0.75,12*Math.PI/180,85*Math.PI/180);
       }else{
-        // Google Earth 平移滑行（依目前視角方向在地面滑動）
+        // Google Earth 平移滑行（依官方正北地理基底轉換回世界座標）
         const scale=M.sv.dist/(Math.min(cv.clientWidth,cv.clientHeight)||360)*1.35;
         const sY=Math.sin(sv0.yaw), cY=Math.cos(sv0.yaw);
         const rightMove=-dx*scale, fwdMove=dy*scale;
-        M.sv.tx=clamp(sv0.tx+rightMove*cY+fwdMove*sY,0,WORLD);
-        M.sv.ty=clamp(sv0.ty-rightMove*sY+fwdMove*cY,0,WORLD);
+        const dw=geoToW(rightMove*cY+fwdMove*sY,-rightMove*sY+fwdMove*cY);
+        M.sv.tx=clamp(sv0.tx+dw.x,0,WORLD);
+        M.sv.ty=clamp(sv0.ty+dw.y,0,WORLD);
       }
     }
   });
@@ -2008,7 +2106,7 @@ document.addEventListener('click',e=>{
     case'svPreset':M.sv.pitch=clamp(Number(el.dataset.p||38),12,85)*Math.PI/180;if(el.dataset.d)M.sv.dist=Number(el.dataset.d);A.render&&A.render();break;
     case'svClearSel':M.sv.selKey='';A.render&&A.render();break;
     case'svGo':{
-      if(v==='castle'){M.sv.tx=CENTER;M.sv.ty=CENTER;M.sv.dist=46;M.sv.pitch=34*Math.PI/180;M.sv.selKey='castle';A.render&&A.render();break}
+      if(v==='castle'){M.sv.tx=CENTER;M.sv.ty=CENTER;M.sv.yaw=0;M.sv.dist=40;M.sv.pitch=38*Math.PI/180;M.sv.selKey='castle';A.render&&A.render();break}
       const h=wd.hives.find(x=>x.al===v);
       if(h){M.sv.tx=h.x;M.sv.ty=h.y;M.sv.dist=30;M.sv.pitch=36*Math.PI/180;M.sv.selKey='';A.render&&A.render()}
       else A.toast&&A.toast('尚未找到 '+v+' 的聚落座標');
