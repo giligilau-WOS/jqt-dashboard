@@ -32,7 +32,7 @@ html[data-theme=dark]{
 }
 
 *{box-sizing:border-box}
-html{overflow-x:hidden;-webkit-text-size-adjust:100%}
+html{overflow-x:clip;-webkit-text-size-adjust:100%}
 body{margin:0;background:var(--bg);color:var(--t1);font:15px/1.55 var(--font);overflow-x:clip;-webkit-font-smoothing:antialiased}
 body.locked{overflow:hidden}
 .tnum{font-variant-numeric:tabular-nums}
@@ -121,7 +121,7 @@ body.locked{overflow:hidden}
 .seg button{border:0;background:transparent;color:var(--t2);border-radius:12px;padding:0 13px;min-height:36px;font:inherit;font-size:13px;font-weight:800;cursor:pointer;white-space:nowrap;transition:background .15s,color .15s}
 .seg button.on{background:var(--s1);color:var(--ac);box-shadow:0 2px 8px rgba(12,35,64,.08)}
 
-input,select,textarea{font:inherit;font-size:15px;color:var(--t1);background:var(--bg);border:1px solid var(--bd);border-radius:14px;padding:9px 12px;min-height:42px;min-width:0;max-width:100%;outline:none;transition:border-color .15s,background .15s}
+input,select,textarea{font:inherit;font-size:16px;color:var(--t1);background:var(--bg);border:1px solid var(--bd);border-radius:14px;padding:9px 12px;min-height:42px;min-width:0;max-width:100%;outline:none;transition:border-color .15s,background .15s}
 input:focus,select:focus,textarea:focus{border-color:var(--ac);background:var(--s1)}
 textarea{width:100%;min-height:130px;line-height:1.55}
 
@@ -212,7 +212,7 @@ textarea{width:100%;min-height:130px;line-height:1.55}
 <script src="config.js"></script>
 <script>
 'use strict';
-const APP_VERSION='8.0.0';
+const APP_VERSION='8.0.1';
 const $=s=>document.querySelector(s);
 const esc=s=>String(s==null?'':s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 const nz=s=>String(s==null?'':s).normalize('NFKC').toLowerCase().replace(/[\s\p{P}\p{S}]+/gu,'');
@@ -450,7 +450,8 @@ const zOfAl=al=>{const z=Z.list.find(x=>x.als.includes(al));return z?z.id:''};
 const zOfReg=(ev,fid)=>{const m=(Z.zmap[ev]||{})[fid];if(m)return m;const r=D.byF[fid];return r?zOfAl(r.al):''};
 const zName=id=>{const z=zById(id);return z?z.name:'未分類'};
 const zDl=(ev,zid)=>{const g=(D.dls&&D.dls[ev])||'';if(ev==='sfc'||!zid)return g;const z=zById(zid),k=ev==='tal'?'tal':ev==='frost'?'frost':'inner';return(z&&z.dl&&z.dl[k])||g};
-const zClosed=(ev,zid)=>{const d=zDl(ev,zid);return !!d&&!isNaN(Date.parse(d))&&Date.now()>Date.parse(d)};
+const zClosed=(ev,zid)=>{const d=zDl(ev,zid);return !!d&&!isNaN(Date.parse(d))&&Date.parse(d)<=nowS()};
+const zCanReg=(ev,r,zid)=>!(Z.list.length&&ev!=='sfc'?zClosed(ev,zid):closed(ev))||isAdmin()||(isCadre()&&INNER.includes(ev)&&r.al===AU.al);
 const zDlTxt=d=>d&&!isNaN(Date.parse(d))?fmtT(Date.parse(d)):'未設定';
 const zCanEdit=z=>isAdmin()||(isCadre()&&!!z.fid&&z.fid===AU.fid);
 const zCanDl=z=>isAdmin()||(isCadre()&&z.als.includes(AU.al));
@@ -658,7 +659,7 @@ function pgPlayers(){
       </div>
       <div class="row" style="gap:6px">
         <span class="sub tnum" id="cnt">${P.view.length} / ${D.rows.length} 人</span>
-        ${U.view==='table'?`<button class="btn sm" data-a="colsT">${U.colsOpen?'收合欄位':'欄位'}</button>`:`<button class="btn sm" data-a="hmenu" data-v="power">排序・篩選</button>`}
+        ${U.view==='table'?`<button class="btn sm" data-a="colsT">${U.colsOpen?'收合欄位':'欄位'}</button>`:`<button class="btn sm" data-a="hmenu" data-v="${esc(P.sort.k||'power')}">排序・篩選</button>`}
         ${isStaff()&&!BM.on?`<button class="btn sm soft" data-a="bm_on">☑ 批次報名</button>`:''}
         <button class="btn sm" data-a="reload">↻</button>
       </div>
@@ -1090,7 +1091,7 @@ function lgSelect(){
 }
 function loginCard(){
   const mode=U.lgMode||'cadre',sel=U.lg&&D.byF[U.lg.fid],eligN=D.rows.filter(elig).length;
-  return`<div class="card"><h3>🛡️ 幹部與管理員登入</h3>
+  return`<div class="card"><div class="row sp" style="margin-bottom:6px"><h3 style="margin:0">🛡️ 幹部與管理員登入</h3><span class="bd tnum">v${APP_VERSION}</span></div>
     <div class="seg" style="margin:8px 0 12px"><button class="${mode==='cadre'?'on':''}" data-a="lgMode" data-v="cadre">聯盟幹部（R4／R5）</button><button class="${mode==='admin'?'on':''}" data-a="lgMode" data-v="admin">管理員</button></div>
     ${mode==='admin'?`<div class="sub">管理員直接輸入 PIN 即可登入。</div><input id="lgp" type="password" autocomplete="off" placeholder="管理員 PIN" style="width:100%;margin-top:8px"><div class="row" style="margin-top:10px"><button class="btn pri" style="width:100%" data-a="loginAdmin">登入管理員</button></div>`
     :`<div class="sub">${!D.rows.length?'名冊尚未載入，請先確認下方連線設定。':`名冊中有 ${eligN} 位 R4／R5，輸入名字或從選單選擇：`}</div>
@@ -1225,8 +1226,11 @@ function themeSheet(){
   <div class="card tight"><b>佈景主題（僅儲存在本機）</b><div style="margin-top:8px;display:flex;flex-direction:column;gap:8px">${PALS.map(([k,n,d,sw])=>`<div class="row sp" data-a="th_pal" data-v="${k}" style="padding:10px 12px;border:${U.pal===k?'2px solid var(--ac)':'1px solid var(--bd)'};border-radius:16px;cursor:pointer;background:${U.pal===k?'var(--acb)':'var(--s1)'}"><span style="min-width:0"><b>${n}</b>${U.pal===k?' <span class="bd a">使用中</span>':''}<div class="sub">${d}</div></span><span class="row" style="gap:4px;flex-wrap:nowrap">${sw.map(c=>`<span style="width:18px;height:18px;border-radius:99px;background:${c};border:1px solid rgba(0,0,0,.15);display:inline-block"></span>`).join('')}</span></div>`).join('')}</div></div>`;
 }
 function menuHtml(k){
-  const c=colOf(k),f=P.filt[k],asc=P.sort.k===k&&P.sort.dir>0,desc=P.sort.k===k&&P.sort.dir<0;
+  const c=colOf(k)||colOf('power');k=c.k;
+  const f=P.filt[k],asc=P.sort.k===k&&P.sort.dir>0,desc=P.sort.k===k&&P.sort.dir<0;
+  const allCols=[NAMECOL].concat(COLS.filter(x=>!x.det||isStaff()));
   let h=`<div class="row sp"><b style="font-size:18px">${esc(c.l)} · 排序與篩選</b><button class="btn sm" data-close>✕</button></div>
+  <div class="row" style="gap:6px">${allCols.map(x=>`<button class="btn sm ${x.k===k?'on':P.filt[x.k]?'soft':''}" data-a="hmenu" data-v="${x.k}">${esc(x.l)}${P.filt[x.k]?' ●':''}</button>`).join('')}</div>
   <div class="row"><button class="btn ${asc?'on':''}" style="flex:1" data-a="sort" data-v="${k}|1">由小到大 ▲</button><button class="btn ${desc?'on':''}" style="flex:1" data-a="sort" data-v="${k}|-1">由大到小 ▼</button></div>`;
   if(c.t==='n')h+=`<div class="card tight"><b>數值範圍${c.ul?'（單位：'+c.ul+'）':''}</b><div class="row" style="margin-top:8px;flex-wrap:nowrap"><input id="fmin" inputmode="decimal" placeholder="最小值" value="${f&&f.min!=null?f.min:''}" style="flex:1"><span>～</span><input id="fmax" inputmode="decimal" placeholder="最大值" value="${f&&f.max!=null?f.max:''}" style="flex:1"></div></div>`;
   else if(k==='name')h+=`<div class="card tight"><b>名稱包含關鍵字</b><input id="ftext" autocomplete="off" placeholder="輸入關鍵字" value="${esc(f&&f.text!=null?f.text:'')}" style="width:100%;margin-top:8px"></div>`;
@@ -1354,7 +1358,8 @@ async function zReg(ev,fid,v){
 }
 async function seSet(ev,fid,v){
   const r=D.byF[fid],g=regOf(ev,fid)||{};if(!r)return;
-  if(!canReg(ev,r))return toast('已截止，沒有權限修改');
+  const zid=(Z.list.length&&ev!=='sfc')?(zOfReg(ev,fid)||zOfAl(r.al)||''):'';
+  if(!zCanReg(ev,r,zid))return toast('已截止，沒有權限修改');
   if(v==='out'){
     const ak=ev+'|'+fid;
     if(U.seArm!==ak){U.seArm=ak;render();toast('防誤觸提醒：再按一次紅色按鈕確認取消 '+r.name);setTimeout(()=>{if(U.seArm===ak){U.seArm='';render()}},4000);return}
@@ -1364,9 +1369,12 @@ async function seSet(ev,fid,v){
   if(v==='out')choice='out';else if(INNER.includes(ev))choice=v;else{choice='in';note=g.note===v?'':v}
   const play=(choice==='out'||INNER.includes(ev))?'':(g.play||r.al||'');
   try{
-    const j=await apiPost({action:'register',event:ev,fid,choice,play,note});
-    if(!j.ok)throw new Error(ERR[j.error]||j.error||'失敗');
-    (D.regs[ev]=D.regs[ev]||{})[fid]={choice,play,note,at:new Date().toLocaleString(),by:j.by||'cadre'};
+    const body={action:'register',event:ev,fid,choice,play,note};
+    if(zid)body.zone=zid;
+    const j=await apiPost(body);
+    if(!j.ok)throw new Error(zErr(j));
+    (D.regs[ev]=D.regs[ev]||{})[fid]={choice,play,note,at:new Date().toLocaleString(),by:j.by||'cadre',zone:zid};
+    if(zid){(Z.zmap[ev]=Z.zmap[ev]||{})[fid]=zid;Z.at=0}
     toast(r.name+'：'+(v==='out'?'已取消報名':INNER.includes(ev)?CHN[v]:(note||'未排定')));
   }catch(e){toast('修改失敗：'+e.message)}
   render();if(U.sh)renderSheet();
@@ -1545,7 +1553,7 @@ async function handleAction(k,a){
     case'w_do':{const pl=W.plan,mm=pl.manual[W.cur];if(v==='grp'){if(W.sel.size<2)return toast('互斥群組至少兩人');pl.rules.groups.push([...W.sel]);toast('已建立互斥群組')}else W.sel.forEach(f=>{if(v==='wait')mm[f]='wait';else delete mm[f]});W.sel=new Set();wChanged();render()}break;
     case'w_fix':W.plan.manual[W.cur][v]=a.dataset.t;wChanged();render();break;
     case'w_resetman':wSnap('重設手動調整前');W.plan.manual[W.cur]={};wChanged();render();break;
-    case'w_recruit':{const r=D.byF[v],t=W.plan.teams[W.cur].find(x=>x.id===a.dataset.t);if(!r||!t)break;if(!canReg(W.cur,r))return toast('已截止，沒有權限代報名');try{const j=await apiPost({action:'register',event:W.cur,fid:v,choice:String(t.lg),play:'',note:''});if(!j.ok)throw new Error(ERR[j.error]||j.error||'失敗');(D.regs[W.cur]=D.regs[W.cur]||{})[v]={choice:String(t.lg),play:'',note:'',at:new Date().toLocaleString(),by:'cadre'};W.plan.manual[W.cur][v]=t.id;wChanged();toast('已代報名：'+r.name)}catch(e){toast('代報名失敗：'+e.message)}render()}break;
+    case'w_recruit':{const r=D.byF[v],t=W.plan.teams[W.cur].find(x=>x.id===a.dataset.t);if(!r||!t)break;const zid=W.plan.zone||zOfAl(r.al)||'';if(!zCanReg(W.cur,r,zid))return toast('已截止，沒有權限代報名');try{const body={action:'register',event:W.cur,fid:v,choice:String(t.lg),play:'',note:''};if(zid)body.zone=zid;const j=await apiPost(body);if(!j.ok)throw new Error(zErr(j));(D.regs[W.cur]=D.regs[W.cur]||{})[v]={choice:String(t.lg),play:'',note:'',at:new Date().toLocaleString(),by:'cadre',zone:zid};if(zid){(Z.zmap[W.cur]=Z.zmap[W.cur]||{})[v]=zid;Z.at=0}W.plan.manual[W.cur][v]=t.id;wChanged();toast('已代報名：'+r.name)}catch(e){toast('代報名失敗：'+e.message)}render()}break;
     case'w_force':await wSave(true);render();break;
     case'w_reload':wLoad();break;
     case'wx_rmlock':delete W.plan.rules.locks[v];wChanged();render();break;
