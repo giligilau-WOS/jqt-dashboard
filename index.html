@@ -117,8 +117,8 @@ body.locked{overflow:hidden}
 .btn.dg-on{background:var(--dg);color:#fff;border-color:var(--dg)}
 .btn:disabled{opacity:.45;cursor:not-allowed}
 
-.seg{display:inline-flex;gap:3px;padding:4px;border-radius:16px;background:var(--s2);max-width:100%;overflow-x:auto}
-.seg button{border:0;background:transparent;color:var(--t2);border-radius:12px;padding:0 13px;min-height:36px;font:inherit;font-size:13px;font-weight:800;cursor:pointer;white-space:nowrap;transition:background .15s,color .15s}
+.seg{display:inline-flex;flex-shrink:0;align-items:center;gap:3px;padding:4px;border-radius:16px;background:var(--s2);max-width:100%;overflow-x:auto;-webkit-overflow-scrolling:touch}
+.seg button{border:0;background:transparent;color:var(--t2);border-radius:12px;padding:0 13px;min-height:38px;font:inherit;font-size:13px;font-weight:800;cursor:pointer;white-space:nowrap;flex-shrink:0;transition:background .15s,color .15s}
 .seg button.on{background:var(--s1);color:var(--ac);box-shadow:0 2px 8px rgba(12,35,64,.08)}
 
 input,select,textarea{font:inherit;font-size:16px;color:var(--t1);background:var(--bg);border:1px solid var(--bd);border-radius:14px;padding:9px 12px;min-height:42px;min-width:0;max-width:100%;outline:none;transition:border-color .15s,background .15s}
@@ -184,7 +184,8 @@ textarea{width:100%;min-height:130px;line-height:1.55}
 #sheet{position:fixed;inset:0;z-index:60;display:none}
 #sheet.on{display:block}
 #sheet .bk{position:absolute;inset:0;background:rgba(8,18,32,.48);backdrop-filter:blur(2px)}
-#sheet .pn{position:absolute;left:0;right:0;bottom:0;max-height:90vh;overflow:auto;background:var(--bg);border-radius:26px 26px 0 0;padding:14px 16px calc(env(safe-area-inset-bottom) + 28px);display:flex;flex-direction:column;gap:12px;box-shadow:var(--shadow-lg);animation:shUp .18s ease-out}
+#sheet .pn{position:absolute;left:0;right:0;bottom:0;max-height:90vh;overflow:auto;-webkit-overflow-scrolling:touch;background:var(--bg);border-radius:26px 26px 0 0;padding:14px 16px calc(env(safe-area-inset-bottom) + 28px);display:flex;flex-direction:column;gap:12px;box-shadow:var(--shadow-lg);animation:shUp .18s ease-out}
+#sheet .pn>*{flex:0 0 auto}
 #sheet .handle{width:42px;height:5px;border-radius:99px;background:var(--bd);margin:0 auto 2px;flex:none}
 @keyframes shUp{from{transform:translateY(24px);opacity:.6}to{transform:translateY(0);opacity:1}}
 @media(min-width:760px){
@@ -215,7 +216,7 @@ textarea{width:100%;min-height:130px;line-height:1.55}
 <script src="config.js"></script>
 <script>
 'use strict';
-const APP_VERSION='8.1.2';
+const APP_VERSION='8.1.3';
 const $=s=>document.querySelector(s);
 const esc=s=>String(s==null?'':s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 const nz=s=>String(s==null?'':s).normalize('NFKC').toLowerCase().replace(/[\s\p{P}\p{S}]+/gu,'');
@@ -1372,7 +1373,7 @@ function playerSheet(fid){
   return`<div class="row sp"><div class="row" style="gap:10px;flex-wrap:nowrap;min-width:0">${avHtml}<div style="min-width:0"><b style="font-size:18px;display:block;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${esc(r.name)}</b><div class="sub tnum">${esc(r.al||'無聯盟')} · ${esc(r.rk||'')} · <a data-a="copyFid" data-v="${esc(r.fid)}" style="color:var(--ac);cursor:pointer;font-weight:700">ID ${esc(r.fid)} ⧉</a></div></div></div><button class="btn sm" data-close>✕</button></div>
   <div class="grid" style="grid-template-columns:repeat(3,1fr);gap:8px"><div class="mt"><div class="sub">戰力</div><div class="v">${fmtP(r.power)}</div></div><div class="mt"><div class="sub">7日增減</div><div class="v" style="font-size:15px">${dlt(r.d7)}</div></div><div class="mt"><div class="sub">迷宮</div><div class="v" style="font-size:15px">${lv&&lv.n?lv.n.toLocaleString()+' 關':'—'}</div></div></div>
   ${accHtml(r)}
-  <div class="seg" style="width:100%"><button style="flex:1" class="${tab==='reg'?'on':''}" data-a="shTab" data-v="reg">📝 報名</button><button style="flex:1" class="${tab==='gear'?'on':''}" data-a="shTab" data-v="gear">⚔️ 戰備</button><button style="flex:1" class="${tab==='hist'?'on':''}" data-a="shTab" data-v="hist">📈 紀錄</button></div>
+  <div class="seg" style="display:grid;grid-template-columns:repeat(3,1fr);width:100%;overflow:visible"><button style="padding:0 6px;min-height:40px" class="${tab==='reg'?'on':''}" data-a="shTab" data-v="reg">📝 報名</button><button style="padding:0 6px;min-height:40px" class="${tab==='gear'?'on':''}" data-a="shTab" data-v="gear">⚔️ 戰備</button><button style="padding:0 6px;min-height:40px" class="${tab==='hist'?'on':''}" data-a="shTab" data-v="hist">📈 紀錄</button></div>
   ${tab==='hist'?histHtml(r):tab==='gear'?extraHtml(r):zRegPanel(r)}`;
 }
 function gcList(s){return GC.list.filter(c=>c.st===s)}
