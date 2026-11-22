@@ -216,7 +216,7 @@ textarea{width:100%;min-height:130px;line-height:1.55}
 <script src="config.js"></script>
 <script>
 'use strict';
-const APP_VERSION='8.1.3';
+const APP_VERSION='8.1.4';
 const $=s=>document.querySelector(s);
 const esc=s=>String(s==null?'':s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 const nz=s=>String(s==null?'':s).normalize('NFKC').toLowerCase().replace(/[\s\p{P}\p{S}]+/gu,'');
@@ -403,6 +403,48 @@ const slotLabel=s=>SLOTN[String(s||'').toLowerCase()]||String(s||'裝備');
 const CGQ={'2':'綠','3':'藍','4':'紫','5':'金','6':'紅'};
 const cgQual=q=>{const s=String(q||'');return CGQ[s]?(CGQ[s]+'品'):s};
 const fmtTsMaybe=v=>{const s=String(v||'').trim();if(!s)return'';if(/^\d{9,13}(\.\d+)?$/.test(s)){const n=Number(s);return fmtT(n<1e12?n*1000:n)}return s.slice(0,16)};
+/* 寒霜啟示錄 英雄代號對照表（50000~50067，對應官方繁中台灣譯名、兵種、世代） */
+const HERON={
+  '50000':['尤金','盾','R','Eugene'],'50001':['史密斯','盾','R','Smith'],'50002':['查理','矛','R','Charlie'],'50003':['克勞瑞斯','射','R','Cloris'],
+  '50004':['謝爾蓋','盾','SR','Sergey'],'50005':['派翠克','矛','SR','Patrick'],'50006':['巴希提','射','SR','Bahiti'],'50007':['杰西','矛','SR','Jessie'],'50008':['吉娜','射','SR','Gina'],
+  '50009':['娜塔莉亞','盾','G1','Natalia'],'50010':['羅根','盾','G3','Logan'],'50011':['赫羅尼莫','盾','G1','Jeronimo'],'50012':['茉莉','矛','G1','Molly'],
+  '50013':['菲蘭德','矛','G2','Philly'],'50014':['玲奈','矛','G4','Reina'],'50015':['哥頓','矛','G7','Gordon'],'50016':['米婭','矛','G3','Mia'],
+  '50017':['津曼','射','G1','Zinman'],'50018':['阿隆索','射','G2','Alonso'],'50019':['無名','盾','G6','Wu Ming'],'50020':['格雷格','射','G3','Greg'],
+  '50021':['弗林特','盾','G2','Flint'],'50022':['琳恩','射','G4','Lynn'],'50023':['阿赫摩斯','盾','G4','Ahmose'],'50024':['赫克托','盾','G5','Hector'],
+  '50025':['諾拉','矛','G5','Norah'],'50026':['格溫','射','G5','Gwen'],'50027':['書允','射','SR','Seo-yoon'],'50028':['傑塞爾','射','SR','Jasser'],
+  '50029':['盧姆·波根','矛','SR','Lumak Bokan'],'50030':['芮妮','矛','G6','Renee'],'50031':['韋恩','射','G6','Wayne'],'50032':['艾迪絲','盾','G7','Edith'],
+  '50033':['布拉德利','射','G7','Bradley'],'50034':['加托','盾','G8','Gatot'],'50035':['索妮婭','矛','G8','Sonya'],'50036':['亨德里克','射','G8','Hendrik'],
+  '50037':['凌雪','矛','SR','Ling Xue'],'50038':['馬格努斯','盾','G9','Magnus'],'50039':['弗雷德','矛','G9','Fred'],'50040':['修拉','射','G9','Xura'],
+  '50041':['格里高利','盾','G10','Gregory'],'50042':['芙蕾雅','矛','G10','Freya'],'50043':['布蘭琪','射','G10','Blanchette'],
+  '50044':['埃萊奧諾拉','盾','G11','Eleonora'],'50045':['勞埃德','矛','G11','Lloyd'],'50046':['魯弗斯','射','G11','Rufus'],
+  '50047':['赫爾薇爾','盾','G12','Hervor'],'50048':['加羅爾','矛','G12','Karol'],'50049':['麗姬婭','射','G12','Ligeia'],
+  '50050':['吉塞拉','盾','G13','Gisela'],'50051':['弗洛拉','矛','G13','Flora'],'50052':['烏爾卡努斯','射','G13','Vulcanus'],
+  '50053':['艾麗芙','盾','G14','Elif'],'50054':['多米尼克','矛','G14','Dominic'],'50055':['卡拉','射','G14','Cara'],
+  '50056':['漢克','盾','G15','Hank'],'50057':['艾絲黛拉','矛','G15','Estrella'],'50058':['維薇卡','射','G15','Viveca'],
+  '50059':['西格爾','盾','G16','Seigel'],'50060':['烏爾撒','矛','G16','Ursar'],'50061':['艾詩琳','射','G16','Aisling'],
+  '50062':['艾丹','盾','G17','Aiden'],'50063':['貝爾莎','矛','G17','Bertha'],'50064':['埃莉諾','射','G17','Eleanor'],
+  '50065':['約頓','盾','G18','Jordan'],'50066':['尼古拉','矛','G18','Nikola'],'50067':['艾西婭','射','G18','Aisha']
+};
+const HERO_EN={};Object.keys(HERON).forEach(k=>{HERO_EN[HERON[k][3].toLowerCase()]=HERON[k]});
+HERO_EN['walis bokan']=HERON['50029'];
+function heroInfo(hr){
+  const raw=String((hr&&hr.name)||'').trim();
+  const idM=String((hr&&hr.id)||'').match(/5\d{4}/)||raw.match(/5\d{4}/)||String((hr&&hr.egName)||'').match(/10(5\d{4})/);
+  const id=idM?(idM[1]||idM[0]):'';
+  const e=(id&&HERON[id])||HERO_EN[raw.toLowerCase()];
+  if(e)return{id,name:e[0],troop:e[1],gen:e[2]};
+  return{id,name:raw||'英雄',troop:'',gen:''};
+}
+function fmtHeroStar(hr){
+  const sl=String((hr&&hr.starL)||'').trim();
+  if(sl)return sl.replace(/-?Star\b/ig,'★');
+  return hr&&hr.star?hr.star+'★':'';
+}
+function fmtEgLabel(hr){
+  const nm=String((hr&&hr.egName)||'').trim(),lv=hr&&hr.egLv?Number(hr.egLv):0;
+  const clean=(!nm||/^Exclusive\s+\d+$/i.test(nm))?'':nm;
+  return'專武'+(clean?' '+clean:'')+(lv?' +'+lv:'');
+}
 const BCATS=[['combat','⚔️ 戰力與兵種'],['hero','🦸 英雄與領主'],['base','🏰 建設與寵物'],['stage','🧭 關卡與迷宮'],['alliance','🚩 聯盟排行']];
 const BOARDS=[
   ['troop_power','兵種戰力','combat','p'],['personal_power','個人戰力','combat','p'],['kills','個人擊殺','combat','p'],['master_power','領主綜合戰力','combat','p'],['rebel_conquest','探險／征服','combat','n'],
@@ -1353,13 +1395,14 @@ function extraHtml(r){
         ${gems.length?`<div class="row" style="margin-top:5px;gap:4px">${gems.map(g=>`<span class="bd" style="font-size:11px">💎 ${esc(g.lv||g.id||g)}</span>`).join('')}</div>`:''}</div>`;
     }).join('')}</div>`:'<div class="sub" style="margin-top:6px">尚無領主裝備資料</div>'}</div>`;
   /* 4. 競技場防守英雄、專武與英雄裝備 */
-  h+=`<div class="card tight"><b>⚔️ 競技場防守英雄（${hs.length} 位）</b>
-    ${hs.length?hs.map(hr=>{
-      const gears=Array.isArray(hr.gear)?hr.gear:[],attrs=Array.isArray(hr.egAttr)?hr.egAttr:[],sks=Array.isArray(hr.skills)?hr.skills:[];
+  const hsSorted=[...hs].sort((a,b)=>(Number(a.pos)||99)-(Number(b.pos)||99));
+  h+=`<div class="card tight"><b>⚔️ 競技場防守英雄（${hsSorted.length} 位）</b>
+    ${hsSorted.length?hsSorted.map(hr=>{
+      const hi=heroInfo(hr),stTxt=fmtHeroStar(hr),gears=Array.isArray(hr.gear)?hr.gear:[],attrs=Array.isArray(hr.egAttr)?hr.egAttr:[],sks=Array.isArray(hr.skills)?hr.skills:[];
       return`<div class="mt" style="margin-top:8px">
-        <div class="row sp"><span><b>${esc(hr.name||'英雄')}</b> <span class="bd">Lv.${hr.lv||0}</span> ${hr.starL?`<span class="bd w">${esc(hr.starL)}</span>`:hr.star?`<span class="bd w">★${hr.star}</span>`:''}</span><span class="sub tnum">${hr.pw?fmtP(hr.pw):''}</span></div>
+        <div class="row sp"><span class="row" style="gap:5px">${hr.pos?`<span class="sub mono" style="font-size:11.5px">#${hr.pos}</span>`:''}<b>${esc(hi.name)}</b>${hi.gen?`<span class="bd ${hi.gen[0]==='G'?'a':''}" style="font-size:11px">${esc(hi.gen)}·${esc(hi.troop)}</span>`:''}<span class="bd">Lv.${hr.lv||0}</span>${stTxt?`<span class="bd w">${esc(stTxt)}</span>`:''}</span><span class="sub tnum">${hr.pw?fmtP(hr.pw):''}</span></div>
         ${sks.length?`<div class="sub tnum" style="margin-top:3px">技能：${sks.map(s=>s.lv!=null?s.lv:s).join(' / ')}</div>`:''}
-        ${hr.egLv||hr.egName?`<div class="row" style="margin-top:5px;gap:5px"><span class="bd ok">專武 ${esc(hr.egName||'')}${hr.egLv?' +'+hr.egLv:''}</span>${attrs.map(a=>`<span class="bd" style="font-size:11px">${esc(a.l||a.label||'')} ${esc(a.v!=null?a.v:a.value||'')}</span>`).join('')}</div>`:''}
+        ${hr.egLv||hr.egName?`<div class="row" style="margin-top:5px;gap:5px"><span class="bd ok">${esc(fmtEgLabel(hr))}</span>${attrs.map(a=>`<span class="bd" style="font-size:11px">${esc(a.l||a.label||'')} ${esc(a.v!=null?a.v:a.value||'')}</span>`).join('')}</div>`:''}
         ${gears.length?`<div class="row" style="margin-top:6px;gap:5px">${gears.map(g=>`<span class="bd ${g.red?'d':''}" style="font-size:11.5px">${esc(slotLabel(g.slot))}${g.red?'🔴':''} +${g.enh||0}${g.ref?' / 鍛'+g.ref:''}</span>`).join('')}</div>`:''}
       </div>`;
     }).join(''):'<div class="sub" style="margin-top:6px">尚無英雄防守陣容資料</div>'}</div>`;
