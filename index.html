@@ -215,7 +215,7 @@ textarea{width:100%;min-height:130px;line-height:1.55}
 <script src="config.js"></script>
 <script>
 'use strict';
-const APP_VERSION='8.1.1';
+const APP_VERSION='8.1.2';
 const $=s=>document.querySelector(s);
 const esc=s=>String(s==null?'':s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 const nz=s=>String(s==null?'':s).normalize('NFKC').toLowerCase().replace(/[\s\p{P}\p{S}]+/gu,'');
@@ -389,7 +389,7 @@ if(!PALN[U.pal])U.pal='frost';
 const P={sort:{k:'power',dir:-1},filt:{},cols:Store.get('cols',['al','rk','power','furn','kills','d7','reg']),view:[],act:[],hl:'',raf:0};
 const BM={on:false,scope:null,allArm:false,tmp:[],sel:new Set(),n:60,f:{ev:'tal',lg:'1',target:'',role:'none',n:60,excl16:true,force:false},busy:false,arm:false,mode:'reg',prog:'',err:''};
 const BR={ev:'tal',metric:'lab',legs:2,m:30,s:20,als:[],minFurn:16,target:'',prev:null,arm:false,busy:false,err:''};
-const BRM=[['power','戰力'],['kills','擊殺數'],['furn','熔爐等級'],['troop','兵種最高階／火晶'],['cgScore','領主裝備評分'],['redGear','英雄紅裝件數'],['egSum','專武總等級'],['arenaPw','競技場防守戰力'],['b_troop','兵種戰力（州前100）'],['b_pet','寵物戰力（州前100）'],['b_charm','領主寶石（州前100）'],['lab','迷宮'],['cave','魔物洞穴'],['loh','英雄之地'],['charm','魅力礦場'],['rc','研究中心'],['forge','裝備鍛造'],['gaia','蓋亞之心'],['ts','遷服積分'],['pr','全服戰力排名（名次小的優先）'],['kr','全服擊殺排名（名次小的優先）']];
+const BRM=[['power','戰力'],['kills','擊殺數'],['furn','熔爐等級'],['troop','兵種最高階／火晶'],['cgScore','領主裝備總級'],['redGear','英雄紅裝件數'],['egSum','專武總等級'],['arenaPw','英雄裝備總強化'],['b_troop','兵種戰力（州前100）'],['b_pet','寵物戰力（州前100）'],['b_charm','領主寶石（州前100）'],['lab','迷宮'],['cave','魔物洞穴'],['loh','英雄之地'],['charm','魅力礦場'],['rc','研究中心'],['forge','裝備鍛造'],['gaia','蓋亞之心'],['ts','遷服積分'],['pr','全服戰力排名（名次小的優先）'],['kr','全服擊殺排名（名次小的優先）']];
 const BRD={sfc:{legs:1,m:50,s:0},tal:{legs:2,m:30,s:20},frost:{legs:1,m:60,s:0}};
 const Z={list:[],zmap:{},at:0,busy:false,seen:null,sig:'',draft:{},dz:null,dd:null,arm:''};
 const W={als:[],zone:'',plan:null,key:'',tab:'team',cur:'foundry',focus:'foundry',busy:false,msg:'',saved:'',locked:{},draft:null,sel:new Set(),conflict:null,home:false,arm:'',res:null,pub:null,pubBusy:false,open:{}};
@@ -397,7 +397,11 @@ const GC={list:[],meta:null,ok:false,at:0,busy:false,seen:Store.get('gcSeen',[])
 const GC_URL='https://wos-giftcode.centurygame.com/';
 const EX={det:{},card:{},boards:{},st:null,bAt:'',bCat:'combat',bSlug:'troop_power',detTried:false,bTried:false,bBusy:false,pRanks:{},pVal:{},okDet:false,okBoards:false,fetching:{},syncBusy:''};
 const TRN={infantry:'盾兵',lancer:'矛兵',marksman:'射手'};
-const SLOTN={helmet:'頭盔',gloves:'護手',armor:'護甲',boots:'戰靴',hat:'帽子',coat:'大衣',ring:'戒指',watch:'懷錶',pants:'褲子',cane:'手杖'};
+const SLOTN={helmet:'頭盔',gloves:'護手',armor:'護甲',boots:'戰靴',hat:'帽子',coat:'大衣',ring:'戒指',watch:'懷錶',pants:'褲子',cane:'手杖',charm:'護符',chest:'胸甲'};
+const slotLabel=s=>SLOTN[String(s||'').toLowerCase()]||String(s||'裝備');
+const CGQ={'2':'綠','3':'藍','4':'紫','5':'金','6':'紅'};
+const cgQual=q=>{const s=String(q||'');return CGQ[s]?(CGQ[s]+'品'):s};
+const fmtTsMaybe=v=>{const s=String(v||'').trim();if(!s)return'';if(/^\d{9,13}(\.\d+)?$/.test(s)){const n=Number(s);return fmtT(n<1e12?n*1000:n)}return s.slice(0,16)};
 const BCATS=[['combat','⚔️ 戰力與兵種'],['hero','🦸 英雄與領主'],['base','🏰 建設與寵物'],['stage','🧭 關卡與迷宮'],['alliance','🚩 聯盟排行']];
 const BOARDS=[
   ['troop_power','兵種戰力','combat','p'],['personal_power','個人戰力','combat','p'],['kills','個人擊殺','combat','p'],['master_power','領主綜合戰力','combat','p'],['rebel_conquest','探險／征服','combat','n'],
@@ -567,10 +571,10 @@ const COLS=[
     rkc('pr','戰力排名'),rkc('kr','擊殺排名'),rkc('fr','熔爐排名'),
     {k:'ts',l:'遷服積分',t:'n',num:1,det:1,v:r=>r.dt?r.dt.ts:null,d:r=>r.dt?r.dt.ts.toLocaleString():'—'},
     {k:'troop',l:'兵種等級',t:'n',num:1,det:1,v:r=>{const e=exOf(r);return e&&(e.maxTier||e.maxFc)?e.maxTier*100+e.maxFc:null},d:r=>{const e=exOf(r);return e&&e.troopTxt?`<span class="bd a">${esc(e.troopTxt)}</span>`:'—'}},
-    {k:'cgScore',l:'領主裝備分',t:'n',num:1,det:1,v:r=>{const e=exOf(r);return e&&!e.cgHidden&&e.cgScore?e.cgScore:null},d:r=>{const e=exOf(r);return !e?'—':e.cgHidden?'<span class="sub">隱藏</span>':e.cgScore?e.cgScore.toLocaleString():'—'}},
+    {k:'cgScore',l:'領主裝總級',t:'n',num:1,det:1,v:r=>{const e=exOf(r);return e&&!e.cgHidden&&e.cgScore?e.cgScore:null},d:r=>{const e=exOf(r);return !e?'—':e.cgHidden?'<span class="sub">隱藏</span>':e.cgScore?'Lv.'+e.cgScore.toLocaleString():'—'}},
     {k:'redGear',l:'英雄紅裝',t:'n',num:1,det:1,v:r=>{const e=exOf(r);return e?e.redGear:null},d:r=>{const e=exOf(r);return !e?'—':e.redGear?`<span class="bd d">${e.redGear} 件</span>`:'0'}},
     {k:'egSum',l:'專武總級',t:'n',num:1,det:1,v:r=>{const e=exOf(r);return e?e.egSum:null},d:r=>{const e=exOf(r);return !e?'—':e.egSum?`+${e.egSum}（高+${e.egMax}）`:'0'}},
-    {k:'arenaPw',l:'競技場戰力',t:'n',num:1,u:1e4,ul:'萬',det:1,v:r=>{const e=exOf(r);return e&&e.arenaPw?e.arenaPw:null},d:r=>{const e=exOf(r);return e&&e.arenaPw?fmtP(e.arenaPw):'—'}},
+    {k:'arenaPw',l:'英裝總強化',t:'n',num:1,det:1,v:r=>{const e=exOf(r);return e&&e.arenaPw?e.arenaPw:null},d:r=>{const e=exOf(r);return e&&e.arenaPw?(e.arenaPw>=1e5?fmtP(e.arenaPw):'+'+e.arenaPw.toLocaleString()):'—'}},
     {k:'office',l:'官職',t:'s',det:1,v:r=>{const e=exOf(r);return(e&&e.office)||'無'},d:r=>{const e=exOf(r);return e&&e.office?`<span class="bd w">${esc(e.office)}</span>`:'—'}},
     {k:'coord',l:'座標',t:'s',det:1,v:r=>{const e=exOf(r);return e&&e.x!=null?e.x+','+e.y:''},d:r=>{const e=exOf(r);if(!e||e.x==null)return'—';const sh=fmtLeft(e.shield),bn=fmtLeft(e.burn);return`<span class="mono tnum">${e.x},${e.y}</span>${sh?' 🛡️':''}${bn?' 🔥':''}`}},
     bcol('b_troop','troop_power','兵種戰力(榜)',true),
@@ -1332,19 +1336,19 @@ function extraHtml(r){
       ${bn?`<span class="bd d">🔥 燃燒中・剩 ${esc(bn)}</span>`:''}
     </div></div>`;
   /* 2. 三兵種最高等級 */
-  h+=`<div class="card tight"><div class="row sp"><b>🪖 遠征三兵種最高等級</b>${tr.at?`<span class="sub">${esc(String(tr.at).slice(0,16))}</span>`:''}</div>
+  h+=`<div class="card tight"><div class="row sp"><b>🪖 遠征三兵種最高等級</b>${tr.at?`<span class="sub">${esc(fmtTsMaybe(tr.at))}</span>`:''}</div>
     ${tList.length?`<div class="grid" style="grid-template-columns:repeat(3,1fr);gap:8px;margin-top:8px">${['infantry','lancer','marksman'].map(tp=>{
       const x=tList.find(z=>z.type===tp);
       return`<div class="mt" style="text-align:center"><div class="sub">${TRN[tp]}</div><div class="v" style="font-size:16px">${x&&x.tier?'T'+x.tier:'—'}</div><div>${x&&x.fc?`<span class="bd a">FC ${x.fc}</span>`:'<span class="sub">一般</span>'}</div></div>`;
     }).join('')}</div>`:'<div class="sub" style="margin-top:6px">遊戲端無兵種防守紀錄</div>'}</div>`;
   /* 3. 領主裝備與寶石 */
   const cgItems=Array.isArray(cg.items)?cg.items:[];
-  h+=`<div class="card tight"><div class="row sp"><b>🛡️ 領主裝備與寶石</b>${!cg.hidden&&(cg.score||cg.combat)?`<span class="sub tnum">${cg.score?'分 '+cg.score.toLocaleString():''}${cg.combat?' · 戰 '+fmtP(cg.combat):''}</span>`:''}</div>
+  h+=`<div class="card tight"><div class="row sp"><b>🛡️ 領主裝備與寶石</b>${!cg.hidden&&(cg.score||cg.combat)?`<span class="sub tnum">${cg.score?'總級 '+cg.score.toLocaleString():''}${cg.combat?' · 戰 '+fmtP(cg.combat):''}</span>`:''}</div>
     ${cg.hidden?`<div class="sub" style="margin-top:6px">🔒 ${esc(cg.message||'玩家在遊戲內隱藏了領主裝備')}</div>`
     :cgItems.length?`<div class="grid g2" style="margin-top:8px;gap:8px">${cgItems.map(it=>{
       const gems=Array.isArray(it.gems)?it.gems:[];
-      return`<div class="mt"><div class="row sp"><b>${esc(SLOTN[it.slot]||it.name||it.slot||'裝備')}</b><span class="bd a">${esc(it.q||it.quality||'')}${it.tier?' T'+it.tier:''}${it.star?' ★'+it.star:''}</span></div>
-        <div class="sub tnum" style="margin-top:3px">${it.str?'強化 '+it.str:''}${it.score?' · 評分 '+it.score.toLocaleString():''}</div>
+      return`<div class="mt"><div class="row sp"><b>${esc(slotLabel(it.slot||it.name))}</b><span class="bd a">${esc(cgQual(it.q||it.quality||''))}${it.tier?' T'+it.tier:''}${it.star?' ★'+it.star:''}</span></div>
+        <div class="sub tnum" style="margin-top:3px">${it.str?'等級 Lv.'+it.str:''}${it.score?' · 評分 '+it.score.toLocaleString():''}</div>
         ${gems.length?`<div class="row" style="margin-top:5px;gap:4px">${gems.map(g=>`<span class="bd" style="font-size:11px">💎 ${esc(g.lv||g.id||g)}</span>`).join('')}</div>`:''}</div>`;
     }).join('')}</div>`:'<div class="sub" style="margin-top:6px">尚無領主裝備資料</div>'}</div>`;
   /* 4. 競技場防守英雄、專武與英雄裝備 */
@@ -1355,7 +1359,7 @@ function extraHtml(r){
         <div class="row sp"><span><b>${esc(hr.name||'英雄')}</b> <span class="bd">Lv.${hr.lv||0}</span> ${hr.starL?`<span class="bd w">${esc(hr.starL)}</span>`:hr.star?`<span class="bd w">★${hr.star}</span>`:''}</span><span class="sub tnum">${hr.pw?fmtP(hr.pw):''}</span></div>
         ${sks.length?`<div class="sub tnum" style="margin-top:3px">技能：${sks.map(s=>s.lv!=null?s.lv:s).join(' / ')}</div>`:''}
         ${hr.egLv||hr.egName?`<div class="row" style="margin-top:5px;gap:5px"><span class="bd ok">專武 ${esc(hr.egName||'')}${hr.egLv?' +'+hr.egLv:''}</span>${attrs.map(a=>`<span class="bd" style="font-size:11px">${esc(a.l||a.label||'')} ${esc(a.v!=null?a.v:a.value||'')}</span>`).join('')}</div>`:''}
-        ${gears.length?`<div class="row" style="margin-top:6px;gap:5px">${gears.map(g=>`<span class="bd ${g.red?'d':''}" style="font-size:11.5px">${esc(SLOTN[g.slot]||g.slot||'')}${g.red?'🔴':''} +${g.enh||0}${g.ref?' / 鍛'+g.ref:''}</span>`).join('')}</div>`:''}
+        ${gears.length?`<div class="row" style="margin-top:6px;gap:5px">${gears.map(g=>`<span class="bd ${g.red?'d':''}" style="font-size:11.5px">${esc(slotLabel(g.slot))}${g.red?'🔴':''} +${g.enh||0}${g.ref?' / 鍛'+g.ref:''}</span>`).join('')}</div>`:''}
       </div>`;
     }).join(''):'<div class="sub" style="margin-top:6px">尚無英雄防守陣容資料</div>'}</div>`;
   return h+rkBlock;
