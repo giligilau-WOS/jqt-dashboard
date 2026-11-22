@@ -57,7 +57,7 @@ body.locked{overflow:hidden}
 #main>*{min-width:0}
 
 /* Mobile Bottom Nav */
-#nav{position:fixed;left:0;right:0;bottom:0;z-index:30;display:grid;grid-template-columns:repeat(4,1fr);gap:6px;background:var(--s1);border-top:1px solid var(--bd);padding:8px 10px calc(env(safe-area-inset-bottom) + 10px);border-radius:22px 22px 0 0;box-shadow:0 -6px 22px rgba(12,35,64,.1)}
+#nav{position:fixed;left:0;right:0;bottom:0;z-index:30;display:grid;grid-template-columns:repeat(5,1fr);gap:4px;background:var(--s1);border-top:1px solid var(--bd);padding:8px 8px calc(env(safe-area-inset-bottom) + 10px);border-radius:22px 22px 0 0;box-shadow:0 -6px 22px rgba(12,35,64,.1)}
 #nav button{min-height:52px;border:0;background:transparent;color:var(--t2);border-radius:14px;cursor:pointer;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:2px;font:inherit;font-size:12px;font-weight:700;transition:background .15s,color .15s}
 #nav button .ic{font-size:17px;line-height:1}
 #nav button.on{background:var(--acb);color:var(--ac);font-weight:800}
@@ -205,6 +205,20 @@ textarea{width:100%;min-height:130px;line-height:1.55}
 /* Skeleton Loader */
 .sk{height:16px;border-radius:99px;background:linear-gradient(90deg,var(--s2) 25%,var(--bd) 50%,var(--s2) 75%);background-size:200% 100%;animation:shm 1.3s infinite}
 @keyframes shm{0%{background-position:200% 0}100%{background-position:-200% 0}}
+
+/* Kingdom Map / Chessboard / 3D Street View */
+.mp-wrap{position:relative;width:100%;height:clamp(420px,58vh,640px);border-radius:20px;overflow:hidden;border:1px solid var(--bd);box-shadow:var(--shadow);background:var(--s2);user-select:none;-webkit-user-select:none}
+#mpCanvas{width:100%;height:100%;display:block;touch-action:none;cursor:grab}
+#mpCanvas:active{cursor:grabbing}
+.mp-pills{display:flex;gap:6px;overflow-x:auto;-webkit-overflow-scrolling:touch;padding-bottom:2px;scrollbar-width:none}
+.mp-pills::-webkit-scrollbar{display:none}
+.mp-dot{display:inline-block;width:9px;height:9px;border-radius:99px;flex:none}
+.mp-hud-tl{position:absolute;left:10px;top:10px;z-index:5;background:rgba(12,24,42,.78);color:#fff;padding:6px 11px;border-radius:12px;font-size:12px;font-weight:800;backdrop-filter:blur(6px);pointer-events:none;font-variant-numeric:tabular-nums;max-width:calc(100% - 20px)}
+.mp-hud-top{position:absolute;left:50%;top:10px;transform:translateX(-50%);z-index:5;background:rgba(12,24,42,.78);color:#fff;padding:6px 14px;border-radius:99px;font-size:12.5px;font-weight:800;backdrop-filter:blur(6px);pointer-events:none;white-space:nowrap;font-variant-numeric:tabular-nums}
+.mp-hud-br{position:absolute;right:10px;bottom:10px;z-index:5;display:flex;flex-direction:column;gap:7px}
+.mp-fab{width:42px;height:42px;border-radius:14px;border:1px solid rgba(255,255,255,.25);background:rgba(12,24,42,.76);color:#fff;font-size:17px;font-weight:900;display:flex;align-items:center;justify-content:center;cursor:pointer;backdrop-filter:blur(6px);box-shadow:0 4px 12px rgba(0,0,0,.22);padding:0;touch-action:none}
+.mp-fab:active{transform:scale(.94);background:var(--ac)}
+.mp-dpad{position:absolute;left:10px;bottom:10px;z-index:5;display:grid;grid-template-columns:repeat(3,42px);gap:5px;touch-action:none}
 </style>
 </head>
 <body>
@@ -222,9 +236,10 @@ textarea{width:100%;min-height:130px;line-height:1.55}
 <div id="sheet"></div>
 <div id="toast"></div>
 <script src="config.js"></script>
+<script src="worldmap.js?v=8.2.0"></script>
 <script>
 'use strict';
-const APP_VERSION='8.1.5';
+const APP_VERSION='8.2.0';
 const $=s=>document.querySelector(s);
 const esc=s=>String(s==null?'':s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 const nz=s=>String(s==null?'':s).normalize('NFKC').toLowerCase().replace(/[\s\p{P}\p{S}]+/gu,'');
@@ -262,7 +277,7 @@ const ERR={
   zone_in_use:'已經有人用這個特區報名，沒辦法刪除',bad_code:'兌換碼只能是英文和數字（3 到 30 個字）'
 };
 const DEF_ACC='主：主流兔 / 小：盟浪兔、兔仔子\n主：冬來冬往 / 小：小冬冬\n主：劼吉撈 / 小：乂Oo煞气ㄟ屁孩oO乂\n主：Masaorange / 小：小馬殺、小馬哥\n主：小螞蟻 / 小：小小螞蟻\n主：快樂永伴 / 小：HappyHappy\n主：一念關山 / 小：一念觀山\n主：PekingDuck / 小：北京烤鸭\n主：YI9908zh / 小：Yi2\n主：周星星 / 小：麻麻豆豆~\n主：錢包包 / 小：錢多多\n主：Rueiii / 小：小梅幾';
-const TABS=[['players','👥','王國名冊','名冊'],['signups','📋','活動報名','報名'],['lists','⚔️','分隊指揮','分隊'],['admin','⚙️','系統設定','設定']];
+const TABS=[['players','👥','王國名冊','名冊'],['signups','📋','活動報名','報名'],['lists','⚔️','分隊指揮','分隊'],['map','🗺️','王國地圖','地圖'],['admin','⚙️','系統設定','設定']];
 
 /* ===== 儲存、連線、登入 ===== */
 const Store={
@@ -1392,7 +1407,8 @@ function extraHtml(r){
     <div class="row" style="margin-top:8px;gap:6px">
       ${sh?`<span class="bd ok">🛡️ 開罩中・剩 ${esc(sh)}</span>`:'<span class="bd">🛡️ 未開罩或無資料</span>'}
       ${bn?`<span class="bd d">🔥 燃燒中・剩 ${esc(bn)}</span>`:''}
-    </div></div>`;
+    </div>
+    ${b.x!=null&&b.y!=null?`<div class="row" style="margin-top:8px;gap:6px"><button class="btn sm soft" data-a="mapJump" data-v="${esc(fid)}">📍 地圖定位</button><button class="btn sm" data-a="svJump" data-v="${esc(fid)}">👁️ 街景拜訪</button></div>`:''}</div>`;
   /* 2. 三兵種最高等級 */
   h+=`<div class="card tight"><div class="row sp"><b>🪖 遠征三兵種最高等級</b>${tr.at?`<span class="sub">${esc(fmtTsMaybe(tr.at))}</span>`:''}</div>
     ${tList.length?`<div class="grid" style="grid-template-columns:repeat(3,1fr);gap:8px;margin-top:8px">${['infantry','lancer','marksman'].map(tp=>{
@@ -1604,8 +1620,9 @@ function renderHeaderAndRail(){
 }
 function render(){
   applyTheme();fxSync();renderHeaderAndRail();
-  const pg={players:pgPlayers,signups:pgSignups,lists:pgLists,admin:pgAdmin}[U.tab]||pgPlayers;
+  const pg={players:pgPlayers,signups:pgSignups,lists:pgLists,map:()=>window.K2611_MAP?window.K2611_MAP.renderHtml():'<div class="card">載入王國地圖中…</div>',admin:pgAdmin}[U.tab]||pgPlayers;
   $('#main').innerHTML=pg();
+  if(U.tab==='map'&&window.K2611_MAP)window.K2611_MAP.mount();else if(window.K2611_MAP)window.K2611_MAP.unmount();
   const box=$('#tw');
   if(box){box.onscroll=()=>{if(!P.raf)P.raf=requestAnimationFrame(()=>{P.raf=0;drawRows()})};drawRows()}
   if(!Z.busy&&(Date.now()-Z.at>45000||Z.seen!==D.regs)){Z.seen=D.regs;zRefresh()}
@@ -1870,6 +1887,8 @@ async function handleAction(k,a){
     case'wx_snap':wSnap('手動存檔');wChanged();render();break;
     case'wx_restore':{const h=W.plan.hist[+v];if(!h)break;const cl=x=>JSON.parse(JSON.stringify(x));wSnap('還原前');W.plan.manual=cl(h.manual);W.plan.opt=cl(h.opt);W.plan.teams=cl(h.teams);W.plan.evs=h.evs.slice();W.cur=W.plan.evs[0];wFix(W.plan);wChanged();render()}break;
     case'wx_newround':wSnap('新一輪前');W.plan.manual={foundry:{},canyon:{}};W.plan.date=todayStr();wChanged();render();toast('已開始新一輪，常駐規則已保留');break;
+    case'mapJump':closeSheet();if(window.K2611_MAP)window.K2611_MAP.focusPlayerOnMap(v);break;
+    case'svJump':closeSheet();if(window.K2611_MAP)window.K2611_MAP.focusPlayerInStreet(v);break;
   }
 }
 
@@ -1928,10 +1947,16 @@ document.addEventListener('keydown',e=>{
 });
 try{matchMedia('(prefers-color-scheme: dark)').addEventListener('change',()=>{if(U.theme==='auto'){applyTheme();renderHeaderAndRail()}})}catch(e){}
 
+window.K2611_APP={
+  get D(){return D},get EX(){return EX},get U(){return U},get AU(){return AU},
+  esc,nz,fmtP,furnL,fmtLeft,toast,copyText,render,openSheet,closeSheet,loadExtraDetail,
+  goTab(t){U.tab=t;render()}
+};
+
 (async function init(){
   render();
   if(!CFG.url){D.stErr='NOURL';D.stLoaded=true;render();return}
-  await Promise.all([loadState(),loadRegs(),loadAcc(),zRefresh(),gcLoad(),loadBoards()]);
+  await Promise.all([loadState(),loadRegs(),loadAcc(),zRefresh(),gcLoad(),loadBoards(),loadExtraDetail()]);
 })();
 </script>
 </body>
