@@ -106,6 +106,14 @@ body.locked{overflow:hidden}
 .kpi .v{font-size:21px;font-weight:900;line-height:1.25;margin-top:2px;font-variant-numeric:tabular-nums}
 .mt{background:var(--s2);border-radius:14px;padding:10px 12px}
 .mt .v{font-size:18px;font-weight:800;font-variant-numeric:tabular-nums;margin-top:2px}
+.hcard{display:flex;gap:10px;align-items:flex-start}
+.hav{position:relative;width:54px;height:54px;flex:none;border-radius:15px;overflow:hidden;background:var(--acb);border:2px solid var(--bd);display:flex;align-items:center;justify-content:center;font-weight:900;font-size:18px;color:var(--ac);box-shadow:0 2px 6px rgba(12,35,64,.12)}
+.hav.ssr{border-color:#d99a1d;background:linear-gradient(135deg,#fff3d1,#f3cc7a);color:#8a5600}
+.hav.sr{border-color:#9b6bd6;background:linear-gradient(135deg,#f0e7ff,#d5beff);color:#5a2ca0}
+.hav.r{border-color:#4b93d6;background:linear-gradient(135deg,#e3f2ff,#b8dcff);color:#1d5d9b}
+.hav img{width:100%;height:100%;object-fit:cover;display:block}
+.hav .hpos{position:absolute;left:2px;top:2px;background:rgba(12,24,42,.8);color:#fff;font-size:10px;font-weight:800;line-height:1;padding:2px 4px;border-radius:6px;font-variant-numeric:tabular-nums}
+.hbody{flex:1 1 auto;min-width:0}
 
 /* ===== Friendly 44px Buttons & Segmented Controls ===== */
 .btn{display:inline-flex;align-items:center;justify-content:center;gap:5px;border:1px solid var(--bd);background:var(--s1);color:var(--t1);border-radius:14px;padding:0 14px;font:inherit;font-size:14px;font-weight:700;cursor:pointer;min-height:42px;transition:transform .1s,background .15s,border-color .15s,opacity .15s;white-space:nowrap}
@@ -216,7 +224,7 @@ textarea{width:100%;min-height:130px;line-height:1.55}
 <script src="config.js"></script>
 <script>
 'use strict';
-const APP_VERSION='8.1.4';
+const APP_VERSION='8.1.5';
 const $=s=>document.querySelector(s);
 const esc=s=>String(s==null?'':s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 const nz=s=>String(s==null?'':s).normalize('NFKC').toLowerCase().replace(/[\s\p{P}\p{S}]+/gu,'');
@@ -425,15 +433,22 @@ const HERON={
   '50062':['艾丹','盾','G17','Aiden'],'50063':['貝爾莎','矛','G17','Bertha'],'50064':['埃莉諾','射','G17','Eleanor'],
   '50065':['約頓','盾','G18','Jordan'],'50066':['尼古拉','矛','G18','Nikola'],'50067':['艾西婭','射','G18','Aisha']
 };
-const HERO_EN={};Object.keys(HERON).forEach(k=>{HERO_EN[HERON[k][3].toLowerCase()]=HERON[k]});
-HERO_EN['walis bokan']=HERON['50029'];
+const HERO_IMG_BASE='https://whiteoutstats.com/assets/icons/hero_headpic_';
+const HERO_EN={};Object.keys(HERON).forEach(k=>{HERO_EN[HERON[k][3].toLowerCase()]=[k,HERON[k]]});
+HERO_EN['walis bokan']=['50029',HERON['50029']];
 function heroInfo(hr){
   const raw=String((hr&&hr.name)||'').trim();
   const idM=String((hr&&hr.id)||'').match(/5\d{4}/)||raw.match(/5\d{4}/)||String((hr&&hr.egName)||'').match(/10(5\d{4})/);
-  const id=idM?(idM[1]||idM[0]):'';
-  const e=(id&&HERON[id])||HERO_EN[raw.toLowerCase()];
-  if(e)return{id,name:e[0],troop:e[1],gen:e[2]};
-  return{id,name:raw||'英雄',troop:'',gen:''};
+  let id=idM?(idM[1]||idM[0]):'';
+  let e=id&&HERON[id];
+  if(!e){const m=HERO_EN[raw.toLowerCase()];if(m){id=id||m[0];e=m[1]}}
+  const rawIcon=String((hr&&hr.icon)||'').trim();
+  const icon=/^https:\/\//i.test(rawIcon)?rawIcon:(id?HERO_IMG_BASE+id+'.png':'');
+  if(e){
+    const rar=e[2][0]==='G'?'ssr':e[2]==='SR'?'sr':'r';
+    return{id,name:e[0],troop:e[1],gen:e[2],rar,icon};
+  }
+  return{id,name:raw||'英雄',troop:'',gen:'',rar:'',icon};
 }
 function fmtHeroStar(hr){
   const sl=String((hr&&hr.starL)||'').trim();
@@ -1399,11 +1414,17 @@ function extraHtml(r){
   h+=`<div class="card tight"><b>⚔️ 競技場防守英雄（${hsSorted.length} 位）</b>
     ${hsSorted.length?hsSorted.map(hr=>{
       const hi=heroInfo(hr),stTxt=fmtHeroStar(hr),gears=Array.isArray(hr.gear)?hr.gear:[],attrs=Array.isArray(hr.egAttr)?hr.egAttr:[],sks=Array.isArray(hr.skills)?hr.skills:[];
+      const av=`<div class="hav ${hi.rar}">${hi.icon?`<img src="${esc(hi.icon)}" alt="${esc(hi.name)}" loading="lazy" referrerpolicy="no-referrer" onerror="this.style.display='none';if(this.nextElementSibling)this.nextElementSibling.hidden=false"><span hidden>${esc(hi.name.slice(0,1))}</span>`:`<span>${esc(hi.name.slice(0,1))}</span>`}${hr.pos?`<span class="hpos">#${hr.pos}</span>`:''}</div>`;
       return`<div class="mt" style="margin-top:8px">
-        <div class="row sp"><span class="row" style="gap:5px">${hr.pos?`<span class="sub mono" style="font-size:11.5px">#${hr.pos}</span>`:''}<b>${esc(hi.name)}</b>${hi.gen?`<span class="bd ${hi.gen[0]==='G'?'a':''}" style="font-size:11px">${esc(hi.gen)}·${esc(hi.troop)}</span>`:''}<span class="bd">Lv.${hr.lv||0}</span>${stTxt?`<span class="bd w">${esc(stTxt)}</span>`:''}</span><span class="sub tnum">${hr.pw?fmtP(hr.pw):''}</span></div>
-        ${sks.length?`<div class="sub tnum" style="margin-top:3px">技能：${sks.map(s=>s.lv!=null?s.lv:s).join(' / ')}</div>`:''}
-        ${hr.egLv||hr.egName?`<div class="row" style="margin-top:5px;gap:5px"><span class="bd ok">${esc(fmtEgLabel(hr))}</span>${attrs.map(a=>`<span class="bd" style="font-size:11px">${esc(a.l||a.label||'')} ${esc(a.v!=null?a.v:a.value||'')}</span>`).join('')}</div>`:''}
-        ${gears.length?`<div class="row" style="margin-top:6px;gap:5px">${gears.map(g=>`<span class="bd ${g.red?'d':''}" style="font-size:11.5px">${esc(slotLabel(g.slot))}${g.red?'🔴':''} +${g.enh||0}${g.ref?' / 鍛'+g.ref:''}</span>`).join('')}</div>`:''}
+        <div class="hcard">
+          ${av}
+          <div class="hbody">
+            <div class="row sp"><span class="row" style="gap:5px"><b>${esc(hi.name)}</b>${hi.gen?`<span class="bd ${hi.rar==='ssr'?'a':''}" style="font-size:11px">${esc(hi.gen)}·${esc(hi.troop)}</span>`:''}<span class="bd">Lv.${hr.lv||0}</span>${stTxt?`<span class="bd w">${esc(stTxt)}</span>`:''}</span><span class="sub tnum">${hr.pw?fmtP(hr.pw):''}</span></div>
+            ${sks.length?`<div class="sub tnum" style="margin-top:4px">技能：${sks.map(s=>s.lv!=null?s.lv:s).join(' / ')}</div>`:''}
+            ${hr.egLv||hr.egName?`<div class="row" style="margin-top:5px;gap:5px"><span class="bd ok">${esc(fmtEgLabel(hr))}</span>${attrs.map(a=>`<span class="bd" style="font-size:11px">${esc(a.l||a.label||'')} ${esc(a.v!=null?a.v:a.value||'')}</span>`).join('')}</div>`:''}
+          </div>
+        </div>
+        ${gears.length?`<div class="row" style="margin-top:7px;gap:5px">${gears.map(g=>`<span class="bd ${g.red?'d':''}" style="font-size:11.5px">${esc(slotLabel(g.slot))}${g.red?'🔴':''} +${g.enh||0}${g.ref?' / 鍛'+g.ref:''}</span>`).join('')}</div>`:''}
       </div>`;
     }).join(''):'<div class="sub" style="margin-top:6px">尚無英雄防守陣容資料</div>'}</div>`;
   return h+rkBlock;
