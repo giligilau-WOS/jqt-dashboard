@@ -236,10 +236,10 @@ textarea{width:100%;min-height:130px;line-height:1.55}
 <div id="sheet"></div>
 <div id="toast"></div>
 <script src="config.js"></script>
-<script src="worldmap.js?v=8.2.0"></script>
+<script src="worldmap.js?v=8.2.1"></script>
 <script>
 'use strict';
-const APP_VERSION='8.2.0';
+const APP_VERSION='8.2.1';
 const $=s=>document.querySelector(s);
 const esc=s=>String(s==null?'':s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 const nz=s=>String(s==null?'':s).normalize('NFKC').toLowerCase().replace(/[\s\p{P}\p{S}]+/gu,'');
@@ -1949,7 +1949,7 @@ try{matchMedia('(prefers-color-scheme: dark)').addEventListener('change',()=>{if
 
 window.K2611_APP={
   get D(){return D},get EX(){return EX},get U(){return U},get AU(){return AU},
-  esc,nz,fmtP,furnL,fmtLeft,toast,copyText,render,openSheet,closeSheet,loadExtraDetail,
+  esc,nz,fmtP,furnL:n=>n?'FC '+n:'—',fmtLeft,toast,copyText,render,openSheet,closeSheet,loadExtraDetail,
   goTab(t){U.tab=t;render()}
 };
 

@@ -277,15 +277,13 @@ function renderHtml(){
   const cnt=wd.players.length;
   const modeSeg=`
     <div class="seg" style="display:grid;grid-template-columns:repeat(3,1fr);width:100%;overflow:visible">
-      <button style="padding:0 6px;min-height:42px" class="${M.mode==='map'?'on':''}" data-mp="mode" data-v="map">🗺️ 王國大地圖</button>
-      <button style="padding:0 6px;min-height:42px" class="${M.mode==='board'?'on':''}" data-mp="mode" data-v="board">♟️ 棋盤排位模擬</button>
-      <button style="padding:0 6px;min-height:42px" class="${M.mode==='street'?'on':''}" data-mp="mode" data-v="street">👁️ 模擬遊戲街景</button>
+      <button style="padding:0 4px;min-height:38px;font-size:12.5px" class="${M.mode==='map'?'on':''}" data-mp="mode" data-v="map">🗺️ 大地圖</button>
+      <button style="padding:0 4px;min-height:38px;font-size:12.5px" class="${M.mode==='board'?'on':''}" data-mp="mode" data-v="board">♟️ 棋盤模擬</button>
+      <button style="padding:0 4px;min-height:38px;font-size:12.5px" class="${M.mode==='street'?'on':''}" data-mp="mode" data-v="street">👁️ 遊戲街景</button>
     </div>`;
 
-  let body='';
-  if(M.mode==='map')body=renderMapControls(wd);
-  else if(M.mode==='board')body=renderBoardControls(wd);
-  else body=renderStreetControls(wd);
+  const topPills=M.mode==='map'?renderMapTopPills(wd):M.mode==='board'?renderBoardTopPills():renderStreetTopPills();
+  const belowControls=M.mode==='map'?renderMapControls(wd):M.mode==='board'?renderBoardControls(wd):renderStreetControls(wd);
 
   const canvasBlock=`
     <div class="mp-wrap" id="mpWrap">
@@ -296,21 +294,52 @@ function renderHtml(){
   const bottomCard=M.mode==='map'?renderMapPlaceCard(wd):M.mode==='board'?renderBoardInspector(wd):renderStreetFooter(wd);
 
   return`
-    <div class="card tight" style="display:flex;flex-direction:column;gap:10px">
-      <div class="row sp">
-        <div><b style="font-size:16px">🗺️ 2611 王國實景地圖中心</b><div class="sub">已定位 <b>${cnt}</b> 座城池 · ${wd.hives.length} 個聯盟（資料來自戰備同步）</div></div>
-        <button class="btn sm" data-mp="refresh">↻ 重整座標</button>
+    <div class="card tight" style="display:flex;flex-direction:column;gap:8px;padding:10px 12px">
+      <div class="row sp" style="flex-wrap:nowrap">
+        <div style="min-width:0"><b style="font-size:15px">🗺️ 2611 王國地圖</b> <span class="sub">· ${cnt} 城池</span></div>
+        <button class="btn sm" style="min-height:32px;padding:0 10px" data-mp="refresh">↻ 重整</button>
       </div>
       ${modeSeg}
-      ${body}
+      ${topPills}
     </div>
     ${canvasBlock}
-    ${bottomCard}`;
+    ${bottomCard}
+    <div class="card tight" style="display:flex;flex-direction:column;gap:8px">${belowControls}</div>`;
+}
+
+function renderMapTopPills(wd){
+  const A=app(), esc=A.esc||(s=>s);
+  const topHives=wd.hives.slice(0,7);
+  return`<div class="mp-pills">
+    <button class="btn sm soft" data-mp="fly" data-x="600" data-y="600" data-s="5">🏰 太陽城</button>
+    ${topHives.map(h=>`<button class="btn sm ${M.alFilter===h.al?'pri':''}" data-mp="flyHive" data-v="${esc(h.al)}"><span class="mp-dot" style="background:${alColor(h.al)}"></span>${esc(h.al)} (${h.count})</button>`).join('')}
+  </div>`;
+}
+
+function renderBoardTopPills(){
+  const b=M.board;
+  const tools=[
+    ['move','👆 移動'],['trap1','🐻 熊一'],['trap2','🐻 熊二'],
+    ['hq','🏛️ 總部'],['banner','🚩 旗幟'],['obs','⛰️ 障礙']
+  ];
+  return`<div class="mp-pills">
+    ${tools.map(([k,l])=>`<button class="btn sm ${b.tool===k?'pri':''}" data-mp="bTool" data-v="${k}">${l}</button>`).join('')}
+  </div>`;
+}
+
+function renderStreetTopPills(){
+  const sv=M.sv;
+  return`<div class="mp-pills">
+    <button class="btn sm soft" data-mp="svGo" data-v="jQt">🚩 jQt</button>
+    <button class="btn sm soft" data-mp="svGo" data-v="aQt">🚩 aQt</button>
+    <button class="btn sm soft" data-mp="svGo" data-v="castle">🏰 太陽城</button>
+    <button class="btn sm ${sv.aerial?'pri':''}" data-mp="svAerial">${sv.aerial?'🚁 空拍中':'🚶 地面中'}</button>
+    <button class="btn sm ${sv.useSim?'pri':''}" data-mp="svSim">${sv.useSim?'♟️ 模擬陣型':'🌍 真實座標'}</button>
+  </div>`;
 }
 
 function renderMapControls(wd){
   const A=app(), esc=A.esc||(s=>s);
-  const topHives=wd.hives.slice(0,7);
   return`
     <div class="row" style="gap:6px">
       <input id="mpSearch" style="flex:1 1 180px" placeholder="搜尋玩家、聯盟，或輸入座標 772,729" value="${esc(M.search)}">
@@ -318,10 +347,6 @@ function renderMapControls(wd){
     </div>
     <div id="mpSug"></div>
     <div class="mp-pills">
-      <button class="btn sm soft" data-mp="fly" data-x="600" data-y="600" data-s="5">🏰 太陽城</button>
-      ${topHives.map(h=>`<button class="btn sm ${M.alFilter===h.al?'pri':''}" data-mp="flyHive" data-v="${esc(h.al)}"><span class="mp-dot" style="background:${alColor(h.al)}"></span>${esc(h.al)} (${h.count})</button>`).join('')}
-    </div>
-    <div class="row" style="gap:6px">
       <button class="btn sm ${M.proj==='iso'?'pri':''}" data-mp="proj" data-v="iso">💎 等距視角</button>
       <button class="btn sm ${M.proj==='flat'?'pri':''}" data-mp="proj" data-v="flat">🧭 正北平面</button>
       <select id="mpAlSel" style="min-height:36px;padding:4px 10px;font-size:13px;border-radius:12px">
@@ -340,15 +365,8 @@ function renderMapControls(wd){
 function renderBoardControls(wd){
   const A=app(), esc=A.esc||(s=>s), b=M.board;
   const movedN=b.pieces.filter(p=>p.kind==='city'&&(p.x!==p.ox||p.y!==p.oy)).length;
-  const tools=[
-    ['move','👆 移動棋子'],['trap1','🐻 熊一 3×3'],['trap2','🐻 熊二 3×3'],
-    ['hq','🏛️ 總部 3×3'],['banner','🚩 旗幟 7×7'],['obs','⛰️ 障礙 1×1']
-  ];
   return`
     <div class="mp-pills">
-      ${tools.map(([k,l])=>`<button class="btn sm ${b.tool===k?'pri':''}" data-mp="bTool" data-v="${k}">${l}</button>`).join('')}
-    </div>
-    <div class="row" style="gap:6px">
       <select id="mpBScope" style="min-height:36px;padding:4px 10px;font-size:13px;border-radius:12px">
         <option value="jQt" ${b.scope==='jQt'?'selected':''}>載入：jQt</option>
         <option value="aQt" ${b.scope==='aQt'?'selected':''}>載入：aQt</option>
@@ -356,13 +374,13 @@ function renderBoardControls(wd){
         <option value="view" ${b.scope==='view'?'selected':''}>載入：地圖視野附近</option>
         ${wd.hives.filter(h=>h.al!=='jQt'&&h.al!=='aQt').slice(0,8).map(h=>`<option value="${esc(h.al)}" ${b.scope===h.al?'selected':''}>載入：${esc(h.al)}</option>`).join('')}
       </select>
-      <button class="btn sm" data-mp="bLoadReal">↻ 重載真實座標</button>
-      <button class="btn sm" data-mp="bResetAll">↩️ 歸位（${movedN} 移動）</button>
+      <button class="btn sm" data-mp="bLoadReal">↻ 重載真實</button>
+      <button class="btn sm" data-mp="bResetAll">↩️ 歸位（${movedN}）</button>
       <button class="btn sm soft" data-mp="bCopy">📋 複製遷城表</button>
       <button class="btn sm" data-mp="bPreviewSv">👁️ 街景預覽</button>
     </div>
     <div class="row" style="gap:6px">
-      <input id="mpBAdd" style="flex:1 1 160px;min-height:38px" placeholder="從名冊拉入盟友棋子（輸入名字）…" value="${esc(b.addQ)}">
+      <input id="mpBAdd" style="flex:1 1 150px;min-height:38px" placeholder="從名冊拉入盟友棋子…" value="${esc(b.addQ)}">
       <button class="btn sm ${b.showRings?'pri':''}" data-mp="bTogRings">🎯 熊距圈</button>
       <button class="btn sm ${b.showTerr?'pri':''}" data-mp="bTogTerr">🚩 領地框</button>
     </div>
@@ -370,15 +388,7 @@ function renderBoardControls(wd){
 }
 
 function renderStreetControls(wd){
-  const A=app(), esc=A.esc||(s=>s), sv=M.sv;
   return`
-    <div class="mp-pills">
-      <button class="btn sm soft" data-mp="svGo" data-v="jQt">🚩 jQt 聚落</button>
-      <button class="btn sm soft" data-mp="svGo" data-v="aQt">🚩 aQt 聚落</button>
-      <button class="btn sm soft" data-mp="svGo" data-v="castle">🏰 太陽城廣場</button>
-      <button class="btn sm ${sv.aerial?'pri':''}" data-mp="svAerial">${sv.aerial?'🚁 低空空拍中':'🚶 地面街景中'}</button>
-      <button class="btn sm ${sv.useSim?'pri':''}" data-mp="svSim">${sv.useSim?'♟️ 顯示模擬陣型':'🌍 顯示真實座標'}</button>
-    </div>
     <div class="row" style="gap:6px">
       <input id="mpSvSearch" style="flex:1 1 180px;min-height:38px" placeholder="搜尋盟友名字，直接傳送到他家門口逛街…">
     </div>
@@ -840,7 +850,7 @@ function getStreetObjects(wd){
         key:p.id,kind:p.kind,fid:p.fid||'',name:meta?meta.label:p.name,al:p.al||'',
         power:p.power||0,furn:p.furn||0,
         x:p.x+p.size/2,y:p.y+p.size/2,size:p.size,
-        h:p.kind==='city'?1.7+Math.min(2.2,(p.furn||20)/22):p.kind==='hq'?3.2:p.kind==='banner'?2.4:1.6,
+        h:p.kind==='city'?1.25+Math.min(1.45,(p.furn||20)/28):p.kind==='hq'?2.8:p.kind==='banner'?2.2:1.4,
         color:meta?meta.color:alColor(p.al),
         shield:0,burn:0
       });
@@ -850,7 +860,7 @@ function getStreetObjects(wd){
       objs.push({
         key:'p_'+p.fid,kind:'city',fid:p.fid,name:p.name,al:p.al,power:p.power,furn:p.furn,
         x:p.x,y:p.y,size:2,
-        h:1.6+Math.min(2.4,(p.furn||20)/22),
+        h:1.25+Math.min(1.45,(p.furn||20)/28),
         color:alColor(p.al),shield:p.shield,burn:p.burn
       });
     });
@@ -860,9 +870,9 @@ function getStreetObjects(wd){
 
 function drawStreetView(ctx,w,h,wd,now){
   const dark=isDark(), sv=M.sv;
-  const camZ=sv.aerial?7.8:1.85;
-  const pitch=sv.aerial?0.26:0.04; // 俯視角
-  const horizon=h*(sv.aerial?0.34:0.46);
+  const camZ=sv.aerial?7.8:2.65;
+  const pitch=sv.aerial?0.28:0.08; // 俯視角
+  const horizon=h*(sv.aerial?0.32:0.42);
   const focal=w*0.72;
   const sinY=Math.sin(sv.yaw), cosY=Math.cos(sv.yaw);
 
@@ -1004,9 +1014,10 @@ function drawStreetView(ctx,w,h,wd,now){
   vis.sort((a,b)=>b.dist-a.dist);
 
   sv.hitBoxes=[];
+  const labelCands=[];
   for(const item of vis){
     const {o,dist,pBase,pTop}=item;
-    const bw=clamp(pBase.sc*(o.size*0.68),6,180);
+    const bw=clamp(pBase.sc*(o.size*0.64),6,165);
     const bh=Math.max(6,pBase.sy-(pTop?pTop.sy:pBase.sy-bw));
     const bx0=pBase.sx-bw/2, by0=pBase.sy-bh;
     const alpha=o.kind==='castle'?1:clamp(1.25-dist/68,0.22,1);
@@ -1078,23 +1089,35 @@ function drawStreetView(ctx,w,h,wd,now){
       }
     }
 
-    // 懸浮名牌（近距離城池與太陽城）
-    if(dist<32||o.kind==='castle'||isSel){
-      ctx.font=(isSel?'800 ':'700 ')+'11.5px -apple-system,sans-serif';
-      const tag=o.al?`[${o.al}] ${o.name}`:o.name;
-      const sub=`${Math.round(dist)}格`;
-      const txt=tag.slice(0,13)+' · '+sub;
-      const tw=ctx.measureText(txt).width+12;
-      const ly=by0-22;
-      ctx.fillStyle=isSel?'#facc15':(dark?'rgba(9,19,35,.82)':'rgba(255,255,255,.9)');
-      ctx.beginPath();
-      if(ctx.roundRect)ctx.roundRect(pBase.sx-tw/2,ly,tw,18,7);else ctx.rect(pBase.sx-tw/2,ly,tw,18);
-      ctx.fill();
-      ctx.fillStyle=isSel?'#0f172a':(dark?'#f8fafc':'#0f172a');
-      ctx.textAlign='center';ctx.fillText(txt,pBase.sx,ly+13);
-    }
     ctx.restore();
+    if(dist<28||o.kind==='castle'||isSel){
+      labelCands.push({o,dist,sx:pBase.sx,ly:clamp(by0-22,46,h-92),isSel});
+    }
     sv.hitBoxes.push({key:o.key,x:bx0-6,y:by0-24,w:bw+12,h:bh+30});
+  }
+
+  // 懸浮名牌（由近到遠且自動避開重疊，最多顯示 8 個清晰名牌）
+  labelCands.sort((a,b)=>(b.isSel?1:0)-(a.isSel?1:0)||a.dist-b.dist);
+  const usedLabels=[];
+  let drawnLbl=0;
+  for(const c of labelCands){
+    if(drawnLbl>=8&&!c.isSel)break;
+    ctx.font=(c.isSel?'800 ':'700 ')+'11px -apple-system,sans-serif';
+    const tag=c.o.al?`[${c.o.al}] ${c.o.name}`:c.o.name;
+    const txt=tag.slice(0,11)+' · '+Math.round(c.dist)+'格';
+    const tw=ctx.measureText(txt).width+12, th=18;
+    const lx=clamp(c.sx-tw/2,6,w-tw-6), ly=c.ly;
+    if(!c.isSel&&usedLabels.some(u=>lx<u.x+u.w+4&&lx+tw+4>u.x&&ly<u.y+u.h+4&&ly+th+4>u.y))continue;
+    usedLabels.push({x:lx,y:ly,w:tw,h:th});
+    drawnLbl++;
+    ctx.save();
+    ctx.fillStyle=c.isSel?'#facc15':(dark?'rgba(9,19,35,.84)':'rgba(255,255,255,.92)');
+    ctx.beginPath();
+    if(ctx.roundRect)ctx.roundRect(lx,ly,tw,th,7);else ctx.rect(lx,ly,tw,th);
+    ctx.fill();
+    ctx.fillStyle=c.isSel?'#0f172a':(dark?'#f8fafc':'#0f172a');
+    ctx.textAlign='center';ctx.fillText(txt,lx+tw/2,ly+12.5);
+    ctx.restore();
   }
 
   // 6. 飄雪粒子
