@@ -215,7 +215,7 @@ textarea{width:100%;min-height:130px;line-height:1.55}
 <script src="config.js"></script>
 <script>
 'use strict';
-const APP_VERSION='8.1.0';
+const APP_VERSION='8.1.1';
 const $=s=>document.querySelector(s);
 const esc=s=>String(s==null?'':s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 const nz=s=>String(s==null?'':s).normalize('NFKC').toLowerCase().replace(/[\s\p{P}\p{S}]+/gu,'');
@@ -485,7 +485,7 @@ async function loadExtraCard(fid){
   EX.card[fid]='load';
   try{
     const j=await apiGet({action:'extracard',fid});
-    if(j&&j.status==='ok')EX.card[fid]=j;
+    if(j&&j.status==='ok'&&j.base&&typeof j.base==='object')EX.card[fid]=j;
     else if(j&&j.status==='empty')EX.card[fid]='empty';
     else EX.card[fid]='err';
   }catch(e){EX.card[fid]='err'}
@@ -508,8 +508,8 @@ async function loadBoards(force){
   EX.bBusy=true;EX.bTried=true;
   try{
     const j=await apiGet({action:'stboards'});
-    if(j&&j.status==='ok'){
-      EX.okBoards=true;EX.st=j.state||null;EX.boards=j.boards||{};EX.bAt=String(j.updatedAt||'');
+    if(j&&j.status==='ok'&&j.boards&&typeof j.boards==='object'){
+      EX.okBoards=true;EX.st=(j.state&&typeof j.state==='object')?j.state:null;EX.boards=j.boards;EX.bAt=String(j.updatedAt||'');
       EX.pRanks={};EX.pVal={};
       BOARDS.forEach(([slug,label,cat])=>{
         if(cat==='alliance')return;
