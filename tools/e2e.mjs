@@ -1,6 +1,7 @@
 #!/usr/bin/env node
 // 端到端流程測試：node tools/e2e.mjs
-// 假後端（tools/fake-backend.mjs）＋iPhone 13，實際點畫面：全玩家、報名＋特區、截止、幹部／管理員登入與權限。
+// 假後端（tools/fake-backend.mjs）＋iPhone 13，實際點畫面：全玩家、報名＋特區、截止、幹部／管理員登入與權限、
+// 以及 Modern Web Guidance 檢查項目（輸入法 Enter、深色 color-scheme、提示 aria-live、視窗 dvh）。
 // 截圖存到 SMOKE_OUT（預設 tools/.smoke/）。
 import { createRequire } from 'node:module';
 import { makeWorld, attach } from './fake-backend.mjs';
@@ -140,6 +141,25 @@ const toast = p => p.evaluate(() => (document.querySelector('.toast,#toast') || 
   const t = await p.locator('#main').innerText();
   ok('管理員：畫面沒有顯示 PIN', !t.includes('test-admin'));
   ok('流程 4 沒有 JS 錯誤', !p.errs.length, p.errs.join(' | '));
+  await p.context().close();
+}
+
+// ---------- 5. Modern Web Guidance 檢查項目（v7.1.2） ----------
+{
+  const W = makeWorld(); const p = await fresh(W);
+  // 注音、倉頡等輸入法：按 Enter 確認選字時（isComposing 或 keyCode 229）不能跳轉
+  const enter = (o) => p.evaluate(o => { P.hl = ''; const q = document.querySelector('#qs'); q.value = '玩家05'; q.focus(); const e = new KeyboardEvent('keydown', { key: 'Enter', bubbles: true, isComposing: o.comp }); if (o.kc) Object.defineProperty(e, 'keyCode', { get: () => o.kc }); q.dispatchEvent(e); return P.hl }, o);
+  ok('輸入法選字中按 Enter（isComposing）不會跳轉', (await enter({ comp: true })) === '');
+  ok('輸入法選字中按 Enter（Safari 的 keyCode 229）不會跳轉', (await enter({ comp: false, kc: 229 })) === '');
+  ok('打完字再按 Enter 會跳到該玩家', (await enter({ comp: false, kc: 13 })) === '10005');
+  // 深色主題要讓原生控制項（日期、時間、勾選框、捲軸）也變深色
+  const cs = () => p.evaluate(() => getComputedStyle(document.documentElement).colorScheme);
+  await p.evaluate(() => { document.documentElement.dataset.theme = 'dark' }); const dk = await cs();
+  await p.evaluate(() => { document.documentElement.dataset.theme = 'light' }); const lt = await cs();
+  ok('深色主題 color-scheme 是 dark、淺色是 light', dk === 'dark' && lt === 'light', `dark=${dk} light=${lt}`);
+  ok('提示訊息有 aria-live，VoiceOver 會唸出來', await p.$eval('#toast', t => t.getAttribute('role') === 'status' && t.getAttribute('aria-live') === 'polite'));
+  ok('底部視窗高度用 dvh（Safari 工具列出現時不被切掉）', await p.evaluate(() => [...document.styleSheets].some(s => { try { return [...s.cssRules].some(r => r.selectorText === '#sheet .pn' && r.style.maxHeight.includes('dvh')) } catch { return false } })));
+  ok('流程 5 沒有 JS 錯誤', !p.errs.length, p.errs.join(' | '));
   await p.context().close();
 }
 

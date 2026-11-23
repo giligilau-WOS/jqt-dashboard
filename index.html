@@ -13,7 +13,7 @@
 :root{--bg:#f4f5fb;--s1:#fff;--s2:#eef0f8;--bd:#dfe2ef;--t1:#1b1f3a;--t2:#5d6485;--ac:#4f46e5;--acb:#e6e4ff;--ok:#15803d;--dg:#dc2626;--dgb:#fde8e8;--wn:#9a5b00;--wnb:#fff1d0;--btxt:#fff;--l0:120,126,145;--l1:124,58,237;--l2:13,148,136}
 html[data-theme=dark]{--bg:#0e1120;--s1:#171b30;--s2:#1f2440;--bd:#2c3256;--t1:#e8ebff;--t2:#9aa2c8;--ac:#8b86ff;--acb:#2a2860;--ok:#4ade80;--dg:#f87171;--dgb:#3a1d24;--wn:#fbbf24;--wnb:#3a2e12;--btxt:#0e1120;--l0:160,166,185;--l1:167,139,250;--l2:45,212,191}
 *{box-sizing:border-box}
-html{overflow-x:hidden;-webkit-text-size-adjust:100%}
+html{overflow-x:hidden;-webkit-text-size-adjust:100%}:root{color-scheme:light}:root[data-theme=dark]{color-scheme:dark}
 body{margin:0;background:var(--bg);color:var(--t1);font:15px/1.5 -apple-system,"PingFang TC","Noto Sans TC","Microsoft JhengHei",sans-serif;padding-bottom:124px;overflow-x:clip}
 #top{display:flex;align-items:center;gap:8px;padding:10px 14px;background:linear-gradient(135deg,#4f46e5,#7c3aed);color:#fff}
 #top b{font-size:18px}.grow{flex:1}
@@ -60,7 +60,7 @@ textarea{width:100%;min-height:120px}
 #sheet{position:fixed;inset:0;z-index:50;display:none}
 #sheet.on{display:block}
 #sheet .bk{position:absolute;inset:0;background:rgba(0,0,0,.45)}
-#sheet .pn{position:absolute;left:0;right:0;bottom:0;max-height:92vh;overflow:auto;background:var(--bg);border-radius:18px 18px 0 0;padding:14px 14px calc(env(safe-area-inset-bottom) + 28px);display:flex;flex-direction:column;gap:12px}
+#sheet .pn{position:absolute;left:0;right:0;bottom:0;max-height:92vh;max-height:92dvh;overflow:auto;background:var(--bg);border-radius:18px 18px 0 0;padding:14px 14px calc(env(safe-area-inset-bottom) + 28px);display:flex;flex-direction:column;gap:12px}
 @media(min-width:760px){#sheet .pn{left:50%;transform:translateX(-50%);width:640px;bottom:4vh;border-radius:18px}}
 #toast{position:fixed;left:50%;bottom:112px;transform:translateX(-50%);background:#222;color:#fff;padding:10px 16px;border-radius:12px;opacity:0;pointer-events:none;transition:opacity .2s;z-index:80;max-width:88vw;font-size:14px}
 #toast.on{opacity:1}
@@ -71,11 +71,11 @@ textarea{width:100%;min-height:120px}
 <main id="main"></main>
 <nav id="nav"></nav>
 <div id="sheet"></div>
-<div id="toast"></div>
+<div id="toast" role="status" aria-live="polite"></div>
 <script src="config.js"></script>
 <script>
 'use strict';
-const APP_VERSION='7.1.1';
+const APP_VERSION='7.1.2';
 const $=s=>document.querySelector(s);
 const esc=s=>String(s==null?'':s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 const nz=s=>String(s==null?'':s).normalize('NFKC').toLowerCase().replace(/[\s\p{P}\p{S}]+/gu,'');
@@ -1150,7 +1150,7 @@ document.addEventListener('input',e=>{const t=e.target,id=t.id;
  else if(id==='imp'){U.impText=t.value}
  else if(t.dataset.tg){U.tg[t.dataset.tg]=t.value}});
 document.addEventListener('change',e=>{const t=e.target;if(t.id==='lgsel'&&t.value){U.lg={fid:t.value};render();return}if(t.dataset.ck!==undefined){if(t.checked)U.pend.add(t.dataset.ck);else U.pend.delete(t.dataset.ck)}if(t.dataset.clr){U.clr[t.dataset.clr]=t.checked}});
-document.addEventListener('keydown',e=>{if(e.key==='Enter'&&e.target.id==='qs'){const l=suggest(e.target.value);if(l.length)jump(l[0].fid)}});
+document.addEventListener('keydown',e=>{if(e.key==='Enter'&&e.target.id==='qs'&&!e.isComposing&&e.keyCode!==229){const l=suggest(e.target.value);if(l.length)jump(l[0].fid)}});
 try{matchMedia('(prefers-color-scheme: dark)').addEventListener('change',()=>{if(U.theme==='auto')applyTheme()})}catch(e){}
 (async function init(){render();if(!CFG.url){D.stErr='NOURL';D.stLoaded=true;render();return}await Promise.all([loadState(),loadRegs(),loadAcc()])})();
 </script>

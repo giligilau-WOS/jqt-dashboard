@@ -4,6 +4,7 @@
 // 2. 新增的同名 function 宣告（hoisting 會讓最後一個覆蓋前面全部）
 // 3. 補丁位置：所有 /* ===== vX.Y ===== */ 必須在 /* ===== 畫面 ===== */ 之前
 // 4. index.html 有改動但 APP_VERSION 沒有更新
+// 4b. keydown 的 Enter 沒避開輸入法選字
 // 5. 疑似金鑰、PIN、密碼寫死在程式碼
 // 6. Apps Script（*.gs，若存在）語法與 Code.gs／Plans.gs 函數分工
 import { readFileSync, existsSync, readdirSync } from 'node:fs';
@@ -53,6 +54,11 @@ if (headHtml != null && ver) {
   if (headHtml !== html && headVer === ver) errs.push(`index.html 有改動，但 APP_VERSION 仍是 ${ver}，請更新版本號`);
   else oks.push(`APP_VERSION=${ver}${headVer !== ver ? `（HEAD 是 ${headVer}）` : '（index.html 未改動）'}`);
 }
+
+// 4b. 按 Enter 觸發動作的 keydown 必須避開輸入法選字（注音、倉頡按 Enter 是確認選字）
+const enterBad = html.split('\n').map((l, i) => [i + 1, l]).filter(([, l]) => /keydown/.test(l) && /key\s*===\s*['"]Enter['"]/.test(l) && !(/isComposing/.test(l) && /229/.test(l)));
+if (enterBad.length) errs.push(`keydown 的 Enter 沒有檢查輸入法選字（要加 !e.isComposing&&e.keyCode!==229），第 ${enterBad.map(x => x[0]).join('、')} 行`);
+else oks.push('Enter 鍵處理都有避開輸入法選字');
 
 // 5. 疑似寫死的秘密
 const files = ['index.html', 'config.js', ...readdirSync(root).filter(f => f.endsWith('.gs'))];

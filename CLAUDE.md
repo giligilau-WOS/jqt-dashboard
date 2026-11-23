@@ -14,7 +14,7 @@
 | 資料來源 | whiteoutstats.com API | 第三方粉絲站，Bearer 金鑰，非官方 |
 | 驗證工具 | `tools/*.mjs` | 見「驗證與測試」 |
 
-目前網頁版本：`APP_VERSION='7.1.1'`（含「遊戲 ID 欄位」、「v7.1 兌換碼」補丁，v7.1.1 加上網站圖示）。圖示在 `icons/`：`favicon-32.png`、`icon-192.png`、`apple-touch-icon.png`（180×180，iPhone 加到主畫面用），來源是 jQt 聯盟徽章。使用者尚未回報 v7.1 的部署與測試結果。
+目前網頁版本：`APP_VERSION='7.1.2'`（含「遊戲 ID 欄位」、「v7.1 兌換碼」補丁；v7.1.1 加上網站圖示；v7.1.2 依 Modern Web Guidance 修正輸入法 Enter、深色 `color-scheme`、提示 `aria-live`、底部視窗 `dvh`）。圖示在 `icons/`：`favicon-32.png`、`icon-192.png`、`apple-touch-icon.png`（180×180，iPhone 加到主畫面用），來源是 jQt 聯盟徽章。使用者尚未回報 v7.1 的部署與測試結果。
 
 ## 網頁程式的修改慣例（重要）
 
@@ -29,7 +29,8 @@
 3. **事件處理**：每個功能用自己的 `data-a` 前綴（`ev_`、`br_`、`w_`、`wx_`、`bm_`、`z_`、`gc_`、`th_`、`se_`、`ntc_`），各自掛一個 `document.addEventListener('click',…)`，只處理自己的前綴。新前綴不可與既有前綴重疊（例如 `w_` 與 `wx_` 要確認 `startsWith` 不會互相誤判）。
 4. **底部彈出視窗**統一走 `openSheet({kind:'…'})`，再包裝 `playerSheet` 依 `U.sh.kind` 回傳內容。
 5. 每次修改都要更新 `APP_VERSION`，並在最後告訴使用者「登入卡片的版本應該是 X」。
-6. 使用者在這個環境不一定能讓 Claude 直接改檔案；沒有檔案時，給「一段程式＋貼在哪裡」，並請使用者貼回整份程式再改。
+6. **按 Enter 觸發動作的 `keydown` 一定要加 `!e.isComposing&&e.keyCode!==229`**：使用者用注音、倉頡輸入，按 Enter 是確認選字，不檢查會在選字時就觸發（iPhone Safari 只認 `keyCode 229`）。`check.mjs` 會擋。
+7. 使用者在這個環境不一定能讓 Claude 直接改檔案；沒有檔案時，給「一段程式＋貼在哪裡」，並請使用者貼回整份程式再改。
 
 ### 主要全域物件
 
@@ -149,7 +150,7 @@ POST 用 `Content-Type: text/plain`（避免 CORS 預檢）。
    node tools/check.mjs       # 語法、重複 const、新增同名 function、補丁位置、版本號、寫死的秘密（1 秒）
    node tools/smoke.mjs       # iPhone 尺寸開頁、四個分頁走一遍、零 JS 錯誤、截圖
    node tools/prop.mjs        # 屬性測試：分隊、一鍵／批次報名、截止與權限，各 600 組隨機輸入
-   node tools/e2e.mjs         # 端到端：全玩家、報名＋特區、截止、幹部／管理員登入與權限（31 項）
+   node tools/e2e.mjs         # 端到端：全玩家、報名＋特區、截止、幹部／管理員登入與權限、Modern Web Guidance 項目（38 項）
    node tools/workbench.mjs   # 分隊工作台：所有按鈕點一遍，零 JS 錯誤、人數守恆
    ```
    沒有 npm、沒有建置；腳本只用 Node 與環境內建的 Playwright。`prop.mjs` 可加參數 `[次數] [亂數種子]` 跑更多（例：`node tools/prop.mjs 3000 777`）。
